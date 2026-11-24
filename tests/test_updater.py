@@ -75,17 +75,27 @@ def test_self_update_runs_only_for_active_uv_tool(monkeypatch, tmp_path):
     assert run.call_args.args == (["/fixture/uv", "tool", "upgrade", updater.PACKAGE],)
 
 
-def test_pypi_calendar_update_compares_using_package_versions(monkeypatch):
-    package = SimpleNamespace(version="2026.9.3", read_text=lambda _: None)
+@pytest.mark.parametrize(
+    ("installed", "latest", "release_date"),
+    [
+        ("2026.9.3", "2026.11.4.1", "4 November 2026"),
+        ("2026.11.24.post2", "2026.11.24.3", "24 November 2026"),
+        ("2026.11.24.1", "2026.11.24.2", "24 November 2026"),
+    ],
+)
+def test_pypi_calendar_update_compares_using_package_versions(
+    monkeypatch, installed, latest, release_date
+):
+    package = SimpleNamespace(version=installed, read_text=lambda _: None)
     monkeypatch.setattr(updater, "distribution", lambda name: package)
     request = httpx.Request("GET", "https://pypi.org/")
     fetch = Mock(
-        return_value=httpx.Response(200, json={"info": {"version": "2026.11.4"}}, request=request)
+        return_value=httpx.Response(200, json={"info": {"version": latest}}, request=request)
     )
     monkeypatch.setattr(updater.httpx, "get", fetch)
     result = updater.UpdateChecker().check()
     assert result.status is UpdateStatus.AVAILABLE
-    assert result.latest_version == "2026.11.4"
-    assert "4 November 2026" in result.message
+    assert result.latest_version == latest
+    assert f"{latest} ({release_date})" in result.message
     assert fetch.call_args.args == ("https://pypi.org/pypi/snelstart-web-mcp/json",)
     assert version_label("2026.11.4.post1") == "2026.11.4.post1 (4 November 2026)"

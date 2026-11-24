@@ -191,6 +191,6 @@ snelstart-mcp update --check
 snelstart-mcp update
 ```
 
-Bijwerken via de CLI werkt voor installaties die door `uv tool` worden beheerd. Met een oudere versie kun je beginnen met `uv tool upgrade snelstart-web-mcp`. Verbind de client opnieuw na het bijwerken. `snelstart_status` en `snelstart_check_update` tonen ook beschikbare updates. Versies gebruiken de kalendernotatie `YYYY.M.D`, met zo nodig een `.postN` voor een volgende uitgave op dezelfde dag.
+Bijwerken via de CLI werkt voor installaties die door `uv tool` worden beheerd. Met een oudere versie kun je beginnen met `uv tool upgrade snelstart-web-mcp`. Verbind de client opnieuw na het bijwerken. `snelstart_status` en `snelstart_check_update` tonen ook beschikbare updates. Versies gebruiken `YYYY.M.D.N`. Het laatste getal begint elke dag bij `1` en gaat bij elke uitgave omhoog, bijvoorbeeld van `2026.11.24.1` naar `2026.11.24.2`.
 
 Werk je vanuit een broncheckout, dan gebruik je `uv sync --locked --extra browser` en `uv run --frozen snelstart-mcp doctor`. De Engelstalige handleiding bevat de [tests, pre-commit en uitgaveprocedure](README.md#code-and-tests).

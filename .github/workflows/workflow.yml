@@ -23,10 +23,13 @@ jobs:
           from pathlib import Path
 
           version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
-          match = re.fullmatch(r"(\d{4})\.([1-9]\d?)\.([1-9]\d?)(?:\.post[1-9]\d*)?", version)
+          match = re.fullmatch(r"([0-9]{4})\.([1-9][0-9]?)\.([1-9][0-9]?)\.[1-9][0-9]*", version)
           if not match:
-              raise SystemExit("Use YYYY.M.D or YYYY.M.D.postN for a release version.")
-          date(*map(int, match.groups()))
+              raise SystemExit("Use YYYY.M.D.N with a positive daily release number.")
+          try:
+              date(*map(int, match.groups()))
+          except ValueError:
+              raise SystemExit("The release version must contain a valid calendar date.") from None
           if os.environ["GITHUB_REF"] != f"refs/tags/v{version}":
               raise SystemExit(f"Run this workflow on tag v{version}.")
           PY

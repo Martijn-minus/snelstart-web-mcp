@@ -20,8 +20,8 @@ def version_label(value: str | None) -> str:
         return "unknown version"
     try:
         parts = Version(value).release
-        if len(parts) == 3 and parts[0] >= 2000:
-            release_date = date(*parts)
+        if len(parts) in (3, 4) and parts[0] >= 2000:
+            release_date = date(*parts[:3])
             return f"{value} ({release_date.day} {release_date:%B %Y})"
     except (InvalidVersion, ValueError):
         pass

@@ -67,7 +67,7 @@ The server uses Unix file locking, so native Windows and Git Bash are unsupporte
 
 ## Check for updates
 
-Releases use `YYYY.M.D` calendar versions. `snelstart-mcp --version` also shows the date in full.
+Releases use `YYYY.M.D.N`, where `N` starts at `1` each day and increases with each release. `snelstart-mcp --version` also shows the date in full.
 
 ```sh
 snelstart-mcp update --check
@@ -343,7 +343,7 @@ The SnelStart MCP GitHub Actions workflow runs the hooks and offline tests on Py
 
 ### Publishing a calendar release
 
-Set the version in `pyproject.toml` to the release date as `YYYY.M.D` and update `uv.lock` with `uv lock`. Use `.post1`, `.post2`, and so on for additional releases on the same date. Tag the reviewed commit as `v<VERSION>`. The PyPI workflow builds the tag, checks that its name matches the version, and publishes via the repository's `pypi` environment.
+Set the version in `pyproject.toml` to `YYYY.M.D.N` and update `uv.lock` with `uv lock`. Use the release date and count releases from `1` each day. For example, `2026.11.24.1` is followed by `2026.11.24.2` on the same day. The first release on the next day starts at `2026.11.25.1`. Write month, day, and release number without leading zeroes. Tag the reviewed commit as `v<VERSION>`. The PyPI workflow validates the version and tag, builds the package, and publishes via the repository's `pypi` environment.
 
 ```sh
 gh workflow run workflow.yml --ref "v$(uv run --frozen python -c 'from importlib.metadata import version; print(version("snelstart-web-mcp"))')"
