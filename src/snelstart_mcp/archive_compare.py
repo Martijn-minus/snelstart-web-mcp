@@ -75,10 +75,7 @@ def _index(
 
 
 def compare_archives(store: Store, request: CompareArchivesRequest) -> ArchiveComparison:
-    if request.dataset not in KEYS:
-        raise SnelStartError(
-            "Choose purchases, sales, bank entries, or journal and opening entries."
-        )
+    dataset = ArchiveDataset(request.dataset.value)
     with (
         open_snapshot(store, request.before) as before,
         open_snapshot(store, request.after) as after,
@@ -89,8 +86,8 @@ def compare_archives(store: Store, request: CompareArchivesRequest) -> ArchiveCo
             raise SnelStartError("Both archives must identify the same administration.")
         if (previous.year, previous.through_date) != (current.year, current.through_date):
             raise SnelStartError("Both archives must cover the same year and cutoff date.")
-        old, old_journals = _index(before.load(request.dataset), request.dataset)
-        new, new_journals = _index(after.load(request.dataset), request.dataset)
+        old, old_journals = _index(before.load(dataset), dataset)
+        new, new_journals = _index(after.load(dataset), dataset)
         if old_journals != new_journals:
             raise SnelStartError("The archives contain different journal coverage.")
 

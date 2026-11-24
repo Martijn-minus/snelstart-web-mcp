@@ -20,6 +20,13 @@ class ArchiveDataset(StrEnum):
     VAT_RETURNS = "vat_returns_all_years"
 
 
+class ArchiveComparisonDataset(StrEnum):
+    PURCHASES = ArchiveDataset.PURCHASES.value
+    SALES = ArchiveDataset.SALES.value
+    BANK_ENTRIES = ArchiveDataset.BANK_ENTRIES.value
+    JOURNAL_AND_OPENING_ENTRIES = ArchiveDataset.JOURNAL_AND_OPENING_ENTRIES.value
+
+
 class BookingLookupStatus(StrEnum):
     FOUND = "found"
     MISSING = "missing"
@@ -150,6 +157,7 @@ class AuditOutcome(StrEnum):
 class UpdateStatus(StrEnum):
     AVAILABLE = "available"
     CURRENT = "current"
+    RECONNECT_REQUIRED = "reconnect_required"
     UNAVAILABLE = "unavailable"
 
 

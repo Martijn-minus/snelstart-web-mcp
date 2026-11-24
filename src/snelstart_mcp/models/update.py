@@ -33,6 +33,7 @@ class PyPIProject(BaseModel):
 class UpdateCheckResponse(BaseModel):
     status: UpdateStatus
     installed_version: str | None
+    running_version: str | None = None
     installed_commit: str | None = None
     latest_version: str | None = None
     message: str

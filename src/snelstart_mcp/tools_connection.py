@@ -35,7 +35,7 @@ def register_connection_tools(
 
     @tool(annotations=READ)
     def snelstart_check_update() -> UpdateCheckResponse:
-        """Check GitHub for an update to the installed MCP. Report the result to the user."""
+        """Check whether to reconnect or update the MCP. Report the result to the user."""
         return updates.check(refresh=True)
 
     @tool(annotations=READ)

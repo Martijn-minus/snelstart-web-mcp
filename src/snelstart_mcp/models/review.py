@@ -9,7 +9,7 @@ from pydantic import AfterValidator, BaseModel, Field, JsonValue, model_validato
 
 from ..enums import (
     ArchiveChange,
-    ArchiveDataset,
+    ArchiveComparisonDataset,
     BookingLookupStatus,
     DocumentStatus,
     EntryKind,
@@ -133,7 +133,7 @@ class BankExportResponse(BaseModel):
 class CompareArchivesRequest(ToolRequest):
     before: str
     after: str
-    dataset: ArchiveDataset
+    dataset: ArchiveComparisonDataset
     skip: int = Field(default=0, ge=0)
     take: int = Field(default=50, ge=1, le=100)
 
@@ -151,7 +151,7 @@ class ArchiveComparison(BaseModel):
     administration_id: UUID
     year: int
     through_date: date
-    dataset: ArchiveDataset
+    dataset: ArchiveComparisonDataset
     added: int
     removed: int
     changed: int

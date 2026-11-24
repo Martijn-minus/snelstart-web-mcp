@@ -108,3 +108,11 @@ def test_installed_hook_command_limits_scope_and_does_not_echo_tool_data(hooks_f
     )
     assert "snelstart-mcp update" in notice["systemMessage"]
     assert "private fixture" not in json.dumps(notice)
+    reconnect = json.loads(
+        send(
+            "PostToolUse",
+            status,
+            {"structuredContent": {"update": {"status": "reconnect_required"}}},
+        )
+    )
+    assert "Reconnect the MCP client" in reconnect["systemMessage"]

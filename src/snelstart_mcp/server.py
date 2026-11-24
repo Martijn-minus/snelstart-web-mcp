@@ -40,7 +40,8 @@ LIVE_INSTRUCTIONS = (
     "Use snelstart_list_archives to find backups, snelstart_create_year_archive to create one "
     "on request, and snelstart_verify_archive to check files. "
     "An MCP export covers its declared scope; restoring in SnelStart 12 requires a native BACPAC. "
-    "If snelstart_status reports an available update, tell the user. Updates are applied locally."
+    "If snelstart_status reports an available update or asks to reconnect, tell the user. "
+    "Updates are applied locally."
 )
 OFFLINE_INSTRUCTIONS = (
     "This server reads one local SnelStart year archive. Call snelstart_snapshot_info first "
@@ -102,7 +103,8 @@ class AuditedMCP(FastMCP):
 def create_server(client: Client | None = None) -> FastMCP:
     client = client or Client(Store())
     audit = AuditLog(client.store)
-    server_version = installed_version() or "unknown"
+    running_version = installed_version()
+    server_version = running_version or "unknown"
     instructions = (
         "This server is running in live read-only mode. " + LIVE_INSTRUCTIONS
         if client.read_only
@@ -110,7 +112,9 @@ def create_server(client: Client | None = None) -> FastMCP:
     )
     mcp = AuditedMCP(audit, server_version, name="snelstart", instructions=instructions)
     tool = tool_registrar(mcp, mcp.registered_requests, read_only=client.read_only)
-    register_connection_tools(tool, client, UpdateChecker(), server_version=server_version)
+    register_connection_tools(
+        tool, client, UpdateChecker(running_version=running_version), server_version=server_version
+    )
     register_bookkeeping_tools(tool, client)
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)

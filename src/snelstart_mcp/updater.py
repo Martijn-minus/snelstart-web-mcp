@@ -14,7 +14,7 @@ from .config import SnelStartError
 from .enums import UpdateStatus
 from .models.responses import ToolUpdateResponse
 from .models.update import GitHubComparison, InstalledSource, PyPIProject, UpdateCheckResponse
-from .version import PACKAGE, version_label
+from .version import PACKAGE, installed_version, version_label
 
 REPOSITORY = "Martijn-minus/snelstart-web-mcp"
 UPSTREAM = f"https://github.com/{REPOSITORY}"
@@ -117,13 +117,25 @@ def _check_update() -> UpdateCheckResponse:
 
 
 class UpdateChecker:
-    def __init__(self) -> None:
+    def __init__(self, *, running_version: str | None = None) -> None:
+        self._running_version = running_version
         self._result: UpdateCheckResponse | None = None
         self._expires_at = 0.0
 
     def check(self, *, refresh: bool = False) -> UpdateCheckResponse:
+        if self._running_version is not None:
+            installed = installed_version()
+            if installed is not None and installed != self._running_version:
+                return UpdateCheckResponse(
+                    status=UpdateStatus.RECONNECT_REQUIRED,
+                    running_version=self._running_version,
+                    installed_version=installed,
+                    message=f"Reconnect the MCP client to load SnelStart MCP {version_label(installed)}.",
+                )
         if refresh or self._result is None or monotonic() >= self._expires_at:
-            self._result = _check_update()
+            self._result = _check_update().model_copy(
+                update={"running_version": self._running_version}
+            )
             interval = (
                 RETRY_INTERVAL
                 if self._result.status is UpdateStatus.UNAVAILABLE

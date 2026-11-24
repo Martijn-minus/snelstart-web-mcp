@@ -49,7 +49,15 @@ def hook_output(event: CodexHookInput) -> CodexHookOutput | None:
     if not isinstance(result, dict):
         return None
     update = result.get("update") if tool == "snelstart_status" else result
-    if not isinstance(update, dict) or update.get("status") != UpdateStatus.AVAILABLE:
+    if not isinstance(update, dict):
+        return None
+    if update.get("status") == UpdateStatus.RECONNECT_REQUIRED:
+        return _output(
+            event,
+            "Tell the user to reconnect the MCP client to load the installed SnelStart MCP version.",
+            notice="Reconnect the MCP client to load the installed SnelStart MCP version.",
+        )
+    if update.get("status") != UpdateStatus.AVAILABLE:
         return None
     notice = "SnelStart MCP update available. Run 'snelstart-mcp update' locally and reconnect."
     return _output(event, "Tell the user about the available SnelStart MCP update.", notice=notice)

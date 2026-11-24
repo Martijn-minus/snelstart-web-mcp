@@ -75,6 +75,29 @@ def test_self_update_runs_only_for_active_uv_tool(monkeypatch, tmp_path):
     assert run.call_args.args == (["/fixture/uv", "tool", "upgrade", updater.PACKAGE],)
 
 
+def test_same_process_detects_local_upgrade_during_cached_update_check(monkeypatch):
+    running = "2026.11.24.9"
+    package = SimpleNamespace(version=running, read_text=lambda _: None)
+    monkeypatch.setattr(updater, "distribution", lambda _: package)
+    monkeypatch.setattr(updater, "installed_version", lambda: package.version)
+    request = httpx.Request("GET", "https://pypi.org/")
+    fetch = Mock(
+        return_value=httpx.Response(200, json={"info": {"version": running}}, request=request)
+    )
+    monkeypatch.setattr(updater.httpx, "get", fetch)
+
+    checker = updater.UpdateChecker(running_version=running)
+    assert checker.check().status is UpdateStatus.CURRENT
+    package.version = "2026.11.24.10"
+    result = checker.check()
+    assert result.status is UpdateStatus.RECONNECT_REQUIRED
+    assert result.running_version == running
+    assert result.installed_version == package.version
+    assert "Reconnect" in result.message
+    assert checker.check(refresh=True) == result
+    fetch.assert_called_once()
+
+
 @pytest.mark.parametrize(
     ("installed", "latest", "release_date"),
     [

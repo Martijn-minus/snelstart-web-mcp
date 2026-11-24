@@ -95,7 +95,7 @@ snelstart-mcp update
 
 If you installed a version before the updater existed, run `uv tool upgrade snelstart-web-mcp` once. `snelstart-mcp update` uses the active `uv tool` installation and keeps its source and extras. Reconnect the MCP client after an upgrade. From a source checkout, update the checkout and run `uv sync --locked`.
 
-`doctor` and `snelstart_status` show the SnelStart MCP version and update availability. MCP clients also receive the running package version in `serverInfo.version` when they connect. For PyPI installs, the update check compares package versions. For GitHub installs tracking `main`, it compares the installed public commit with the current branch. The MCP caches successful checks for one hour and asks the client to report an available update. Call `snelstart_check_update` to check immediately. Checks use public package metadata and send no SnelStart account data.
+`doctor` and `snelstart_status` show the SnelStart MCP version and update availability. MCP clients also receive the running package version in `serverInfo.version` when they connect. If the running and installed versions differ, the MCP reports `reconnect_required` with both versions. Reconnect the client to load the installed tools. For PyPI installs, the update check compares package versions. For GitHub installs tracking `main`, it compares the installed public commit with the current branch. The MCP caches successful public checks for one hour. Call `snelstart_check_update` to check immediately. Checks use public package metadata and send no SnelStart account data.
 
 ## Quick start from a source checkout
 
@@ -195,7 +195,7 @@ The MCP interface uses English tool names, argument names, option values, help a
 | Tool | What it does |
 | --- | --- |
 | `snelstart_status` | Shows the running MCP version, selected administration, sign-in and refresh status, effective write settings, and update availability. |
-| `snelstart_check_update` | Checks the installed package's public source for a newer version. |
+| `snelstart_check_update` | Checks whether the MCP client needs to reconnect or the installed package has a public update. |
 | `snelstart_list_administrations` | Lists the administrations accessible to the signed-in account. |
 | `snelstart_select_administration` | Opens an administration by UUID and saves that selection locally. |
 | `snelstart_list_operations` | Searches the API catalog and returns exact operation names and parameters. Set `read_only: false` to include write operations. |
@@ -269,7 +269,7 @@ The profile keeps a local receipt keyed by administration and PDF checksum. Repe
 
 For 2025 and November 2026 balances, call `snelstart_balance_sheet` separately with `2025-12-31` and `2026-11-30`. For detailed VAT returns, start with `snelstart_vat_returns` and pass the public identifiers as `return_ids` to `snelstart_vat_return_details`.
 
-For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line of the export contains `ledger_id` and the original `entry`. The export only includes entries within the inclusive date range. `fetched_rows` counts the rows the API reported through the closing date and `exported_rows` counts the rows within the requested period. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
+For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line contains `ledger_id` and the original `entry`. For a range of multiple days, the tool checks the administration's fiscal-year dates and fetches the part of each fiscal year in the range separately. It rejects ranges with unverified fiscal-year coverage. `fetched_rows` counts the rows fetched across all parts. `exported_rows` counts the rows in the requested range. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
 
 ```json
 {"operation":"GET /BtwAangiftes/Get","parameters":{"id":123}}
@@ -328,7 +328,7 @@ For each write, the first MCP call returns an approval ID. In your own terminal,
 | `snelstart_get_entries` | Read up to 20 mixed purchase, bank, journal and opening-balance bookings. Pass `entries` as objects with `kind` and `entry_id`. Each result keeps its ID and reports whether it was found, missing, failed or too large for the batch. |
 | `snelstart_export_bank_entries` | Pass `journal_ids`, `start_date` and `through_date`. All checked pages are exported to a private JSONL file. The result includes the administration, row counts per journal and SHA-256. The file preserves journal metadata and original bank rows, including markings and invoice links when present. A failed page discards the export. |
 | `snelstart_reconcile_bank` | Review recorded links and suggested matches for the same journal and date inputs. Use `invoice_start_date` to adjust the default 90-day invoice lookback and `skip` and `take` to page the report. |
-| `snelstart_compare_archives` | Pass `before`, `after` and a booking `dataset` such as `purchases` or `bank_entries`. The tool compares checksummed dataset files locally. Both archives must identify the same administration, year and cutoff. Journal datasets must cover the same journals. |
+| `snelstart_compare_archives` | Pass `before`, `after` and one of `purchases`, `sales`, `bank_entries` or `journal_and_opening_entries`. The tool compares checksummed dataset files locally. Both archives must identify the same administration, year and cutoff. Journal datasets must cover the same journals. Read an individual archived balance and profit-and-loss report with `snelstart_snapshot_read` in an offline session. |
 
 Reconciliation reports recorded SnelStart links separately from suggestions. Suggestions use the bank entry’s signed amount, an invoice date on or before the payment date, and reference or counterparty evidence. Competing and amount-only matches remain ambiguous. Duplicate flags and missing-document indicators are review signals. Document indicators come from SnelStart’s attachment flags. Suggested matches require human review before making any bookkeeping changes.
 

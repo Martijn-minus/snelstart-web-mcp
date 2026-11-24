@@ -194,6 +194,36 @@ def test_compare_snapshots_is_local_verified_and_scoped(app):
     assert not seen
 
 
+def test_compare_archives_advertises_only_booking_datasets(tmp_path):
+    server = create_server(Client(Store(tmp_path / "profile")))
+    tool = next(
+        tool
+        for tool in asyncio.run(server.list_tools())
+        if tool.name == "snelstart_compare_archives"
+    )
+    enum = tool.inputSchema["$defs"]["ArchiveComparisonDataset"]["enum"]
+    assert set(enum) == {"purchases", "sales", "bank_entries", "journal_and_opening_entries"}
+    with pytest.raises(ToolError, match="Invalid input for this SnelStart tool"):
+        asyncio.run(
+            server.call_tool(
+                tool.name,
+                {"before": "before", "after": "after", "dataset": "balance_and_profit_loss"},
+            )
+        )
+
+
+def test_mcp_status_reports_reconnect_with_running_and_installed_versions(app, monkeypatch):
+    call, _, _, seen = app
+    monkeypatch.setattr("snelstart_mcp.updater.installed_version", lambda: "2099.1.1.1")
+    status = call("snelstart_status")
+    update = status["update"]
+    assert update["status"] == "reconnect_required"
+    assert update["running_version"] == status["server_version"]
+    assert update["installed_version"] == "2099.1.1.1"
+    assert call("snelstart_check_update") == update
+    assert not seen
+
+
 def test_read_only_reconciliation_reports_evidence_and_competing_payments(app):
     call, _, handlers, seen = app
 

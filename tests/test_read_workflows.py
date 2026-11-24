@@ -33,6 +33,7 @@ def session(tmp_path, monkeypatch):
     replies = {
         "/Administrations/All": [{"id": 1, "identifier": ADMIN}],
         "/Administrations/Open": 0,
+        "/Jaarafsluiting/GetAllJaarafsluiting": fiscal_years(("2024-01-01", "2024-12-31")),
     }
 
     def handle(request):
@@ -54,6 +55,11 @@ def call(client, name, params):
     if isinstance(result, tuple):
         return result[1]
     return json.loads(result[0].text)
+
+
+def fiscal_years(*periods):
+    rows = [{"boekjaar": {"startDate": start, "endDate": end}} for start, end in periods]
+    return {"resultList": rows, "totalMatchCount": len(rows)}
 
 
 def test_ledger_export_pages_and_filters_each_account(session):
@@ -91,17 +97,115 @@ def test_ledger_export_pages_and_filters_each_account(session):
     assert [request.url.params["skip"] for request in ledger_calls] == ["0", "1", "0"]
 
 
+def test_ledger_export_crosses_a_non_calendar_fiscal_year_boundary(session):
+    client, _, replies = session
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-07-01T00:00:00", "2025-06-30T00:00:00"),
+        ("2023-07-01T00:00:00", "2024-06-30T00:00:00"),
+    )
+
+    def ledger(request):
+        through_date = request.url.params["dateTo"][:10]
+        rows = {
+            "2024-06-30": [{"publicIdentifier": "prior", "datum": "2024-06-30T23:59:59"}],
+            "2024-07-01": [{"publicIdentifier": "current", "datum": "2024-07-01T00:00:00"}],
+        }
+        return {"resultList": rows[through_date], "totalMatchCount": 1}
+
+    replies["/Grootboek/GetGrootboekMutaties"] = ledger
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY], "start_date": "2024-06-30", "through_date": "2024-07-01"},
+    )
+    assert result["total_exported_rows"] == 2
+    assert result["ledgers"][0]["fetched_rows"] == 2
+    rows = [json.loads(line) for line in Path(result["path"]).read_text().splitlines()]
+    assert [row["entry"]["publicIdentifier"] for row in rows] == ["current", "prior"]
+
+
+def test_ledger_export_checks_all_three_years_when_the_latest_has_no_rows(session):
+    client, requests, replies = session
+    ledger_path = "/Grootboek/GetGrootboekMutaties"
+    counts = {2025: 0, 2024: 15, 2023: 24}
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        *((f"{year}-01-01", f"{year}-12-31") for year in counts)
+    )
+
+    def ledger(request):
+        year = int(request.url.params["dateTo"][:4])
+        offset = int(request.url.params["skip"])
+        rows = [
+            {"publicIdentifier": f"{year}-{index}", "datum": f"{year}-01-{index + 1:02d}"}
+            for index in range(offset, min(offset + 10, counts[year]))
+        ]
+        return {"resultList": rows, "totalMatchCount": counts[year]}
+
+    replies[ledger_path] = ledger
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY], "start_date": "2023-01-01", "through_date": "2025-12-31"},
+    )
+    assert result["total_exported_rows"] == 39
+    rows = [json.loads(line) for line in Path(result["path"]).read_text().splitlines()]
+    assert [row["entry"]["publicIdentifier"] for row in rows] == [
+        f"{year}-{index}" for year, count in counts.items() for index in range(count)
+    ]
+    assert [
+        (request.url.params["dateTo"][:10], request.url.params["skip"])
+        for request in requests
+        if request.url.path == ledger_path
+    ] == [
+        ("2025-12-31", "0"),
+        ("2024-12-31", "0"),
+        ("2024-12-31", "10"),
+        ("2023-12-31", "0"),
+        ("2023-12-31", "10"),
+        ("2023-12-31", "20"),
+    ]
+
+
+@pytest.mark.parametrize("next_start", ["2024-12-31", "2025-02-01"])
+def test_ledger_export_rejects_ambiguous_fiscal_year_coverage(session, next_start):
+    client, requests, replies = session
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-01-01", "2024-12-31"),
+        (next_start, "2025-12-31"),
+    )
+    with pytest.raises(ToolError, match="could not verify fiscal-year coverage"):
+        call(
+            client,
+            "snelstart_export_ledger_entries",
+            {"ledger_ids": [ENTRY], "start_date": "2024-01-01", "through_date": "2025-12-31"},
+        )
+    assert not (client.store.directory / "exports").exists()
+    assert all(request.url.path != "/Grootboek/GetGrootboekMutaties" for request in requests)
+
+
 def test_incomplete_ledger_export_does_not_leave_partial_file(session):
     client, _, replies = session
-    replies["/Grootboek/GetGrootboekMutaties"] = {
-        "resultList": [{"publicIdentifier": "repeated", "datum": "2024-01-01"}],
-        "totalMatchCount": 2,
-    }
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-01-01", "2024-12-31"), ("2025-01-01", "2025-12-31")
+    )
+
+    def ledger(request):
+        if request.url.params["dateTo"][:4] == "2025":
+            return {
+                "resultList": [{"publicIdentifier": "newer", "datum": "2025-01-01"}],
+                "totalMatchCount": 1,
+            }
+        return {
+            "resultList": [{"publicIdentifier": "repeated", "datum": "2024-01-01"}],
+            "totalMatchCount": 2,
+        }
+
+    replies["/Grootboek/GetGrootboekMutaties"] = ledger
     with pytest.raises(ToolError, match="duplicate row ID"):
         call(
             client,
             "snelstart_export_ledger_entries",
-            {"ledger_ids": [ENTRY], "start_date": "2024-01-01", "through_date": "2024-12-31"},
+            {"ledger_ids": [ENTRY], "start_date": "2024-01-01", "through_date": "2025-12-31"},
         )
     assert list((client.store.directory / "exports").iterdir()) == []
 

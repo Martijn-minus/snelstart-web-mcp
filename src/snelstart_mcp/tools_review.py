@@ -4,7 +4,9 @@ import hashlib
 import json
 import os
 import tempfile
+from datetime import date, timedelta
 from functools import partial
+from itertools import pairwise
 from pathlib import Path
 from uuid import UUID
 
@@ -43,7 +45,7 @@ from .tools_bookkeeping import (
     attachment_metadata,
     ledger_query,
 )
-from .year_data import entries_in_period, pages
+from .year_data import booking_date, entries_in_period, pages
 
 
 def _selected_administration(client: Client) -> UUID:
@@ -53,9 +55,54 @@ def _selected_administration(client: Client) -> UUID:
     return administration
 
 
+def _ledger_export_periods(read, start: date, end: date) -> list[tuple[date, date]]:
+    if start == end:
+        return [(start, end)]
+
+    fiscal_years = pages(
+        read,
+        "GET /Jaarafsluiting/GetAllJaarafsluiting",
+        {"searchTerm": "", "sortDataFieldName": "jaar", "status": 0, "sortDescending": True},
+        ("boekjaar",),
+    )
+    periods = []
+    for row in fiscal_years:
+        fiscal_year = row["boekjaar"]
+        year_start = fiscal_year.get("startDate") if isinstance(fiscal_year, dict) else None
+        year_end = fiscal_year.get("endDate") if isinstance(fiscal_year, dict) else None
+        if not isinstance(year_start, str) or not isinstance(year_end, str):
+            raise SnelStartError("SnelStart returned a fiscal year without both boundary dates.")
+        try:
+            first, last = booking_date(year_start), booking_date(year_end)
+        except SnelStartError:
+            raise SnelStartError("SnelStart returned an invalid fiscal-year date.") from None
+        if first > last:
+            raise SnelStartError("SnelStart returned reversed fiscal-year dates.")
+        first, last = max(first, start), min(last, end)
+        if first <= last:
+            periods.append((first, last))
+
+    periods.sort()
+    if (
+        not periods
+        or periods[0][0] != start
+        or periods[-1][1] != end
+        or any(
+            next_start - previous_end != timedelta(days=1)
+            for (_, previous_end), (next_start, _) in pairwise(periods)
+        )
+    ):
+        raise SnelStartError(
+            f"SnelStart could not verify fiscal-year coverage for {start} through {end}."
+        )
+    return periods
+
+
 def export_ledger_entries(client: Client, request: LedgerExportRequest) -> LedgerExportResponse:
     administration = _selected_administration(client)
     read = partial(client.request, expected_administration=str(administration))
+    # The ledger endpoint only returns the fiscal year containing dateTo.
+    periods = _ledger_export_periods(read, request.start_date, request.through_date)
     directory = Store(client.store.directory / "exports").directory
     fd, filename = tempfile.mkstemp(prefix="ledger-", suffix=".jsonl", dir=directory)
     path = Path(filename)
@@ -64,26 +111,28 @@ def export_ledger_entries(client: Client, request: LedgerExportRequest) -> Ledge
     try:
         with os.fdopen(fd, "wb") as stream:
             for ledger_id in request.ledger_ids:
-                rows = pages(
-                    read,
-                    LEDGER_ENTRIES,
-                    ledger_query(ledger_id, request.through_date),
-                    ("publicIdentifier",),
-                    size_param="top",
-                )
-                selected = entries_in_period(
-                    rows, request.start_date, request.through_date, "datum"
-                )
-                for entry in selected:
-                    line = json.dumps(
-                        {"ledger_id": str(ledger_id), "entry": entry}, ensure_ascii=False
+                fetched_rows = exported_rows = 0
+                for start, end in reversed(periods):
+                    rows = pages(
+                        read,
+                        LEDGER_ENTRIES,
+                        ledger_query(ledger_id, end),
+                        ("publicIdentifier",),
+                        size_param="top",
                     )
-                    encoded = (line + "\n").encode("utf-8")
-                    stream.write(encoded)
-                    digest.update(encoded)
+                    selected = entries_in_period(rows, start, end, "datum")
+                    fetched_rows += len(rows)
+                    exported_rows += len(selected)
+                    for entry in selected:
+                        line = json.dumps(
+                            {"ledger_id": str(ledger_id), "entry": entry}, ensure_ascii=False
+                        )
+                        encoded = (line + "\n").encode("utf-8")
+                        stream.write(encoded)
+                        digest.update(encoded)
                 accounts.append(
                     LedgerExportAccount(
-                        ledger_id=ledger_id, fetched_rows=len(rows), exported_rows=len(selected)
+                        ledger_id=ledger_id, fetched_rows=fetched_rows, exported_rows=exported_rows
                     )
                 )
             stream.flush()
@@ -135,7 +184,7 @@ def register_review_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_export_ledger_entries(request: LedgerExportRequest) -> LedgerExportResponse:
-        """Export all checked pages for up to 20 ledger accounts, restricted to an inclusive date range. Returns a private JSONL path, row counts and checksum."""
+        """Export checked ledger pages across fiscal years for up to 20 accounts within an inclusive date range. Returns a private JSONL path, row counts and checksum."""
         return export_ledger_entries(client, request)
 
     @tool(annotations=READ)
