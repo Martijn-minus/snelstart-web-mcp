@@ -5,19 +5,19 @@ from pathlib import Path
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, Field, JsonValue, model_validator
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue, model_validator
 
 from ..enums import (
     ArchiveChange,
     ArchiveComparisonDataset,
+    BookingLookupFailure,
     BookingLookupStatus,
     DocumentStatus,
-    EntryKind,
     InvoiceKind,
     ReconciliationStatus,
 )
 from . import Sha256
-from .requests import DateRangeRequest, ToolRequest
+from .requests import DateRangeRequest, EntryDetailRequest, ToolRequest
 
 
 def _unique(values: list[UUID]) -> list[UUID]:
@@ -82,9 +82,8 @@ class ReviewDateRange(DateRangeRequest):
         return self
 
 
-class BookingReference(BaseModel, frozen=True):
-    kind: EntryKind
-    entry_id: UUID
+class BookingReference(EntryDetailRequest):
+    model_config = ConfigDict(frozen=True)
 
 
 class BookingBatchRequest(ToolRequest):
@@ -92,15 +91,18 @@ class BookingBatchRequest(ToolRequest):
 
     @model_validator(mode="after")
     def unique_entries(self):
-        if len(set(self.entries)) != len(self.entries):
+        if len({(entry.kind, entry.entry_id) for entry in self.entries}) != len(self.entries):
             raise ValueError("Provide each booking reference only once.")
         return self
 
 
-class BookingLookup(BookingReference, frozen=True):
+class BookingLookup(BookingReference):
     status: BookingLookupStatus
     details: JsonValue = None
     reason: str | None = None
+    failure_code: BookingLookupFailure | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
 
 
 class BookingBatchResponse(BaseModel):

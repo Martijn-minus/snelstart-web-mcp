@@ -1,10 +1,10 @@
 from datetime import date
 from uuid import UUID
 
-from pydantic import JsonValue
+from pydantic import JsonValue, ValidationError
 
 from .client import Client
-from .config import SnelStartError
+from .config import SnelStartError, SnelStartHTTPError
 from .dates import window
 from .enums import (
     AttachmentKind,
@@ -15,7 +15,7 @@ from .enums import (
     YearEndSection,
 )
 from .models import ApiPage, JsonObject
-from .models.api import InvoiceSearchBody, InvoiceSearchTerm
+from .models.api import InvoiceSearchBody, InvoiceSearchTerm, PurchaseDetailIdentity
 from .models.requests import (
     AttachmentListRequest,
     BankEntriesRequest,
@@ -36,6 +36,7 @@ from .tooling import READ, Register
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
+PURCHASE_DETAILS_BY_INVOICE = "GET /Purchases/GetByFactuurNummerIdentifier"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
 PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
 ENTRY_DETAILS = {
@@ -54,6 +55,48 @@ ATTACHMENT_OPERATIONS = frozenset(
         "GET /MemoriaalBoekingen/GetAttachments",
     }
 )
+
+
+class PurchaseDetailRejected(SnelStartError):
+    """The purchase detail endpoint rejected a booking which may appear in search."""
+
+
+def read_booking_entry(read, request: EntryDetailRequest) -> JsonValue:
+    operation, parameter = ENTRY_DETAILS[request.kind]
+    try:
+        return read(operation, {parameter: str(request.entry_id)})
+    except SnelStartHTTPError as error:
+        if request.kind is not EntryKind.PURCHASE or error.status_code != 400:
+            raise
+
+    rejected = "SnelStart rejected the purchase detail lookup (HTTP 400)."
+    guidance = "The purchase search row can still provide list-level evidence."
+    if request.purchase_invoice_id is None:
+        raise PurchaseDetailRejected(
+            f"{rejected} Use publicIdentifier as entry_id and, if available, "
+            f"factuurnummeridentifier from the same row as purchase_invoice_id. {guidance}"
+        )
+    try:
+        details = read(
+            PURCHASE_DETAILS_BY_INVOICE,
+            {"factuurNummerIdentifier": str(request.purchase_invoice_id)},
+        )
+    except SnelStartHTTPError as error:
+        raise PurchaseDetailRejected(
+            f"{rejected} The invoice lookup returned HTTP {error.status_code}. {guidance}"
+        ) from None
+    try:
+        identity = PurchaseDetailIdentity.model_validate(details)
+    except ValidationError:
+        identity = None
+    if identity is None or (
+        identity.publicIdentifier != request.entry_id
+        or identity.factuurNummerIdentifier != request.purchase_invoice_id
+    ):
+        raise PurchaseDetailRejected(
+            f"{rejected} The invoice lookup did not verify both identifiers. {guidance}"
+        )
+    return details
 
 
 def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonObject:
@@ -188,9 +231,8 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_get_entry(request: EntryDetailRequest) -> JsonResponse:
-        """Read a purchase, journal, opening balance or bank entry by UUID."""
-        operation, parameter = ENTRY_DETAILS[request.kind]
-        return JsonResponse(data=client.request(operation, {parameter: str(request.entry_id)}))
+        """Read a booking by UUID. For purchases, include the invoice identifier from the same search row when available."""
+        return JsonResponse(data=read_booking_entry(client.request, request))
 
     @tool(annotations=READ)
     def snelstart_vat_returns() -> JsonResponse:

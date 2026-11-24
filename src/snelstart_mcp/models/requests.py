@@ -4,7 +4,7 @@ from datetime import date
 from pathlib import Path
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..enums import (
     AttachmentKind,
@@ -126,6 +126,17 @@ class EntryRequest(ToolRequest):
 
 class EntryDetailRequest(EntryRequest):
     kind: EntryKind
+    purchase_invoice_id: UUID | None = Field(
+        default=None,
+        description="For purchases, the factuurnummeridentifier from the same purchase search row.",
+        exclude_if=lambda value: value is None,
+    )
+
+    @model_validator(mode="after")
+    def invoice_id_only_for_purchases(self):
+        if self.purchase_invoice_id is not None and self.kind is not EntryKind.PURCHASE:
+            raise ValueError("An invoice identifier can only be used for a purchase booking.")
+        return self
 
 
 class AttachmentListRequest(EntryRequest):

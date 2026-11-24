@@ -34,6 +34,10 @@ class BookingLookupStatus(StrEnum):
     TOO_LARGE = "too_large"
 
 
+class BookingLookupFailure(StrEnum):
+    PURCHASE_DETAIL_REJECTED = "purchase_detail_rejected"
+
+
 class ArchiveChange(StrEnum):
     ADDED = "added"
     CHANGED = "changed"

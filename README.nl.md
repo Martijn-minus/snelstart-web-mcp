@@ -223,6 +223,8 @@ Vanuit de MCP geeft `snelstart_audit_log` de recente aanroepen voor de gekozen a
 | `snelstart_reconcile_bank` | Bekijk geregistreerde SnelStart-koppelingen en mogelijke factuurmatches. De tool kijkt naar bedrag, datum, omschrijving en tegenpartij. Hij meldt twijfelgevallen, mogelijke dubbelen en signalen over ontbrekende bijlagen. Controleer voorgestelde matches vóór je boekt. |
 | `snelstart_compare_archives` | Vergelijk twee lokale jaararchieven met `before`, `after` en `purchases`, `sales`, `bank_entries` of `journal_and_opening_entries` als dataset. De administratie, het boekjaar, de peildatum en de dagboekdekking moeten overeenkomen. Lees de opgeslagen balans en winst-en-verliesrekening per archief via `snelstart_snapshot_read` in een offline sessie. |
 
+Gebruik bij inkopen `publicIdentifier` uit de zoekrij als `entry_id` en, als het aanwezig is, `factuurnummeridentifier` uit diezelfde rij als `purchase_invoice_id`. Dit werkt ook met `snelstart_get_entry`. Bij HTTP 400 op de gewone detailroute kan de MCP via het factuur-ID dezelfde boeking ophalen en beide ID's controleren. Als `purchase_detail_rejected` terugkomt, blijft de detailbatch onvolledig. De zoekrij kan nog als bewijs voor de lijstvelden dienen.
+
 `snelstart_mutation_receipts` en `snelstart-mcp audit` tonen de uitgevoerde schrijfoperatie, een beschikbaar boekings- of verwerkings-ID, controlesommen en de uitkomst. Een time-out blijft onopgelost. Met `snelstart_verify_mutation` kun je op basis van het `receipt_id` ondersteunde acties teruglezen, waaronder nieuw aangemaakte boekingen, geregistreerde verwijderingen en verwerkte inkoop-PDF’s. Andere acties controleer je aan de hand van de brongegevens. Een controle herhaalt de schrijfopdracht nooit.
 
 ## Jaararchieven en herstel

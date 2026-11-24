@@ -228,7 +228,7 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
 | `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
 
-For an invoice review, search the period, open each purchase using `kind: "purchase"`, and read its attached invoice and recorded settlements. Compare the booking to the document and check the corresponding bank entry if payment evidence is needed. For lists with `skip` and `take`, advance through all pages before reporting a period total.
+For an invoice review, search the period and open each purchase with `kind: "purchase"`. Pass the search row's `publicIdentifier` as `entry_id` and, when present, its `factuurnummeridentifier` as `purchase_invoice_id` to the single or batch booking tool. When the usual detail lookup returns HTTP 400, the MCP can use the invoice ID to retrieve and verify the same booking. A remaining `purchase_detail_rejected` failure leaves the batch incomplete. Use the search row as list-level evidence and report the missing detail. Read the attached invoice and recorded settlements where available. For lists with `skip` and `take`, advance through all pages before reporting a period total.
 
 Example purchase filter for entries flagged during November 2026.
 

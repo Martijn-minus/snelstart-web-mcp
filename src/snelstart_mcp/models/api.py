@@ -50,5 +50,10 @@ class GeneralJournalReference(JournalReference):
     grootboekFunctieId: int
 
 
+class PurchaseDetailIdentity(BaseModel):
+    publicIdentifier: UUID
+    factuurNummerIdentifier: UUID
+
+
 JSON_VALUE = TypeAdapter(JsonValue)
 JSON_ROWS = TypeAdapter(list[JsonObject])

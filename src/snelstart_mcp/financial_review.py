@@ -18,7 +18,13 @@ import httpx
 from pydantic import JsonValue
 
 from .config import SnelStartError, SnelStartHTTPError, Store
-from .enums import BookingLookupStatus, DocumentStatus, InvoiceKind, ReconciliationStatus
+from .enums import (
+    BookingLookupFailure,
+    BookingLookupStatus,
+    DocumentStatus,
+    InvoiceKind,
+    ReconciliationStatus,
+)
 from .models import JsonObject
 from .models.review import (
     BankExportRequest,
@@ -32,7 +38,7 @@ from .models.review import (
     ReconciliationReport,
     ReconciliationRequest,
 )
-from .tools_bookkeeping import ENTRY_DETAILS
+from .tools_bookkeeping import PurchaseDetailRejected, read_booking_entry
 from .year_data import (
     BANK_JOURNALS,
     bank_entries_between,
@@ -53,12 +59,12 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
     entries = []
     remaining = MAX_BATCH_BYTES
     for ref in request.entries:
-        operation, parameter = ENTRY_DETAILS[ref.kind]
         status = BookingLookupStatus.FOUND
         details = None
         reason = None
+        failure_code = None
         try:
-            details = read(operation, {parameter: str(ref.entry_id)})
+            details = read_booking_entry(read, ref)
             if details is None:
                 status = BookingLookupStatus.MISSING
             else:
@@ -69,6 +75,9 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
                     reason = "Use the single-booking tool to read this record separately."
                 else:
                     remaining -= size
+        except PurchaseDetailRejected as error:
+            status, reason = BookingLookupStatus.FAILED, str(error)
+            failure_code = BookingLookupFailure.PURCHASE_DETAIL_REJECTED
         except SnelStartHTTPError as error:
             status = (
                 BookingLookupStatus.MISSING
@@ -82,7 +91,13 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
             status, reason = BookingLookupStatus.FAILED, "SnelStart is unavailable."
         entries.append(
             BookingLookup(
-                kind=ref.kind, entry_id=ref.entry_id, status=status, details=details, reason=reason
+                kind=ref.kind,
+                entry_id=ref.entry_id,
+                purchase_invoice_id=ref.purchase_invoice_id,
+                status=status,
+                details=details,
+                reason=reason,
+                failure_code=failure_code,
             )
         )
     return BookingBatchResponse(

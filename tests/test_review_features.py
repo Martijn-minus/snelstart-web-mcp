@@ -98,6 +98,69 @@ def _bank_sources(handlers, entries):
     handlers["/KasBankBoeking/GetKasBankBoekingenWithTimespan"] = bank
 
 
+@pytest.mark.parametrize("tool", ["snelstart_get_entry", "snelstart_get_entries"])
+def test_purchase_detail_retries_by_invoice_only_when_ids_match(app, tool):
+    call, _, handlers, seen = app
+    primary = "/Purchases/Get"
+    alternate = "/Purchases/GetByFactuurNummerIdentifier"
+    handlers[primary] = httpx.Response(400)
+    detail = {
+        "publicIdentifier": BOOKING,
+        "factuurNummerIdentifier": INVOICE,
+        "boekingsregels": [{"omschrijving": "fixture"}],
+    }
+    handlers[alternate] = detail
+    ref = {"entry_id": BOOKING, "kind": "purchase", "purchase_invoice_id": INVOICE}
+    result = call(tool, ref if tool == "snelstart_get_entry" else {"entries": [ref]})
+    if tool == "snelstart_get_entry":
+        assert result["data"] == detail
+    else:
+        assert result["complete"] is True
+        assert result["entries"][0]["details"] == detail
+        assert result["entries"][0]["entry_id"] == BOOKING
+    reads = [request for request in seen if request.url.path in {primary, alternate}]
+    assert [(request.url.path, dict(request.url.params)) for request in reads] == [
+        (primary, {"journaalpostIdentifier": BOOKING}),
+        (alternate, {"factuurNummerIdentifier": INVOICE}),
+    ]
+
+
+@pytest.mark.parametrize(
+    ("invoice_id", "detail", "reason"),
+    [
+        (None, None, "from the same row"),
+        (
+            INVOICE,
+            {"publicIdentifier": OTHER, "factuurNummerIdentifier": INVOICE},
+            "did not verify both identifiers",
+        ),
+        (
+            INVOICE,
+            {"publicIdentifier": BOOKING, "factuurNummerIdentifier": OTHER},
+            "did not verify both identifiers",
+        ),
+    ],
+)
+def test_purchase_detail_reports_a_rejection_without_exposing_unverified_details(
+    app, invoice_id, detail, reason
+):
+    call, _, handlers, seen = app
+    primary = "/Purchases/Get"
+    alternate = "/Purchases/GetByFactuurNummerIdentifier"
+    handlers[primary] = httpx.Response(400, json={"private": "fixture"})
+    handlers[alternate] = detail
+    ref = {"entry_id": BOOKING, "kind": "purchase", "purchase_invoice_id": invoice_id}
+    batch = call("snelstart_get_entries", {"entries": [ref]})
+    assert batch["complete"] is False
+    (entry,) = batch["entries"]
+    assert entry["status"] == "failed"
+    assert entry["failure_code"] == "purchase_detail_rejected"
+    assert entry["details"] is None
+    assert "HTTP 400" in entry["reason"] and reason in entry["reason"]
+    assert "private" not in entry["reason"]
+    assert any(request.url.path == alternate for request in seen) == (invoice_id is not None)
+
+
 def test_checked_bank_export_retains_markings_and_cleans_partial_file(app):
     call, store, handlers, seen = app
     linked = {
