@@ -13,7 +13,9 @@ from .enums import AuditOutcome
 from .models.audit import AuditCallResponse
 from .models.requests import LimitRequest, ToolRequest
 from .models.responses import DataResponse
+from .models.snapshot import SnapshotInfo, SnapshotPage, SnapshotReadRequest
 from .purchase_upload import register_purchase_upload_tools
+from .snapshot import Snapshot
 from .tooling import tool_registrar, validate_request
 from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
@@ -22,23 +24,35 @@ from .tools_review import register_review_tools
 from .updater import UpdateChecker
 from .version import installed_version
 
+LIVE_INSTRUCTIONS = (
+    "Recommend making and verifying a backup before starting bookkeeping work. Present live "
+    "read-only and offline archive access as options and let the user choose. Do not create "
+    "a backup, switch modes, or change permissions without the user's request. "
+    "Check the selected SnelStart administration before accessing records. "
+    "Recorded balances do not prove payment. Write only on an explicit request "
+    "and verify the record before and after any change. Never request or display "
+    "credentials. The audit log records tool calls and their outcomes. "
+    "Use snelstart_list_archives to find backups, snelstart_create_year_archive to create one "
+    "on request, and snelstart_verify_archive to check files. "
+    "An MCP export covers its declared scope; restoring in SnelStart 12 requires a native BACPAC. "
+    "If snelstart_status reports an available update, tell the user. Updates are applied locally."
+)
+OFFLINE_INSTRUCTIONS = (
+    "This server reads one local SnelStart year archive. Call snelstart_snapshot_info first "
+    "to confirm the administration, the date covered through, and the available datasets. "
+    "Use snelstart_snapshot_read to page saved records. Explain the archive's scope and dates "
+    "when reporting results. For missing or newer data, let the user decide whether to refresh "
+    "the snapshot in a live read-only session. This server makes no network requests. The user "
+    "should decide which archive data to share with their MCP client."
+)
+LOCAL_READ = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
+
 
 class AuditedMCP(FastMCP):
-    def __init__(self, audit: AuditLog, server_version: str):
+    def __init__(self, audit: AuditLog, server_version: str, *, name: str, instructions: str):
         super().__init__(
-            "snelstart",
-            instructions=(
-                "Check the selected SnelStart administration before accessing records. "
-                "Recorded balances do not prove payment. Write only on an explicit request "
-                "and verify the record before and after any change. Never request or display "
-                "credentials. The audit log records tool calls and their outcomes. "
-                "Local year backups are available. When the user mentions backups or year-end "
-                "work, point out snelstart_list_archives and snelstart_create_year_archive. "
-                "Offer a backup before significant bookkeeping changes. "
-                "Create an archive on request and use snelstart_verify_archive to check its files. "
-                "An MCP export covers its declared scope; restoring in SnelStart 12 requires a native BACPAC. "
-                "If snelstart_status reports an available update, tell the user. Updates are applied locally."
-            ),
+            name,
+            instructions=instructions,
             log_level="WARNING",
         )
         # FastMCP exposes its implementation version through the underlying MCP server.
@@ -84,19 +98,45 @@ def create_server(client: Client | None = None) -> FastMCP:
     client = client or Client(Store())
     audit = AuditLog(client.store)
     server_version = installed_version() or "unknown"
-    mcp = AuditedMCP(audit, server_version)
-    tool = tool_registrar(mcp, mcp.registered_requests)
+    instructions = (
+        "This server is running in live read-only mode. " + LIVE_INSTRUCTIONS
+        if client.read_only
+        else LIVE_INSTRUCTIONS
+    )
+    mcp = AuditedMCP(audit, server_version, name="snelstart", instructions=instructions)
+    tool = tool_registrar(mcp, mcp.registered_requests, read_only=client.read_only)
     register_connection_tools(tool, client, UpdateChecker(), server_version=server_version)
     register_bookkeeping_tools(tool, client)
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)
 
-    @tool(
-        annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
-    )
+    @tool(annotations=LOCAL_READ)
     def snelstart_audit_log(request: LimitRequest) -> DataResponse[list[AuditCallResponse]]:
         """List recent local MCP calls for the selected administration, or profile calls when none is selected."""
         return DataResponse(data=audit.recent(request.limit))
+
+    return mcp
+
+
+def create_snapshot_server(store: Store, snapshot: Snapshot) -> FastMCP:
+    audit = AuditLog(store, scope=lambda: snapshot.info.mcp_administration_id)
+    mcp = AuditedMCP(
+        audit,
+        installed_version() or "unknown",
+        name="snelstart-offline",
+        instructions=OFFLINE_INSTRUCTIONS,
+    )
+    tool = tool_registrar(mcp, mcp.registered_requests)
+
+    @tool(annotations=LOCAL_READ)
+    def snelstart_snapshot_info() -> SnapshotInfo:
+        """Show the mounted archive, its dates and which saved datasets can be queried."""
+        return snapshot.info
+
+    @tool(annotations=LOCAL_READ)
+    def snelstart_snapshot_read(request: SnapshotReadRequest) -> SnapshotPage:
+        """Page a saved dataset. Use section for an object key or group_index for journal entries."""
+        return snapshot.read(request)
 
     return mcp

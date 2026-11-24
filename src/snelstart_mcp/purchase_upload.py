@@ -26,6 +26,8 @@ MAX_PDF_BYTES = 25 * 1024 * 1024
 
 
 def _check_upload_access(client: Client, administration_id: str) -> None:
+    if client.read_only:
+        raise SnelStartError("Writing is disabled in live read-only mode.")
     settings = client.store.settings()
     if str(settings.administration_id) != administration_id:
         raise SnelStartError("Select the specified administration before uploading a purchase.")

@@ -8,22 +8,11 @@ from pydantic import TypeAdapter, ValidationError
 from .client import Client
 from .config import SnelStartError
 from .dates import AMSTERDAM, window
+from .enums import ArchiveDataset
 from .models import ApiPage
 from .models.api import GeneralJournalReference, JournalReference
 
-DATASETS = frozenset(
-    {
-        "balance_and_profit_loss",
-        "chart_of_accounts",
-        "purchases",
-        "sales",
-        "bank_journals",
-        "bank_entries",
-        "general_journals",
-        "journal_and_opening_entries",
-        "vat_returns_all_years",
-    }
-)
+DATASETS = frozenset(item.value for item in ArchiveDataset)
 
 
 def pages(

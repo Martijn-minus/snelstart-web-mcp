@@ -2,6 +2,7 @@
 
 import os
 import sqlite3
+from collections.abc import Callable
 from contextlib import ExitStack, closing, contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -98,8 +99,9 @@ def _check_limit(limit: int) -> None:
 
 
 class AuditLog:
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, *, scope: Callable[[], UUID | None] | None = None):
         self.store = store
+        self.scope = scope
         self.directory = store.directory / "audit"
         self.legacy_path = store.directory / "audit.sqlite3"
 
@@ -107,6 +109,8 @@ class AuditLog:
         return self.directory / f"{administration_id or 'profile'}.sqlite3"
 
     def _selected(self) -> UUID | None:
+        if self.scope is not None:
+            return self.scope()
         try:
             return self.store.settings().administration_id
         except SnelStartError:

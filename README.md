@@ -4,6 +4,8 @@
 
 A local stdio MCP server for SnelStart Web. It uses the Web API, refreshes its sign-in and opens the selected administration before requesting accounting data. This is an unofficial integration. SnelStart documents its partner API separately. [SnelStart API integration](https://www.snelstart.nl/api)
 
+Before starting bookkeeping work, make and verify a backup. Choose [live read-only access, a local offline snapshot, or live access with write permissions](#choose-how-to-access-the-data). Read the [usage and liability notice](NOTICE.md).
+
 ## Install the Codex plugin
 
 With the [Codex CLI](https://learn.chatgpt.com/docs/cli) on your PATH, paste this into Terminal on macOS or Linux.
@@ -326,6 +328,25 @@ Call `snelstart_create_year_archive` with `year` and `through_date`. Supply `off
 The MCP export records available balance, ledger, purchase, sales, bank, general journal and VAT datasets. It checks pagination and invoice date ranges, and the archive manifest records the scope and SHA-256 of each member. A local export is a point-in-time view assembled from multiple calls. The official XAF remains the source for the journal export.
 
 Use the returned `archive` filename with `snelstart_verify_archive` or `snelstart_extract_archive`. Archives are stored under `~/.config/snelstart-mcp/backups`. The reader also supports earlier archive files. Local extraction does not change SnelStart. A native `.bacpac` backup is needed to restore an administration in SnelStart 12. See [official Web exports](https://kennispleinweb.snelstart.nl/nl/bestanden-en-bijlagen-downloaden-in-snelstart-web) and [native backup and recovery](https://kennisplein.snelstart.nl/klanten/s/article/back-ups-maken-of-terugzetten).
+
+## Choose how to access the data
+
+| Mode | When to use it |
+| --- | --- |
+| Live read-only | Read current SnelStart data with `serve --read-only`. This process blocks bookkeeping writes, including PDF uploads, even if the profile has grants. It can still open a SnelStart session and produce an archive on request. |
+| Offline snapshot | Read a saved year with `serve --offline-archive FILENAME`. The process starts two local-only tools and makes no network requests. |
+| Live with local permissions | Use the normal server and choose the required operations with `snelstart-mcp writes configure`. The default profile starts with bookkeeping writes disabled. |
+
+To work offline, first use `snelstart_create_year_archive` in a live read-only session with `live_export: true`, and verify the result with `snelstart_verify_archive`. Choose the returned ZIP filename. Archives with saved MCP datasets can be read, including the supported earlier archive format. In Codex, you can register the offline connection like this.
+
+```sh
+codex mcp add snelstart-readonly -- "$(command -v snelstart-mcp)" serve --read-only
+codex mcp add snelstart-offline -- "$(command -v snelstart-mcp)" serve --offline-archive 'ARCHIVE_FILENAME.zip'
+```
+
+For a separate profile, place `--config-dir PATH` before `serve`. To use only offline SnelStart access in Codex, disable the live connection or SnelStart plugin and start a fresh session. The offline server reports the archive date and dataset coverage through `snelstart_snapshot_info`. Use `snelstart_snapshot_read` to page saved data. For bank and journal records, first list the groups, then select one with `group_index`.
+
+The snapshot contains the exported datasets as of the archive's cutoff date. Use a fresh export for newer data and native SnelStart backups for restoration. The MCP process makes no network requests in offline mode. Data you ask a connected AI client to analyze may still be processed by that client or its provider.
 
 ## Audit log and rollback design
 

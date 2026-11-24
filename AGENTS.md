@@ -4,6 +4,8 @@ Read the [README](README.md) for setup, tool arguments and examples. Run package
 
 ## Confirm the administration
 
+Recommend making and verifying a backup before bookkeeping work. Let the user choose live read-only access, offline access to a year archive, or live access with local write permissions. Create a backup or change access only on request. In offline mode call `snelstart_snapshot_info` first and include the archive cutoff date and coverage in the result.
+
 1. Start with `snelstart_status` to see the selected administration and write permissions. `uv run --frozen snelstart-mcp doctor` also shows the selected name and available administrations.
 2. Use `snelstart_list_administrations` when you need to identify a UUID. Confirm the intended administration before accessing records or changing the active selection.
 3. Use the existing authorized sign-in. For a new profile, start browser OAuth with `uv run --frozen --extra browser snelstart-mcp login --method browser`. Use macOS Passwords or Keychain autofill on the official sign-in page when available. Keep passwords, tokens, HAR captures, downloaded documents and backup files private.

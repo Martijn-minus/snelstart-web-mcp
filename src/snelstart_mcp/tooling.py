@@ -33,10 +33,15 @@ def validate_request(request: type[ToolRequest], arguments: dict) -> ToolRequest
 
 
 def tool_registrar(
-    mcp: FastMCP, registered_requests: dict[str, type[ToolRequest] | None]
+    mcp: FastMCP,
+    registered_requests: dict[str, type[ToolRequest] | None],
+    *,
+    read_only: bool = False,
 ) -> Register:
     def tool(*, annotations: ToolAnnotations):
         def register(function):
+            if read_only and annotations.destructiveHint:
+                return function
             contract = signature(function)
             request_parameter = contract.parameters.get("request")
             request = request_parameter.annotation if request_parameter else None

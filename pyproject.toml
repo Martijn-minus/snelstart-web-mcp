@@ -1,6 +1,6 @@
 [project]
 name = "snelstart-web-mcp"
-version = "2026.11.24.7"
+version = "2026.11.24.8"
 description = "Local MCP for SnelStart Web with automatic sign-in and token renewal"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -9,6 +9,7 @@ dependencies = ["mcp>=1.26,<2", "httpx>=0.28,<1", "packaging>=24,<27", "pydantic
 [project.urls]
 Repository = "https://github.com/Martijn-minus/snelstart-web-mcp"
 Changelog = "https://github.com/Martijn-minus/snelstart-web-mcp/releases"
+"Usage and liability" = "https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/NOTICE.md"
 
 [project.optional-dependencies]
 browser = ["playwright>=1.54,<2"]
@@ -35,7 +36,7 @@ packages = ["src/snelstart_mcp"]
 
 [tool.hatch.build.targets.sdist]
 only-include = [
-    "src/snelstart_mcp", "tests", "README.md", "README.nl.md", "pyproject.toml", "install.sh",
+    "src/snelstart_mcp", "tests", "README.md", "README.nl.md", "NOTICE.md", "pyproject.toml", "install.sh",
     ".agents/plugins/marketplace.json", ".codex-plugin/plugin.json", ".mcp.json", "hooks", "scripts/codex",
 ]
 

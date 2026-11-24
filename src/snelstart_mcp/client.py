@@ -29,8 +29,9 @@ def catalog() -> dict:
 
 
 class Client:
-    def __init__(self, store: Store, http: httpx.Client | None = None):
+    def __init__(self, store: Store, http: httpx.Client | None = None, *, read_only: bool = False):
         self.store = store
+        self.read_only = read_only
         self.http = http or httpx.Client(timeout=30, follow_redirects=False, trust_env=False)
         self.auth = Auth(store, self.http)
         self._mutex = threading.RLock()
@@ -55,8 +56,10 @@ class Client:
             automatic_refresh=bool(tokens.refresh_token),
             access_token_expires_at=tokens.expires_at,
             administration_id=settings.administration_id,
-            allow_writes=settings.allow_writes,
-            approved_write_operations=sorted(settings.approved_write_operations()),
+            allow_writes=not self.read_only and settings.allow_writes,
+            approved_write_operations=[]
+            if self.read_only
+            else sorted(settings.approved_write_operations()),
             config_directory=self.store.directory,
         ).model_dump(mode="json")
 
@@ -210,6 +213,8 @@ class Client:
         if not raw_entry:
             raise SnelStartError("Unknown operation. Use snelstart_list_operations first.")
         entry = OperationSpec.model_validate(raw_entry)
+        if self.read_only and not entry.read_only:
+            raise SnelStartError("Writing is disabled in live read-only mode.")
         command = WebApiRequest(
             operation=operation,
             parameters=params,

@@ -54,7 +54,7 @@ def register_connection_tools(
             dict(operation=key, **value)
             for key, value in catalog().items()
             if request.query.lower() in key.lower()
-            and (not request.read_only or value["read_only"])
+            and (value["read_only"] or not (request.read_only or client.read_only))
         ]
         return OperationListResponse.model_validate(
             {"total": len(found), "operations": found[: request.limit]}

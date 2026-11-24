@@ -105,7 +105,16 @@ def main():
         "--version", action="version", version=f"SnelStart MCP {version_label(installed_version())}"
     )
     commands = parser.add_subparsers(dest="command", required=True)
-    commands.add_parser("serve", help="Start the MCP server over stdio")
+    serve = commands.add_parser("serve", help="Start the MCP server over stdio")
+    access = serve.add_mutually_exclusive_group()
+    access.add_argument(
+        "--read-only", action="store_true", help="Disable live bookkeeping writes for this process"
+    )
+    access.add_argument(
+        "--offline-archive",
+        metavar="FILENAME",
+        help="Read one local year archive without a network connection",
+    )
     commands.add_parser("codex-hook", help="Handle a Codex hook event over stdio")
     commands.add_parser("status", parents=[output_options], help="Show the local sign-in profile")
     doctor = commands.add_parser(
@@ -304,12 +313,18 @@ def main():
             else:
                 show_audit(Console(), report)
             return
-        client = Client(store)
         if args.command == "serve":
-            from .server import create_server
+            from .server import create_server, create_snapshot_server
+            from .snapshot import open_snapshot
 
-            create_server(client).run(transport="stdio")
+            if args.offline_archive:
+                with open_snapshot(store, args.offline_archive) as snapshot:
+                    create_snapshot_server(store, snapshot).run(transport="stdio")
+            else:
+                client = Client(store, read_only=args.read_only)
+                create_server(client).run(transport="stdio")
             return
+        client = Client(store)
         if args.command == "setup":
             print("SnelStart email address: ", end="", file=sys.stderr, flush=True)
             username = input("").strip()

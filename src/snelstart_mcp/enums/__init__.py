@@ -8,6 +8,18 @@ class LoginMethod(StrEnum):
     BROWSER = "browser"
 
 
+class ArchiveDataset(StrEnum):
+    BALANCE_AND_PROFIT_LOSS = "balance_and_profit_loss"
+    CHART_OF_ACCOUNTS = "chart_of_accounts"
+    PURCHASES = "purchases"
+    SALES = "sales"
+    BANK_JOURNALS = "bank_journals"
+    BANK_ENTRIES = "bank_entries"
+    GENERAL_JOURNALS = "general_journals"
+    JOURNAL_AND_OPENING_ENTRIES = "journal_and_opening_entries"
+    VAT_RETURNS = "vat_returns_all_years"
+
+
 class BrowserStatus(StrEnum):
     MISSING_EXTRA = "missing_extra"
     CHROME_NOT_FOUND = "chrome_not_found"
