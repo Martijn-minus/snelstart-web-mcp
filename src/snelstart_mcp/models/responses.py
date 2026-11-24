@@ -6,9 +6,10 @@ from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr
 
-from ..enums import AuditOutcome
 from . import ArchiveManifest, Sha256
 from .api import OperationSpec
+from .audit import AuditSummary
+from .update import UpdateCheckResponse
 
 T = TypeVar("T")
 
@@ -26,6 +27,7 @@ class ConnectionStatus(BaseModel):
     allow_writes: bool
     approved_write_operations: list[str]
     config_directory: Path
+    update: UpdateCheckResponse | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class AdministrationResponse(BaseModel):
@@ -86,16 +88,6 @@ class UploadStatusResponse(BaseModel):
     status: StrictStr | StrictInt
 
 
-class AuditCallResponse(BaseModel):
-    call_id: str
-    started_at: str
-    tool: str
-    administration_id: UUID | None
-    administration_id_after: UUID | None
-    outcome: AuditOutcome
-    elapsed_ms: int | None
-
-
 class AdministrationSummary(BaseModel):
     identifier: UUID | None
     name: str | None
@@ -106,6 +98,12 @@ class DoctorResponse(ConnectionStatus):
     administration_name: str | None
     administration_count: int
     administrations: list[AdministrationSummary]
+    audit: AuditSummary
+
+
+class ToolUpdateResponse(BaseModel):
+    package: str
+    completed: bool
 
 
 class HarImportResponse(BaseModel):

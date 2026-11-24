@@ -235,6 +235,15 @@ class Client:
             raise SnelStartError("Use snelstart_select_administration to select an administration.")
         with self._mutex:
             settings = self.store.settings()
+            audit_call = self.store.audit_call.get()
+            if (
+                audit_call is not None
+                and audit_call.administration_id != settings.administration_id
+            ):
+                raise SnelStartError(
+                    "The selected administration changed during this tool call. "
+                    "Check the active administration before retrying."
+                )
             if (
                 not entry.read_only
                 and not settings.allow_writes

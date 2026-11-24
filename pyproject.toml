@@ -1,10 +1,14 @@
 [project]
 name = "snelstart-web-mcp"
-version = "0.1.0"
+version = "2026.11.24"
 description = "Local MCP for SnelStart Web with automatic sign-in and token renewal"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1.26,<2", "httpx>=0.28,<1", "pydantic>=2.12,<3", "rich>=14,<16"]
+dependencies = ["mcp>=1.26,<2", "httpx>=0.28,<1", "packaging>=24,<27", "pydantic>=2.12,<3", "rich>=14,<16"]
+
+[project.urls]
+Repository = "https://github.com/Martijn-minus/snelstart-web-mcp"
+Changelog = "https://github.com/Martijn-minus/snelstart-web-mcp/releases"
 
 [project.optional-dependencies]
 browser = ["playwright>=1.54,<2"]

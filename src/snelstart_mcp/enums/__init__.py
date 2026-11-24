@@ -85,3 +85,9 @@ class AuditOutcome(StrEnum):
     ERROR = "error"
     INTERRUPTED = "interrupted"
     PENDING = "pending"
+
+
+class UpdateStatus(StrEnum):
+    AVAILABLE = "available"
+    CURRENT = "current"
+    UNAVAILABLE = "unavailable"

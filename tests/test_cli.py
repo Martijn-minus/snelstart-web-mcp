@@ -1,13 +1,15 @@
 import json
 import sys
+from uuid import UUID
 
 import httpx
 import pytest
 
+from snelstart_mcp.audit import AuditLog
 from snelstart_mcp.cli import main
 from snelstart_mcp.client import Client
 from snelstart_mcp.config import Store
-from snelstart_mcp.enums import LoginMethod
+from snelstart_mcp.enums import AuditOutcome, LoginMethod
 
 ADMIN = "11111111-1111-4111-8111-111111111111"
 OPERATION = "POST /MemoriaalBoekingen/Create"
@@ -148,6 +150,8 @@ def test_cli_doctor_lists_available_administrations(command, monkeypatch, select
     assert output["connected"] and output["administration_count"] == 2
     assert output["administration_id"] == selected
     assert output["administration_name"] == expected_name
+    assert output["audit"]["total_calls"] == 0
+    assert not output["audit"]["exists"]
     assert output["administrations"] == [
         {"identifier": ADMIN, "name": "Selected fixture"},
         {"identifier": OTHER, "name": "Other fixture"},
@@ -176,6 +180,7 @@ def test_cli_doctor_prefers_text_in_the_terminal_and_accepts_json_override(
     main()
     output = capsys.readouterr().out
     assert "Connected to SnelStart" in output
+    assert "Audit log" in output
     assert "Global · all eligible operations" in output
     assert "Selected [bold] fixture  · Selected" in output
     assert OTHER in output and "Administrations (2)" in output
@@ -191,6 +196,24 @@ def test_cli_text_override_works_after_a_write_subcommand(command, monkeypatch, 
     )
     main()
     assert "Read-only" in capsys.readouterr().out
+
+
+def test_cli_audit_can_inspect_another_administration_offline(command, monkeypatch):
+    profile, run = command
+    store = Store(profile)
+    log = AuditLog(store)
+    store.write("config.json", {"administration_id": OTHER})
+    call = log.start("snelstart_status")
+    log.finish(call, "snelstart_status", AuditOutcome.OK, 8)
+    store.write("config.json", {"administration_id": ADMIN})
+    monkeypatch.setattr(Client, "__init__", lambda *a: pytest.fail("Audit must stay offline"))
+
+    selected = run("audit")
+    assert selected["administration_id"] == ADMIN and selected["calls"] == []
+    older = run("audit", "--administration", OTHER, "--limit", "1")
+    assert older["summary"]["succeeded"] == 1
+    assert older["calls"][0]["call_id"] == call.call_id
+    assert store.settings().administration_id == UUID(ADMIN)
 
 
 def test_cli_setup_does_not_print_credential(command, monkeypatch):

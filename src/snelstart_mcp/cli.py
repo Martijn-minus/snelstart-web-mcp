@@ -8,14 +8,26 @@ from uuid import UUID
 import httpx
 from rich.console import Console
 
-from .cli_output import show_har_import, show_install, show_status, show_writes
+from .audit import AuditLog
+from .cli_output import (
+    show_audit,
+    show_har_import,
+    show_install,
+    show_status,
+    show_update,
+    show_update_check,
+    show_writes,
+)
 from .client import Client, catalog
 from .config import SnelStartError, Store
 from .enums import LoginMethod, WriteMode
 from .har import import_har
 from .installer import CLIENTS, install
 from .models import Settings
+from .models.audit import AuditSummary
 from .models.responses import ConnectionStatus, DoctorResponse, HarImportResponse
+from .updater import UpdateChecker, update_tool
+from .version import installed_version, version_label
 
 
 def _grantable_operations() -> set[str]:
@@ -92,11 +104,39 @@ def main():
         parents=[output_options],
     )
     parser.add_argument("--config-dir", type=Path, help="Use a separate local profile")
+    parser.add_argument(
+        "--version", action="version", version=f"SnelStart MCP {version_label(installed_version())}"
+    )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("serve", help="Start the MCP server over stdio")
     commands.add_parser("status", parents=[output_options], help="Show the local sign-in profile")
     commands.add_parser(
         "doctor", parents=[output_options], help="Check the connection and list administrations"
+    )
+    audit = commands.add_parser(
+        "audit", parents=[output_options], help="Show local MCP audit history without signing in"
+    )
+    audit_scope = audit.add_mutually_exclusive_group()
+    audit_scope.add_argument(
+        "--administration",
+        type=UUID,
+        metavar="UUID",
+        help="Inspect a specific administration instead of the selected one",
+    )
+    audit_scope.add_argument(
+        "--profile", action="store_true", help="Inspect calls made with no administration selected"
+    )
+    audit.add_argument(
+        "--limit", type=int, default=30, help="Number of recent calls to show (1–100)"
+    )
+    update = commands.add_parser(
+        "update",
+        aliases=["self-update"],
+        parents=[output_options],
+        help="Upgrade the current uv tool installation",
+    )
+    update.add_argument(
+        "--check", action="store_true", help="Check for updates without installing anything"
     )
     commands.add_parser(
         "setup", parents=[output_options], help="Set up sign-in with saved credentials"
@@ -171,14 +211,39 @@ def main():
         if any(item["status"] == "error" for item in result):
             sys.exit(1)
         return
-    store = Store(args.config_dir)
-    if args.command == "serve":
-        from .server import create_server
-
-        create_server(Client(store)).run(transport="stdio")
-        return
-    client = Client(store)
+    client: Client | None = None
     try:
+        if args.command in ("update", "self-update"):
+            if args.check:
+                checked = UpdateChecker().check()
+                if json_output:
+                    print(checked.model_dump_json(indent=2))
+                else:
+                    show_update_check(Console(), checked)
+                return
+            updated = update_tool()
+            if json_output:
+                print(updated.model_dump_json(indent=2))
+            else:
+                show_update(Console(), updated)
+            return
+        store = Store(args.config_dir)
+        if args.command == "audit":
+            administration_id = args.administration
+            if administration_id is None and not args.profile:
+                administration_id = store.settings().administration_id
+            report = AuditLog(store).report(administration_id, args.limit)
+            if json_output:
+                print(report.model_dump_json(indent=2))
+            else:
+                show_audit(Console(), report)
+            return
+        client = Client(store)
+        if args.command == "serve":
+            from .server import create_server
+
+            create_server(client).run(transport="stdio")
+            return
         if args.command == "setup":
             print("SnelStart email address: ", end="", file=sys.stderr, flush=True)
             username = input("").strip()
@@ -211,8 +276,17 @@ def main():
                 ),
                 None,
             )
+            audit_id = UUID(selected_id) if selected_id else None
+            audit_log = AuditLog(store)
+            try:
+                summary = audit_log.report(audit_id, 1).summary
+            except SnelStartError as error:
+                path = audit_log.path(audit_id)
+                summary = AuditSummary(database=path, exists=path.is_file(), error=str(error))
             result.update(
                 connected=True,
+                audit=summary,
+                update=UpdateChecker().check(),
                 administration_name=selected_name,
                 administration_count=len(administrations),
                 administrations=administrations,
@@ -240,7 +314,8 @@ def main():
         print("SnelStart is unavailable. Try again later.", file=sys.stderr)
         sys.exit(1)
     finally:
-        client.close()
+        if client is not None:
+            client.close()
 
 
 if __name__ == "__main__":

@@ -1652,11 +1652,12 @@ wheels = [
 
 [[package]]
 name = "snelstart-web-mcp"
-version = "0.1.0"
+version = "2026.11.24"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
     { name = "mcp" },
+    { name = "packaging" },
     { name = "pydantic" },
     { name = "rich" },
 ]
@@ -1680,6 +1681,7 @@ dev = [
 requires-dist = [
     { name = "httpx", specifier = ">=0.28,<1" },
     { name = "mcp", specifier = ">=1.26,<2" },
+    { name = "packaging", specifier = ">=24,<27" },
     { name = "playwright", marker = "extra == 'browser'", specifier = ">=1.54,<2" },
     { name = "pydantic", specifier = ">=2.12,<3" },
     { name = "rich", specifier = ">=14,<16" },

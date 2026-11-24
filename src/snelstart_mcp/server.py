@@ -10,13 +10,15 @@ from .audit import AuditLog
 from .client import Client
 from .config import SnelStartError, Store
 from .enums import AuditOutcome
+from .models.audit import AuditCallResponse
 from .models.requests import LimitRequest, ToolRequest
-from .models.responses import AuditCallResponse, DataResponse
+from .models.responses import DataResponse
 from .purchase_upload import register_purchase_upload_tools
 from .tooling import tool_registrar, validate_request
 from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
+from .updater import UpdateChecker
 
 
 class AuditedMCP(FastMCP):
@@ -27,7 +29,8 @@ class AuditedMCP(FastMCP):
                 "Check the selected SnelStart administration before accessing records. "
                 "Recorded balances do not prove payment. Write only on an explicit request "
                 "and verify the record before and after any change. Never request or display "
-                "credentials. The audit log records tool calls and their outcomes."
+                "credentials. The audit log records tool calls and their outcomes. "
+                "If snelstart_status reports an available update, tell the user. Updates are applied locally."
             ),
             log_level="WARNING",
         )
@@ -40,10 +43,11 @@ class AuditedMCP(FastMCP):
         )
         start = monotonic()
         try:
-            event_id = self.audit.start(tool)
+            call = self.audit.start(tool)
         except SnelStartError as error:
             raise ToolError(str(error)) from None
 
+        scope = self.audit.store.audit_call.set(call)
         outcome = AuditOutcome.INTERRUPTED
         try:
             request = self.registered_requests.get(tool)
@@ -56,8 +60,9 @@ class AuditedMCP(FastMCP):
             outcome = AuditOutcome.ERROR
             raise
         finally:
+            self.audit.store.audit_call.reset(scope)
             try:
-                self.audit.finish(event_id, tool, outcome, round((monotonic() - start) * 1000))
+                self.audit.finish(call, tool, outcome, round((monotonic() - start) * 1000))
             except SnelStartError:
                 # The start event survives. A caller must not assume a completed action was undone.
                 if outcome is AuditOutcome.OK:
@@ -71,7 +76,7 @@ def create_server(client: Client | None = None) -> FastMCP:
     audit = AuditLog(client.store)
     mcp = AuditedMCP(audit)
     tool = tool_registrar(mcp, mcp.registered_requests)
-    register_connection_tools(tool, client)
+    register_connection_tools(tool, client, UpdateChecker())
     register_bookkeeping_tools(tool, client)
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)
@@ -80,9 +85,7 @@ def create_server(client: Client | None = None) -> FastMCP:
         annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
     )
     def snelstart_audit_log(request: LimitRequest) -> DataResponse[list[AuditCallResponse]]:
-        """List recent local MCP calls and outcomes without arguments or response bodies."""
-        return DataResponse(
-            data=[AuditCallResponse.model_validate(row) for row in audit.recent(request.limit)]
-        )
+        """List recent local MCP calls for the selected administration, or profile calls when none is selected."""
+        return DataResponse(data=audit.recent(request.limit))
 
     return mcp

@@ -2,15 +2,47 @@
 
 A local stdio MCP server for SnelStart Web. It uses the Web API, refreshes its sign-in and opens the selected administration before requesting accounting data. This is an unofficial integration. SnelStart documents its partner API separately. [SnelStart API integration](https://www.snelstart.nl/api)
 
+## Install with a coding assistant
+
+Copy this prompt into Codex, Claude Code, or another assistant that can run local shell commands.
+
+```text
+Install the SnelStart Web MCP on this machine from https://github.com/Martijn-minus/snelstart-web-mcp.
+Check that uv and Google Chrome are available. Run:
+uv tool install 'snelstart-web-mcp[browser]'
+Find the installed snelstart-mcp executable with uv tool dir --bin if it is outside PATH.
+Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
+Register the MCP with this client using snelstart-mcp install <client> --apply. Ask me
+which client to use if you cannot identify it. Then run snelstart-mcp doctor and tell
+me which administration is selected, what write access it has, and whether an
+update is available. Keep credentials private and leave write permissions and
+accounting records untouched. Tell me if the MCP client needs to reconnect.
+```
+
 ## One-line install
 
 With `uv` installed, run this from any directory. The browser extra enables sign-in with an installed copy of Google Chrome.
 
 ```sh
-uv tool install 'snelstart-web-mcp[browser] @ git+https://github.com/Martijn-minus/snelstart-web-mcp.git'
+uv tool install 'snelstart-web-mcp[browser]'
 ```
 
+For GitHub main builds, use `uv tool install 'snelstart-web-mcp[browser] @ git+https://github.com/Martijn-minus/snelstart-web-mcp.git'`.
+
 Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
+
+## Check for updates
+
+Releases use `YYYY.M.D` calendar versions. `snelstart-mcp --version` also shows the date in full.
+
+```sh
+snelstart-mcp update --check
+snelstart-mcp update
+```
+
+If you installed a version before the updater existed, run `uv tool upgrade snelstart-web-mcp` once. `snelstart-mcp update` uses the active `uv tool` installation and keeps its source and extras. Reconnect the MCP client after an upgrade. From a source checkout, update the checkout and run `uv sync --locked`.
+
+`doctor` and `snelstart_status` show whether an update is available. For PyPI installs, the check compares package versions. For GitHub installs tracking `main`, it compares the installed public commit with the current branch. The MCP caches successful checks for one hour and asks the client to report an available update. Call `snelstart_check_update` to check immediately. Checks use public package metadata and send no SnelStart account data.
 
 ## Quick start from a source checkout
 
@@ -107,13 +139,14 @@ The MCP interface uses English tool names, argument names, option values, help a
 
 | Tool | What it does |
 | --- | --- |
-| `snelstart_status` | Shows the selected administration, sign-in and refresh status, and effective write settings. |
+| `snelstart_status` | Shows the selected administration, sign-in and refresh status, effective write settings, and update availability. |
+| `snelstart_check_update` | Checks the installed package's public source for a newer version. |
 | `snelstart_list_administrations` | Lists the administrations accessible to the signed-in account. |
 | `snelstart_select_administration` | Opens an administration by UUID and saves that selection locally. |
 | `snelstart_list_operations` | Searches the API catalog and returns exact operation names and parameters. Set `read_only: false` to include write operations. |
 | `snelstart_read` | Runs an allowlisted read. Pass query values as `parameters` and search-body fields as `filters`. |
 | `snelstart_write` | Sends a permitted catalog mutation using `operation`, `payload` and optional query `parameters`. |
-| `snelstart_audit_log` | Lists recent calls with the administration, outcome and elapsed time. |
+| `snelstart_audit_log` | Lists recent calls for the selected administration with their outcome and elapsed time. |
 
 The catalog records known Web API operations. Availability depends on the administration, the account's permissions and the SnelStart package.
 
@@ -225,7 +258,19 @@ Use the returned `archive` filename with `snelstart_verify_archive` or `snelstar
 
 ## Audit log and rollback design
 
-The server records each tool call and its outcome in the local `audit.sqlite3` database. It records the time, tool, selected administration and duration. It omits inputs, response bodies, credentials and tokens. A call without a recorded result appears as pending. A successful call does not prove a booking was changed. Actions outside the MCP are outside this log.
+The server records MCP call timestamps, tool names, outcomes and durations in `audit/<administration-uuid>.sqlite3` inside the active profile. Calls made before choosing an administration go to `audit/profile.sqlite3`. A call stays in the database for the administration selected at its start, including its outcome if the selection changes. Each database uses file permissions `0600`. Inputs, response bodies, credentials and tokens are omitted. A call without a recorded result appears as pending.
+
+When opening a scope, the MCP copies matching events from an older shared `audit.sqlite3`, including outcomes written after a switch. The original file stays in place and later reads can pick up events still written there by an older process.
+
+`doctor` shows the selected scope's database path, outcome counts and latest call. Use `audit` to inspect local history offline.
+
+```sh
+snelstart-mcp audit --limit 10
+snelstart-mcp audit --administration ADMINISTRATION_UUID --json
+snelstart-mcp audit --profile
+```
+
+The log covers MCP calls made through this profile. Verify accounting changes against the affected records in SnelStart.
 
 A verified mutation log would add an entry-specific before state, an expected change, a durable intent, and a read-after-write check. A timeout after sending a write would remain unresolved until the record can be read back. A rollback would be a new, explicit operation with a check that the record has not changed in the meantime. This is a proposed design. Automatic rollback and financial mutations are not exercised by the tests.
 
@@ -255,3 +300,13 @@ uv run --frozen --extra browser pre-commit run --all-files
 The hooks run BasedPyright on the package and Ruff linting and formatting on the package and tests. They also check JSON, YAML and TOML, trailing whitespace, final newlines, merge markers, large files and private keys.
 
 The SnelStart MCP GitHub Actions workflow runs the hooks and offline tests on Python 3.11 and 3.13. It builds a wheel and source distribution, validates the metadata with Twine, and saves both files in the run's `snelstart-mcp-distributions` artifact. From the repository root, run `uv build --no-sources` to build the same formats locally. [PyPI publishing documentation](https://docs.pypi.org/publishing/publishing-to-pypi/)
+
+### Publishing a calendar release
+
+Set the version in `pyproject.toml` to the release date as `YYYY.M.D` and update `uv.lock` with `uv lock`. Use `.post1`, `.post2`, and so on for additional releases on the same date. Tag the reviewed commit as `v<VERSION>`. The PyPI workflow builds the tag, checks that its name matches the version, and publishes via the repository's `pypi` environment.
+
+```sh
+gh workflow run workflow.yml --ref "v$(uv run --frozen python -c 'from importlib.metadata import version; print(version("snelstart-web-mcp"))')"
+```
+
+The PyPI Trusted Publisher must match this repository and `workflow.yml`. [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)

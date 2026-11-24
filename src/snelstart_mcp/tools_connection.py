@@ -15,14 +15,21 @@ from .models.responses import (
     OperationListResponse,
     SelectedAdministration,
 )
+from .models.update import UpdateCheckResponse
 from .tooling import READ, WRITE, Register
+from .updater import UpdateChecker
 
 
-def register_connection_tools(tool: Register, client: Client) -> None:
+def register_connection_tools(tool: Register, client: Client, updates: UpdateChecker) -> None:
     @tool(annotations=READ)
     def snelstart_status() -> ConnectionStatus:
-        """Show local connection and write status without credentials."""
-        return ConnectionStatus.model_validate(client.status())
+        """Show local connection, write access and package update status without credentials."""
+        return ConnectionStatus.model_validate({**client.status(), "update": updates.check()})
+
+    @tool(annotations=READ)
+    def snelstart_check_update() -> UpdateCheckResponse:
+        """Check GitHub for an update to the installed MCP. Report the result to the user."""
+        return updates.check(refresh=True)
 
     @tool(annotations=READ)
     def snelstart_list_administrations() -> list[AdministrationResponse]:

@@ -7,3 +7,5 @@ dist/
 *.har
 credentials.json
 tokens.json
+audit.sqlite3*
+audit/*.sqlite3*

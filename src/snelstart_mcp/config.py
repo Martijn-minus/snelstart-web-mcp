@@ -5,11 +5,13 @@ import fcntl
 import json
 import os
 import tempfile
+from contextvars import ContextVar
 from pathlib import Path
 
 from pydantic import ValidationError
 
 from .models import Settings
+from .models.audit import AuditCallStart
 
 
 class SnelStartError(Exception):
@@ -22,6 +24,7 @@ class Store:
             directory
             or Path(os.environ.get("SNELSTART_CONFIG_DIR", "~/.config/snelstart-mcp")).expanduser()
         )
+        self.audit_call: ContextVar[AuditCallStart | None] = ContextVar("audit_call", default=None)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         if self.directory.is_symlink():
             raise SnelStartError("The configuration directory must not be a symbolic link.")

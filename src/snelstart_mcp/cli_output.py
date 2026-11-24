@@ -8,8 +8,16 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .enums import WriteMode
-from .models.responses import ConnectionStatus, DoctorResponse, HarImportResponse
+from .enums import UpdateStatus, WriteMode
+from .models.audit import AuditReport, AuditSummary
+from .models.responses import (
+    ConnectionStatus,
+    DoctorResponse,
+    HarImportResponse,
+    ToolUpdateResponse,
+)
+from .models.update import UpdateCheckResponse
+from .version import version_label
 
 
 def _heading(console: Console, title: str) -> None:
@@ -34,6 +42,74 @@ def _expiry(timestamp: float | None) -> str:
         return datetime.fromtimestamp(timestamp).astimezone().strftime("%d %b %Y, %H:%M %Z")
     except (OverflowError, OSError, ValueError):
         return "Unavailable"
+
+
+def _audit_time(timestamp: str) -> str:
+    try:
+        return datetime.fromisoformat(timestamp).astimezone().strftime("%d %b %Y, %H:%M:%S %Z")
+    except (OverflowError, OSError, ValueError):
+        return "Unavailable"
+
+
+def _audit_summary(console: Console, summary: AuditSummary) -> None:
+    fields = _fields()
+    fields.add_row("Database", _literal(summary.database))
+    if summary.error:
+        fields.add_row("Status", _literal(summary.error, "bold red"))
+    elif summary.total_calls:
+        fields.add_row(
+            "MCP calls",
+            f"{summary.total_calls} total · {summary.succeeded} OK · {summary.failed} failed · "
+            f"{summary.pending} pending · {summary.interrupted} interrupted",
+        )
+        if summary.latest_call:
+            latest = summary.latest_call
+            fields.add_row("Latest call", _literal(f"{latest.tool} · {latest.outcome}"))
+            fields.add_row("Recorded at", _audit_time(latest.started_at))
+    else:
+        fields.add_row("MCP calls", "No calls recorded for this scope.")
+    console.print(fields)
+
+
+def show_audit(console: Console, report: AuditReport) -> None:
+    _heading(console, "Audit history")
+    console.print(_literal(report.administration_id or "Profile · no administration selected"))
+    console.print()
+    _audit_summary(console, report.summary)
+    if report.calls:
+        history = Table(box=None, padding=(0, 1, 0, 0))
+        history.add_column("Time", style="dim")
+        history.add_column("Outcome")
+        history.add_column("Tool", overflow="fold")
+        history.add_column("Duration", justify="right")
+        for call in report.calls:
+            duration = f"{call.elapsed_ms} ms" if call.elapsed_ms is not None else "—"
+            history.add_row(
+                _audit_time(call.started_at), call.outcome, _literal(call.tool), duration
+            )
+        console.print()
+        console.print(history)
+
+
+def show_update_check(console: Console, result: UpdateCheckResponse) -> None:
+    _heading(console, "Update check")
+    fields = _fields()
+    fields.add_row("Installed version", _literal(version_label(result.installed_version)))
+    if result.latest_version:
+        fields.add_row("Latest release", _literal(version_label(result.latest_version)))
+    if result.installed_commit:
+        fields.add_row("Git revision", _literal(result.installed_commit[:12]))
+    fields.add_row(
+        "Status",
+        _literal(result.message, "yellow" if result.status is UpdateStatus.AVAILABLE else ""),
+    )
+    console.print(fields)
+
+
+def show_update(console: Console, update: ToolUpdateResponse) -> None:
+    _heading(console, "Update")
+    console.print(_literal(f"Update check completed for {update.package}.", "green"))
+    console.print("Reconnect MCP clients to load the installed version.", style="dim")
 
 
 def _write_scope(global_access: bool, scoped_access: bool) -> Text:
@@ -65,6 +141,9 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
     if profile.is_relative_to(Path.home()):
         profile = Path("~") / profile.relative_to(Path.home())
     fields.add_row("Profile", _literal(profile))
+    if status.update is not None:
+        update_style = "bold yellow" if status.update.status is UpdateStatus.AVAILABLE else ""
+        fields.add_row("Updates", _literal(status.update.message, update_style))
     console.print(fields)
 
     if isinstance(status, DoctorResponse):
@@ -78,6 +157,10 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
                 console.print(Text(f"    {entry.identifier}", style="dim", overflow="fold"))
         if not status.administrations:
             console.print("  No administrations available.", style="dim")
+
+        console.print("\nAudit log", style="bold")
+        _audit_summary(console, status.audit)
+        console.print("Recent calls: snelstart-mcp audit", style="dim")
 
     if not status.configured:
         console.print("\nSign in with: snelstart-mcp login --method browser", style="dim")

@@ -4,6 +4,7 @@ import stat
 from datetime import date
 from hashlib import sha256
 from pathlib import Path
+from uuid import UUID
 from zipfile import ZipFile
 
 import httpx
@@ -15,6 +16,8 @@ from snelstart_mcp import client as api
 from snelstart_mcp.audit import AuditLog
 from snelstart_mcp.client import Client
 from snelstart_mcp.config import SnelStartError, Store
+from snelstart_mcp.enums import UpdateStatus
+from snelstart_mcp.models.update import UpdateCheckResponse
 from snelstart_mcp.server import create_server
 
 ADMIN = "11111111-1111-4111-8111-111111111111"
@@ -531,9 +534,23 @@ def test_audit_records_outcomes_without_tool_arguments_or_response_payload(sessi
     outcomes = {event["tool"]: event["outcome"] for event in events}
     assert outcomes["snelstart_search_relations"] == "ok"
     assert outcomes["snelstart_write"] == "error"
-    audit_file = client.store.directory / "audit.sqlite3"
+    audit_file = AuditLog(client.store).path(UUID(ADMIN))
     assert stat.S_IMODE(audit_file.stat().st_mode) == 0o600
     assert b"PRIVATE-" not in audit_file.read_bytes()
+
+
+def test_update_notice_is_visible_in_mcp_status_and_update_tool(session, monkeypatch):
+    client, requests, _ = session
+    notice = UpdateCheckResponse(
+        status=UpdateStatus.AVAILABLE,
+        installed_version="2026.1.1",
+        latest_version="2026.1.2",
+        message="An update is available.",
+    )
+    monkeypatch.setattr("snelstart_mcp.updater._check_update", lambda: notice)
+    assert call(client, "snelstart_status", {})["update"]["status"] == "available"
+    assert call(client, "snelstart_check_update", {})["latest_version"] == "2026.1.2"
+    assert not requests
 
 
 def test_tool_is_blocked_if_audit_intent_cannot_be_saved(session, monkeypatch):
@@ -549,16 +566,37 @@ def test_tool_is_blocked_if_audit_intent_cannot_be_saved(session, monkeypatch):
     assert not requests
 
 
+def test_tool_does_not_use_a_different_administration_than_its_audit_database(session, monkeypatch):
+    client, requests, _ = session
+    server = create_server(client)
+    start = server.audit.start
+    other = "22222222-2222-4222-8222-222222222222"
+
+    def switch_after_start(tool):
+        event = start(tool)
+        client.store.write("config.json", {"administration_id": other})
+        return event
+
+    monkeypatch.setattr(server.audit, "start", switch_after_start)
+    with pytest.raises(ToolError, match="selected administration changed"):
+        asyncio.run(server.call_tool("snelstart_chart_of_accounts", {}))
+    assert not requests
+    assert server.audit.report(UUID(ADMIN), 1).summary.failed == 1
+    assert server.audit.report(UUID(other), 1).summary.total_calls == 0
+
+
 def test_corrupt_audit_database_blocks_reads_and_tool_execution(session):
     client, requests, _ = session
     audit = AuditLog(client.store)
-    audit.path.write_bytes(b"not a database")
+    path = audit.path(UUID(ADMIN))
+    path.parent.mkdir()
+    path.write_bytes(b"not a database")
     with pytest.raises(ToolError, match="Could not write the local audit log"):
         call(client, "snelstart_list_administrations", {})
     with pytest.raises(SnelStartError, match="Could not read the local audit log"):
         audit.recent(10)
     assert not requests
-    assert audit.path.read_bytes() == b"not a database"
+    assert path.read_bytes() == b"not a database"
 
 
 @pytest.mark.parametrize("success", [True, False])
@@ -576,7 +614,7 @@ def test_missing_audit_outcome_is_visible_and_does_not_retry(session, monkeypatc
     with pytest.raises(ToolError, match=message):
         asyncio.run(server.call_tool("snelstart_list_administrations", {}))
     assert [request.url.path for request in requests] == ["/Administrations/All"]
-    assert [event["outcome"] for event in server.audit.recent(1)] == ["pending"]
+    assert [event.outcome for event in server.audit.recent(1)] == ["pending"]
 
 
 def test_unknown_tool_name_is_redacted_in_audit_even_with_invalid_config(session):
@@ -585,9 +623,9 @@ def test_unknown_tool_name_is_redacted_in_audit_even_with_invalid_config(session
     with pytest.raises(ToolError):
         call(client, "PRIVATE-INVALID-TOOL", {})
     (event,) = AuditLog(client.store).recent(1)
-    assert event["tool"] == "unknown_tool"
-    assert event["outcome"] == "error"
-    assert event["administration_id"] is None
+    assert event.tool == "unknown_tool"
+    assert event.outcome == "error"
+    assert event.administration_id is None
     assert not requests
 
 
