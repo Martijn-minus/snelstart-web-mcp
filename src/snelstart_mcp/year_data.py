@@ -15,6 +15,8 @@ from .models.api import GeneralJournalReference, JournalReference
 DATASETS = frozenset(item.value for item in ArchiveDataset)
 BANK_JOURNALS = "GET /KasBankBoeking/GetKasEnBankDagboeken"
 BANK_ENTRIES = "GET /KasBankBoeking/GetKasBankBoekingenWithTimespan"
+PURCHASE_SEARCH = "GET /Purchases/SearchAllInkopen"
+MAX_EXPORT_ROWS = 100_000
 
 
 def pages(
@@ -25,12 +27,18 @@ def pages(
     body=None,
     *,
     size_param="take",
+    max_rows: int = MAX_EXPORT_ROWS,
+    max_pages: int | None = None,
 ):
     rows, keys = [], set()
     expected = None
-    while len(rows) <= 100_000:
+    page_count = 0
+    while len(rows) <= max_rows:
+        if max_pages is not None and page_count >= max_pages:
+            raise SnelStartError(f"Too many pages for {operation}. Narrow the date range.")
         query = {**params, "skip": len(rows), size_param: 100}
         result = request(operation, query, body)
+        page_count += 1
         try:
             page = ApiPage.model_validate(result)
         except ValidationError:
@@ -38,8 +46,10 @@ def pages(
         chunk, total = page.resultList, page.totalMatchCount
         if expected is not None and expected != total:
             raise SnelStartError(f"The count changed while exporting {operation}.")
-        if total > 100_000:
-            raise SnelStartError(f"Too many rows for a local export of {operation}.")
+        if total > max_rows:
+            raise SnelStartError(
+                f"Too many rows for a local export of {operation}. Narrow the date range."
+            )
         expected = total
         for row in chunk:
             key = next(
@@ -96,21 +106,37 @@ def sales_between(request, start: date, end: date) -> list[JsonObject]:
     return entries_in_period(sales, start, end, "invoiceDate", "date")
 
 
-def purchases_between(request, start: date, end: date) -> list[JsonObject]:
+def purchase_search_parameters(
+    first: str, last: str, *, query: str = "", review_only: bool = False
+) -> JsonObject:
+    return {
+        "searchTerm": query,
+        "paymentStatus": 0,
+        "onlyTeControlerenInkopen": review_only,
+        "sortDataField": 0,
+        "sortDescending": True,
+        "startDate": first,
+        "dateUntil": last,
+    }
+
+
+def purchases_between(
+    request,
+    start: date,
+    end: date,
+    *,
+    review_only: bool = False,
+    max_rows: int = MAX_EXPORT_ROWS,
+    max_pages: int | None = None,
+) -> list[JsonObject]:
     first, last = _server_window(start, end)
     purchases = pages(
         request,
-        "GET /Purchases/SearchAllInkopen",
-        {
-            "searchTerm": "",
-            "paymentStatus": 0,
-            "onlyTeControlerenInkopen": False,
-            "sortDataField": 0,
-            "sortDescending": True,
-            "startDate": first,
-            "dateUntil": last,
-        },
+        PURCHASE_SEARCH,
+        purchase_search_parameters(first, last, review_only=review_only),
         ("publicIdentifier", "factuurnummeridentifier"),
+        max_rows=max_rows,
+        max_pages=max_pages,
     )
     return entries_in_period(purchases, start, end, "factuurdatum")
 

@@ -128,7 +128,7 @@ Controleer na registratie met `snelstart_status` de actieve administratie en de 
 
 | Tool | Gebruik |
 | --- | --- |
-| `snelstart_search_purchases` | Zoek inkopen op periode en zoekterm. Met `review_only: true` zie je de inkopen die SnelStart ter controle heeft gemarkeerd. |
+| `snelstart_search_purchases` | Zoek inkopen binnen de periode. Gebruik `query` voor leverancier of tekst, of `invoice_number` voor een exact factuurnummer. Met `review_only: true` beperk je beide zoekmethoden tot gemarkeerde inkopen. |
 | `snelstart_get_entry` | Lees een inkoop-, memoriaal-, beginbalans- of bankboeking op UUID. |
 | `snelstart_purchase_payments` | Lees de vastgelegde betalingen en vereffeningen van een inkoop. |
 | `snelstart_purchase_evidence` | Lees inkoopboekingen, betalingen en optionele bijlagegegevens voor maximaal 20 inkopen tegelijk. |
@@ -222,6 +222,8 @@ Vanuit de MCP geeft `snelstart_audit_log` de recente aanroepen voor de gekozen a
 | `snelstart_export_bank_entries` | Exporteer met `journal_ids`, `start_date` en `through_date` alle gecontroleerde pagina’s naar privé-JSONL. De uitvoer bevat aantallen per dagboek en een SHA-256-controlesom. Markeringen en factuurkoppelingen blijven in de bronregels behouden. Bij een mislukte pagina vervalt de hele export. |
 | `snelstart_reconcile_bank` | Bekijk geregistreerde SnelStart-koppelingen en mogelijke factuurmatches. De tool kijkt naar bedrag, datum, omschrijving en tegenpartij. Hij meldt twijfelgevallen, mogelijke dubbelen en signalen over ontbrekende bijlagen. Controleer voorgestelde matches vóór je boekt. |
 | `snelstart_compare_archives` | Vergelijk twee lokale jaararchieven met `before`, `after` en `purchases`, `sales`, `bank_entries` of `journal_and_opening_entries` als dataset. De administratie, het boekjaar, de peildatum en de dagboekdekking moeten overeenkomen. Lees de opgeslagen balans en winst-en-verliesrekening per archief via `snelstart_snapshot_read` in een offline sessie. |
+
+Geef `invoice_number` als tekst op en behoud eventuele voorloopnullen. Levert een `query` met alleen cijfers via SnelStart nul resultaten op, dan probeert de MCP ook een exacte zoekactie. De MCP controleert alle pagina's binnen de gevraagde periode en past `skip` en `take` toe op de exacte treffers. Verklein de periode als de zoeklimiet wordt bereikt.
 
 Gebruik bij inkopen `publicIdentifier` uit de zoekrij als `entry_id` en, als het aanwezig is, `factuurnummeridentifier` uit diezelfde rij als `purchase_invoice_id`. Dit werkt ook met `snelstart_get_entry`. Bij HTTP 400 op de gewone detailroute kan de MCP via het factuur-ID dezelfde boeking ophalen en beide ID's controleren. Als `purchase_detail_rejected` terugkomt, blijft de detailbatch onvolledig. De zoekrij kan nog als bewijs voor de lijstvelden dienen.
 

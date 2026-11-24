@@ -2,9 +2,10 @@
 
 from datetime import date
 from pathlib import Path
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from ..enums import (
     AttachmentKind,
@@ -93,6 +94,20 @@ class LedgerRequest(ThroughDateRequest):
 
 class PurchaseSearchRequest(PageRequest, DateRangeRequest):
     review_only: bool = False
+    invoice_number: (
+        Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
+        | None
+    ) = Field(
+        default=None, description="Exact purchase invoice number, including any leading zeros."
+    )
+
+    @model_validator(mode="after")
+    def use_one_search_mode(self):
+        if self.invoice_number is not None and self.query.strip():
+            raise ValueError(
+                "Use either invoice_number for an exact match or query for text search."
+            )
+        return self
 
 
 class RelationSearchRequest(PageRequest):

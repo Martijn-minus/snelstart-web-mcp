@@ -33,12 +33,15 @@ from .models.requests import (
 )
 from .models.responses import DataResponse, DownloadResponse, JsonResponse
 from .tooling import READ, Register
+from .year_data import PURCHASE_SEARCH, purchase_search_parameters, purchases_between
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_DETAILS_BY_INVOICE = "GET /Purchases/GetByFactuurNummerIdentifier"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
 PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
+MAX_EXACT_PURCHASE_ROWS = 5_000
+MAX_EXACT_PURCHASE_PAGES = 64
 ENTRY_DETAILS = {
     EntryKind.PURCHASE: (PURCHASE_DETAILS, "journaalpostIdentifier"),
     EntryKind.JOURNAL: ("GET /MemoriaalBoekingen/GetDetails", "publicIdentifier"),
@@ -106,6 +109,45 @@ def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonOb
         "searchTerm": query,
         "sortDescending": True,
     }
+
+
+def read_purchase_page(read, request: PurchaseSearchRequest) -> ApiPage:
+    invoice_number = request.invoice_number
+    if invoice_number is None:
+        start, end = window(request.start_date, request.through_date)
+        parameters = purchase_search_parameters(
+            start, end, query=request.query, review_only=request.review_only
+        )
+        page = ApiPage.model_validate(
+            read(PURCHASE_SEARCH, parameters | {"skip": request.skip, "take": request.take})
+        )
+        query = request.query.strip()
+        if page.totalMatchCount or not (query.isascii() and query.isdecimal()):
+            return page
+        invoice_number = query
+
+    if request.start_date.year < 1900 or request.through_date.year > 9998:
+        raise SnelStartError("Choose dates from 1900 through 9998 for exact invoice searches.")
+    purchases = purchases_between(
+        read,
+        request.start_date,
+        request.through_date,
+        review_only=request.review_only,
+        max_rows=MAX_EXACT_PURCHASE_ROWS,
+        max_pages=MAX_EXACT_PURCHASE_PAGES,
+    )
+    matches = []
+    for row in purchases:
+        number = row.get("factuurnummer")
+        if type(number) in (int, str) and str(number).strip() == invoice_number:
+            matches.append(row)
+    return ApiPage.model_validate(
+        {
+            "totalMatchCount": len(matches),
+            "resultList": matches[request.skip : request.skip + request.take],
+            "searchTerm": invoice_number,
+        }
+    )
 
 
 def attachment_metadata(data: JsonValue) -> list[JsonValue]:
@@ -189,26 +231,8 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_search_purchases(request: PurchaseSearchRequest) -> DataResponse[ApiPage]:
-        """Search purchase entries. Both dates in the range are inclusive."""
-        start, end = window(request.start_date, request.through_date)
-        return DataResponse[ApiPage](
-            data=ApiPage.model_validate(
-                client.request(
-                    "GET /Purchases/SearchAllInkopen",
-                    {
-                        "searchTerm": request.query,
-                        "paymentStatus": 0,
-                        "onlyTeControlerenInkopen": request.review_only,
-                        "skip": request.skip,
-                        "take": request.take,
-                        "sortDataField": 0,
-                        "sortDescending": True,
-                        "startDate": start,
-                        "dateUntil": end,
-                    },
-                )
-            )
-        )
+        """Search purchases in an inclusive date range. Use invoice_number for an exact invoice reference."""
+        return DataResponse(data=read_purchase_page(client.request, request))
 
     @tool(annotations=READ)
     def snelstart_search_relations(request: RelationSearchRequest) -> DataResponse[ApiPage]:

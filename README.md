@@ -213,7 +213,7 @@ The catalog records known Web API operations. Availability depends on the admini
 
 | Tool | What it does |
 | --- | --- |
-| `snelstart_search_purchases` | Lists purchases for an inclusive date range. Set `review_only: true` to find entries SnelStart has flagged for review. |
+| `snelstart_search_purchases` | Lists purchases for an inclusive date range. Use `query` for supplier or text search, or `invoice_number` for an exact reference. Set `review_only: true` to restrict either search to entries flagged for review. |
 | `snelstart_get_entry` | Reads details for a purchase, general journal entry, opening balance entry or bank entry by UUID. |
 | `snelstart_purchase_payments` | Reads payments and settlements recorded against a purchase. |
 | `snelstart_purchase_evidence` | Reads purchase records, recorded settlements, and optional attachment metadata for up to 20 purchase UUIDs. |
@@ -228,6 +228,8 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
 | `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
 
+For an exact purchase invoice search, pass `invoice_number` as a string and keep any leading zeros. If an all-digit `query` returns zero native matches, the MCP also tries the exact search. Exact searches read checked pages for the selected dates and apply `skip` and `take` after filtering. Narrow the date range if it exceeds the exact-search limit.
+
 For an invoice review, search the period and open each purchase with `kind: "purchase"`. Pass the search row's `publicIdentifier` as `entry_id` and, when present, its `factuurnummeridentifier` as `purchase_invoice_id` to the single or batch booking tool. When the usual detail lookup returns HTTP 400, the MCP can use the invoice ID to retrieve and verify the same booking. A remaining `purchase_detail_rejected` failure leaves the batch incomplete. Use the search row as list-level evidence and report the missing detail. Read the attached invoice and recorded settlements where available. For lists with `skip` and `take`, advance through all pages before reporting a period total.
 
 Example purchase filter for entries flagged during November 2026.
@@ -238,7 +240,7 @@ Example purchase filter for entries flagged during November 2026.
 
 #### Download a purchase PDF
 
-1. Find the invoice with `snelstart_search_purchases` using a date range and, if available, the invoice number as `query`.
+1. Find the invoice with `snelstart_search_purchases` using a date range and, if available, the exact `invoice_number`.
 2. Pass the purchase entry UUID as `entry_id` to `snelstart_list_attachments` with `kind: "purchase"`.
 3. Pass the PDF's `attachmentIdentifier` as `attachment_id` to `snelstart_download_document`. The tool returns the path to the private local file.
 

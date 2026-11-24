@@ -409,6 +409,120 @@ def test_purchase_query_preserves_local_boundaries_across_dst(session, day, star
     assert requests[-1].url.params["dateUntil"] == end
 
 
+def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_take(session):
+    client, requests, replies = session
+    route = "/Purchases/SearchAllInkopen"
+
+    def search(request):
+        params = request.url.params
+        assert params["onlyTeControlerenInkopen"] == "true"
+        if params["searchTerm"] == "001234":
+            return {"resultList": [], "totalMatchCount": 0, "searchTerm": ""}
+        assert params["searchTerm"] == ""
+        rows = {
+            "0": [
+                {
+                    "publicIdentifier": "first",
+                    "factuurnummer": "001234",
+                    "factuurdatum": "2024-02-29",
+                },
+                {
+                    "publicIdentifier": "different",
+                    "factuurnummer": 1234,
+                    "factuurdatum": "2024-02-15",
+                },
+            ],
+            "2": [
+                {
+                    "publicIdentifier": "second",
+                    "factuurnummer": "001234",
+                    "factuurdatum": "2024-02-01",
+                },
+                {
+                    "publicIdentifier": "outside",
+                    "factuurnummer": "001234",
+                    "factuurdatum": "2024-01-31",
+                },
+            ],
+        }
+        return {"resultList": rows[params["skip"]], "totalMatchCount": 4}
+
+    replies[route] = search
+    result = call(
+        client,
+        "snelstart_search_purchases",
+        {
+            "query": "001234",
+            "start_date": "2024-02-01",
+            "through_date": "2024-02-29",
+            "review_only": True,
+            "skip": 1,
+            "take": 1,
+        },
+    )["data"]
+    assert result == {
+        "totalMatchCount": 2,
+        "resultList": [
+            {"publicIdentifier": "second", "factuurnummer": "001234", "factuurdatum": "2024-02-01"}
+        ],
+        "searchTerm": "001234",
+    }
+    assert [
+        (request.url.params["searchTerm"], request.url.params["skip"])
+        for request in requests
+        if request.url.path == route
+    ] == [("001234", "1"), ("", "0"), ("", "2")]
+
+
+def test_exact_purchase_search_accepts_formatted_reference_and_rejects_dual_filters(session):
+    client, requests, replies = session
+    route = "/Purchases/SearchAllInkopen"
+    row = {"publicIdentifier": "exact", "factuurnummer": "INV-001", "factuurdatum": "2024-03-31"}
+    replies[route] = {
+        "resultList": [row, row | {"publicIdentifier": "prefix", "factuurnummer": "INV-001-A"}],
+        "totalMatchCount": 2,
+    }
+    params = {
+        "start_date": "2024-03-01",
+        "through_date": "2024-03-31",
+        "invoice_number": " INV-001 ",
+    }
+    result = call(client, "snelstart_search_purchases", params)["data"]
+    assert result["totalMatchCount"] == 1 and result["resultList"] == [row]
+    assert [
+        request.url.params["searchTerm"] for request in requests if request.url.path == route
+    ] == [""]
+    with pytest.raises(ToolError, match="either invoice_number"):
+        call(client, "snelstart_search_purchases", params | {"query": "Supplier"})
+
+
+@pytest.mark.parametrize(("query", "count"), [("Supplier", 0), ("1234", 1)])
+def test_purchase_text_search_keeps_native_results_without_an_extra_scan(session, query, count):
+    client, requests, replies = session
+    route = "/Purchases/SearchAllInkopen"
+    replies[route] = {"resultList": [], "totalMatchCount": count}
+    result = call(
+        client,
+        "snelstart_search_purchases",
+        {"query": query, "start_date": "2024-01-01", "through_date": "2024-02-01", "skip": 1},
+    )["data"]
+    assert result["totalMatchCount"] == count
+    assert [
+        request.url.params["searchTerm"] for request in requests if request.url.path == route
+    ] == [query]
+
+
+def test_exact_purchase_search_fails_when_complete_coverage_exceeds_the_bound(session):
+    client, _, replies = session
+    replies["/Purchases/SearchAllInkopen"] = {"resultList": [], "totalMatchCount": 5_001}
+    with pytest.raises(ToolError, match="Narrow the date range"):
+        call(
+            client,
+            "snelstart_search_purchases",
+            {"invoice_number": "1234", "start_date": "2024-01-01", "through_date": "2024-12-31"},
+        )
+
+
 def test_sales_search_posts_only_to_read_endpoint(session):
     client, requests, replies = session
     path = "/Invoices/Search"
