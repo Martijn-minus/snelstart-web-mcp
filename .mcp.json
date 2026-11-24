@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "snelstart_plugin": {
+      "command": "/bin/bash",
+      "args": [
+        "-c",
+        "export PATH=\"${UV_TOOL_BIN_DIR:-$HOME/.local/bin}:$HOME/.local/bin:$PATH:/opt/homebrew/bin:/usr/local/bin\"; if ! command -v snelstart-mcp >/dev/null && command -v uv >/dev/null; then bin_dir=$(uv tool dir --bin) && export PATH=\"$bin_dir:$PATH\"; fi; exec snelstart-mcp serve"
+      ]
+    }
+  }
+}

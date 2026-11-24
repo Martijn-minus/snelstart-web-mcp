@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "^mcp__snelstart_plugin__(snelstart_write|snelstart_upload_purchase_pdf)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"$PLUGIN_ROOT/scripts/codex/snelstart.sh\" codex-hook",
+            "timeout": 5,
+            "statusMessage": "Checking SnelStart write context"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^mcp__snelstart_plugin__(snelstart_write|snelstart_upload_purchase_pdf)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"$PLUGIN_ROOT/scripts/codex/snelstart.sh\" codex-hook",
+            "timeout": 5,
+            "statusMessage": "Checking SnelStart write follow-up"
+          }
+        ]
+      },
+      {
+        "matcher": "^mcp__snelstart_plugin__(snelstart_status|snelstart_check_update)$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash \"$PLUGIN_ROOT/scripts/codex/snelstart.sh\" codex-hook",
+            "timeout": 5,
+            "statusMessage": "Checking SnelStart update status"
+          }
+        ]
+      }
+    ]
+  }
+}

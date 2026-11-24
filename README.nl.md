@@ -4,6 +4,20 @@
 
 Een lokale MCP-server voor SnelStart Web. De server gebruikt de Web API, vernieuwt de aanmelding en opent de geselecteerde administratie voordat hij boekhoudgegevens opvraagt. Dit is een onafhankelijke integratie. [Officiële API-koppelingen van SnelStart](https://www.snelstart.nl/api)
 
+## De Codex-plugin installeren
+
+Zorg dat de [Codex CLI](https://learn.chatgpt.com/docs/cli) op je PATH staat. Plak daarna deze regel in Terminal op macOS of Linux.
+
+```sh
+curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-minus/snelstart-web-mcp/main/install.sh && bash install-snelstart-mcp.sh --codex-plugin
+```
+
+Dit installeert de lokale MCP en de plugin **SnelStart** vanuit de marketplace van deze repository. De plugin bevat de MCP-tools, de boekhoudskills, een installatieskill en hooks. Start daarna een nieuw Codex-gesprek. Meld je zo nodig aan met `snelstart-mcp login --method browser`. In de Codex CLI kun je met `/hooks` bekijken welke hooks je wilt vertrouwen.
+
+Zodra Codex de marketplace **SnelStart MCP** kent, kun je [de installatie in Codex openen](codex://plugins/install/snelstart?marketplace=snelstart-mcp) of **SnelStart** kiezen in die marketplace onder Plugins. [OpenAI-documentatie over plugins](https://developers.openai.com/plugins/build/plugins) · [Installatielinks voor Codex](https://learn.chatgpt.com/docs/app/commands#plugin-install)
+
+Als je SnelStart eerder handmatig registreerde, kan Codex twee MCP-verbindingen tonen. Om alleen de plugin te gebruiken, zet je `enabled = false` onder `[mcp_servers.snelstart]` in de Codex-configuratie. Beide installaties gebruiken hetzelfde standaardprofiel. Voor een afwijkend profiel kun je `SNELSTART_CONFIG_DIR` in de lokale uitvoeromgeving instellen.
+
 ## Installeren met een AI-assistent
 
 Kopieer deze opdracht naar Codex, Claude Code of een andere assistent die lokale terminalopdrachten kan uitvoeren.
@@ -11,6 +25,7 @@ Kopieer deze opdracht naar Codex, Claude Code of een andere assistent die lokale
 ```text
 Installeer SnelStart Web MCP vanaf https://github.com/Martijn-minus/snelstart-web-mcp.
 Download op macOS of Linux het bestand install.sh uit de repository en voer het uit.
+Gebruik --codex-plugin als dit Codex is en ik de plugin wil. Sla dan handmatige registratie over.
 Controleer of Google Chrome beschikbaar is. Start snelstart-mcp login --method browser
 en laat mij in Chrome aanmelden. Registreer de MCP met snelstart-mcp install <client> --apply
 voor deze client. Voeg op mijn verzoek --with-skills toe voor Codex of Claude Code
@@ -193,9 +208,9 @@ Vanuit de MCP geeft `snelstart_audit_log` de recente aanroepen voor de gekozen a
 
 Gebruik `snelstart_create_year_archive` met `year` en `through_date`. Voeg zo nodig een officiële Web-export toe met `official_zip_path` of geef `auditfile_path`, `attachments_zip_path` en `bacpac_path` apart mee. Met `live_export: false` bundel je bestanden zonder de administratie uit te lezen.
 
-De MCP attendeert je op lokale back-ups als je naar back-ups of de jaarafsluiting vraagt. `snelstart-mcp doctor` toont de lokale back-ups van het huidige profiel met de aanmaakdatum, de datum tot en met en of er een native BACPAC bij zit. Gebruik `doctor --json` of `snelstart_list_archives` voor de bestandsnamen en paden. Doctor toont ook of Chrome beschikbaar is. Met `snelstart-mcp doctor --check-browser` test je of een leeg Chrome-venster kan worden geopend en gesloten. Beide controles worden ook getoond als de verbinding met SnelStart faalt.
+De MCP attendeert je op lokale back-ups als je naar back-ups of de jaarafsluiting vraagt. `snelstart-mcp doctor` toont de lokale back-ups van het huidige profiel met de aanmaakdatum, de datum tot en met, de ZIP-grootte en of er een native BACPAC bij zit. Gebruik `doctor --json` of `snelstart_list_archives` voor de bestandsnamen, paden en exacte groottes in bytes. Doctor toont ook of Chrome beschikbaar is. Met `snelstart-mcp doctor --check-browser` test je of een leeg Chrome-venster kan worden geopend en gesloten. Beide controles worden ook getoond als de verbinding met SnelStart faalt.
 
-`snelstart_verify_archive` controleert het manifest en de bestanden. `snelstart_extract_archive` pakt een gecontroleerd archief uit naar een nieuwe privémap. Voor herstel in SnelStart 12 heb je een native `.bacpac`-back-up nodig. Een geslaagde archiefcontrole bevestigt de bestandsintegriteit. Toets herstel door de back-up terug te zetten in de daarvoor bedoelde omgeving. [Web-export](https://kennispleinweb.snelstart.nl/nl/bestanden-en-bijlagen-downloaden-in-snelstart-web) · [SnelStart 12 back-ups](https://kennisplein.snelstart.nl/klanten/s/article/back-ups-maken-of-terugzetten)
+Vraag Codex bijvoorbeeld om je laatste back-up te controleren. Codex gebruikt dan `snelstart_verify_archive` om te controleren of alle verwachte bestanden in de ZIP aanwezig zijn en hun inhoud overeenkomt met de opgeslagen controlesommen. `snelstart_extract_archive` pakt een gecontroleerd archief uit naar een nieuwe privémap. Voor herstel in SnelStart 12 heb je een native `.bacpac`-back-up nodig. Toets herstel door de back-up terug te zetten in de daarvoor bedoelde omgeving. [Web-export](https://kennispleinweb.snelstart.nl/nl/bestanden-en-bijlagen-downloaden-in-snelstart-web) · [SnelStart 12 back-ups](https://kennisplein.snelstart.nl/klanten/s/article/back-ups-maken-of-terugzetten)
 
 ## Bijwerken en ontwikkelen
 

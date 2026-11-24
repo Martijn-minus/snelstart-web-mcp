@@ -10,6 +10,7 @@ from hashlib import sha256
 from importlib.resources import files
 from io import BytesIO
 from pathlib import Path
+from stat import S_ISREG
 from uuid import uuid4
 from xml.etree import ElementTree
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
@@ -335,7 +336,13 @@ def list_archives(store: Store) -> ArchiveInventory:
     entries = []
     for path in candidates:
         match = ARCHIVE_NAME.fullmatch(path.name)
-        if match is None or path.is_symlink() or not path.is_file():
+        if match is None:
+            continue
+        try:
+            metadata = path.lstat()
+        except OSError:
+            continue
+        if not S_ISREG(metadata.st_mode):
             continue
         year = int(match[1])
         try:
@@ -346,6 +353,7 @@ def list_archives(store: Store) -> ArchiveInventory:
                     "archive": path.name,
                     "path": path,
                     "year": year,
+                    "size_bytes": metadata.st_size,
                     "through_date": parsed.through_date,
                     "created_at": manifest.get("created_at"),
                     "mcp_administration_id": manifest.get("mcp_administration_id"),
@@ -355,7 +363,11 @@ def list_archives(store: Store) -> ArchiveInventory:
             )
         except (SnelStartError, OSError, *INVALID_ARCHIVE):
             entry = ArchiveListEntry(
-                archive=path.name, path=path, year=year, manifest_readable=False
+                archive=path.name,
+                path=path,
+                year=year,
+                size_bytes=metadata.st_size,
+                manifest_readable=False,
             )
         entries.append(entry)
     oldest = datetime.min.replace(tzinfo=UTC)

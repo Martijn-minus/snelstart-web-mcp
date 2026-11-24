@@ -106,6 +106,7 @@ def main():
     )
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("serve", help="Start the MCP server over stdio")
+    commands.add_parser("codex-hook", help="Handle a Codex hook event over stdio")
     commands.add_parser("status", parents=[output_options], help="Show the local sign-in profile")
     doctor = commands.add_parser(
         "doctor", parents=[output_options], help="Check the connection, Chrome and local backups"
@@ -221,6 +222,11 @@ def main():
         scoped.add_argument("administration_id", type=UUID)
         scoped.add_argument("operation", help="Exact catalog operation, including HTTP method")
     args = parser.parse_args()
+    if args.command == "codex-hook":
+        from .codex_hook import main as run_hook
+
+        run_hook()
+        return
     json_output = getattr(args, "json_output", not sys.stdout.isatty())
     if args.command == "install":
         try:

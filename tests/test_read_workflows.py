@@ -388,6 +388,7 @@ def test_archive_tools_package_verify_and_list_local_sources(session, tmp_path):
     (listed,) = call(client, "snelstart_list_archives", {})["data"]
     assert listed["archive"] == created["archive"] and listed["path"] == created["path"]
     assert listed["year"] == 2020 and listed["through_date"] == "2020-12-31"
+    assert listed["size_bytes"] == Path(created["path"]).stat().st_size
     assert datetime.fromisoformat(listed["created_at"]) == datetime.fromisoformat(
         created["created_at"]
     )

@@ -10,6 +10,7 @@ from .models.hooks import CodexHookContext, CodexHookInput, CodexHookOutput
 WRITE_TOOLS = ("snelstart_write", "snelstart_upload_purchase_pdf")
 UPDATE_TOOLS = ("snelstart_status", "snelstart_check_update")
 TOOL_PREFIX = "mcp__snelstart__"
+PLUGIN_TOOL_PREFIX = "mcp__snelstart_plugin__"
 MAX_INPUT = 1_048_576
 
 
@@ -23,9 +24,9 @@ def _output(event: CodexHookInput, context: str, *, notice: str | None = None) -
 
 
 def hook_output(event: CodexHookInput) -> CodexHookOutput | None:
-    if not event.tool_name.startswith(TOOL_PREFIX):
+    server, separator, tool = event.tool_name.rpartition("__")
+    if not separator or server + separator not in (TOOL_PREFIX, PLUGIN_TOOL_PREFIX):
         return None
-    tool = event.tool_name.removeprefix(TOOL_PREFIX)
     if tool in WRITE_TOOLS:
         if event.hook_event_name is CodexHookEvent.PRE_TOOL_USE:
             return _output(

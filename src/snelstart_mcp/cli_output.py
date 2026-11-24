@@ -5,6 +5,7 @@ from pathlib import Path
 from shlex import join
 
 from rich.console import Console
+from rich.filesize import decimal
 from rich.table import Table
 from rich.text import Text
 
@@ -86,6 +87,7 @@ def _backup_summary(console: Console, backups: ArchiveInventory) -> None:
     table.add_column("Year", no_wrap=True)
     table.add_column("Through", no_wrap=True)
     table.add_column("Created", no_wrap=True)
+    table.add_column("ZIP size", justify="right", no_wrap=True)
     table.add_column("Contents")
     for archive in backups.archives:
         contents = (
@@ -99,10 +101,14 @@ def _backup_summary(console: Console, backups: ArchiveInventory) -> None:
             str(archive.year),
             str(archive.through_date or "—"),
             _audit_time(archive.created_at.isoformat()) if archive.created_at else "Unavailable",
+            decimal(archive.size_bytes),
             contents,
         )
     console.print(table)
-    console.print("Use snelstart_verify_archive to check file integrity.", style="dim")
+    console.print(
+        'To check for missing or changed files, ask Codex "Verify my latest SnelStart backup."',
+        style="dim",
+    )
 
 
 def show_audit(console: Console, report: AuditReport) -> None:

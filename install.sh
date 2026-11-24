@@ -33,10 +33,11 @@ add_homebrew_python_to_path() {
 main() {
     local skills_client=""
     local with_hooks=false
+    local codex_plugin=false
     while [[ $# != 0 ]]; do
         case "$1" in
             --help)
-                printf 'Usage: bash install.sh [--with-skills codex|claude-code] [--with-hooks]\n'
+                printf 'Usage: bash install.sh [--codex-plugin | [--with-skills codex|claude-code] [--with-hooks]]\n'
                 printf 'Install SnelStart MCP on macOS or Linux.\n'
                 return
                 ;;
@@ -48,6 +49,7 @@ main() {
                 shift
                 ;;
             --with-hooks) with_hooks=true ;;
+            --codex-plugin) codex_plugin=true ;;
             *) fail 'Run bash install.sh --help for installer options.' ;;
         esac
         shift
@@ -62,6 +64,12 @@ main() {
         *) fail 'This installer supports macOS and Linux.' ;;
     esac
     export PATH="$PATH:$HOME/.local/bin:$HOME/.cargo/bin"
+    if [[ "$codex_plugin" == true ]]; then
+        if [[ -n "$skills_client" || "$with_hooks" == true ]]; then
+            fail 'The Codex plugin already includes skills and hooks.'
+        fi
+        command -v codex >/dev/null || fail 'Install the Codex CLI and make sure codex is on PATH.'
+    fi
     if ! command -v uv >/dev/null; then
         install_uv
     fi
@@ -89,6 +97,10 @@ main() {
     if [[ "$with_hooks" == true ]]; then
         "$bin_dir/snelstart-mcp" install codex --hooks-only --apply --text
     fi
+    if [[ "$codex_plugin" == true ]]; then
+        codex plugin marketplace add Martijn-minus/snelstart-web-mcp
+        codex plugin add snelstart@snelstart-mcp
+    fi
 
     case ":$PATH:" in
         *":$bin_dir:"*) ;;
@@ -104,7 +116,11 @@ main() {
     printf '\nWith Google Chrome installed, run:\n'
     printf '  snelstart-mcp login --method browser\n'
     printf '  snelstart-mcp doctor\n'
-    printf '\nFor Codex, run snelstart-mcp install codex --apply and reconnect the client.\n'
+    if [[ "$codex_plugin" == true ]]; then
+        printf '\nStart a new Codex chat and open the SnelStart plugin. Use /hooks in Codex CLI to review its hooks.\n'
+    else
+        printf '\nFor Codex, run snelstart-mcp install codex --apply and reconnect the client.\n'
+    fi
 }
 
 main "$@"

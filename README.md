@@ -4,6 +4,20 @@
 
 A local stdio MCP server for SnelStart Web. It uses the Web API, refreshes its sign-in and opens the selected administration before requesting accounting data. This is an unofficial integration. SnelStart documents its partner API separately. [SnelStart API integration](https://www.snelstart.nl/api)
 
+## Install the Codex plugin
+
+With the [Codex CLI](https://learn.chatgpt.com/docs/cli) on your PATH, paste this into Terminal on macOS or Linux.
+
+```sh
+curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-minus/snelstart-web-mcp/main/install.sh && bash install-snelstart-mcp.sh --codex-plugin
+```
+
+This installs the local MCP runtime and the **SnelStart** plugin from this repository's marketplace. The plugin bundles MCP tools, setup and bookkeeping skills, and hooks. Start a new Codex chat after installation. Run `snelstart-mcp login --method browser` if the selected local profile still needs sign-in. Review and trust any hooks you want from `/hooks` in the Codex CLI.
+
+After Codex knows the **SnelStart MCP** marketplace, [open the plugin install flow in Codex](codex://plugins/install/snelstart?marketplace=snelstart-mcp), or choose **SnelStart** in that marketplace in the Plugins directory. The repo marketplace distributes a local plugin. [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins) · [Codex install links](https://learn.chatgpt.com/docs/app/commands#plugin-install)
+
+If you already registered SnelStart manually, Codex can show two MCP connections. To use just the plugin, set `enabled = false` under `[mcp_servers.snelstart]` in your Codex config. Both installations use the same default local SnelStart profile. A custom profile can be supplied with `SNELSTART_CONFIG_DIR` in the local execution environment.
+
 ## Install with a coding assistant
 
 Copy this prompt into Codex, Claude Code, or another assistant that can run local shell commands.
@@ -11,6 +25,7 @@ Copy this prompt into Codex, Claude Code, or another assistant that can run loca
 ```text
 Install the SnelStart Web MCP on this machine from https://github.com/Martijn-minus/snelstart-web-mcp.
 On macOS or Linux, download and run the install.sh script from the repository root.
+If this client is Codex and I want the plugin, pass --codex-plugin and skip manual registration.
 Check that Google Chrome is available for browser sign-in.
 Find the installed snelstart-mcp executable with uv tool dir --bin if it is outside PATH.
 Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
@@ -304,7 +319,7 @@ A grant stays active until revoked. It applies to every record covered by the op
 
 ## Year archives
 
-The MCP mentions local backups when you ask about backups or year-end work and can create and verify them on request. `snelstart-mcp doctor` lists the local backups for the current profile, with their creation time, through date and whether a native BACPAC is included. Use `doctor --json` or `snelstart_list_archives` for archive filenames and paths. The inventory reads manifests. Use `snelstart_verify_archive` to check file integrity.
+The MCP mentions local backups when you ask about backups or year-end work and can create and verify them on request. `snelstart-mcp doctor` lists the local backups for the current profile, with their creation time, through date, ZIP size and whether a native BACPAC is included. Use `doctor --json` or `snelstart_list_archives` for filenames, paths and exact sizes in bytes. To check that the ZIP contains the expected files and that their contents still match the original checksums, ask Codex to verify a backup. This uses the MCP tool `snelstart_verify_archive`.
 
 Call `snelstart_create_year_archive` with `year` and `through_date`. Supply `official_zip_path` to include the original audit file and attachments downloaded from SnelStart Web. Separate source files can be supplied as `auditfile_path`, `attachments_zip_path` and `bacpac_path`. Set `live_export: false` to package files without reading the administration.
 

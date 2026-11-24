@@ -15,14 +15,18 @@ def executable(path: Path, body: str) -> None:
 
 
 @pytest.mark.skipif(shutil.which("bash") is None, reason="requires Bash")
-@pytest.mark.parametrize("platform", ["Darwin", "Linux", "MINGW64_NT"])
-def test_install_script_selects_python_and_rejects_native_windows(tmp_path, platform):
+@pytest.mark.parametrize(
+    ("platform", "plugin"),
+    [("Darwin", False), ("Darwin", True), ("Linux", False), ("MINGW64_NT", False)],
+)
+def test_install_script_selects_python_and_rejects_native_windows(tmp_path, platform, plugin):
     bin_dir = tmp_path / "bin"
     brew_prefix = tmp_path / "Test Homebrew"
     python = brew_prefix / "opt/python@3.13/bin/python3.13"
     log = tmp_path / "uv-commands"
     executable(bin_dir / "uname", 'printf "%s\\n" "$TEST_PLATFORM"\n')
     executable(bin_dir / "brew", 'printf "%s\\n" "$TEST_BREW_PREFIX"\n')
+    executable(bin_dir / "codex", 'printf "%s\\n" "$*" >> "$TEST_UV_LOG"\n')
     executable(python, 'printf "Python 3.13.0\\n"\n')
     executable(
         bin_dir / "snelstart-mcp",
@@ -46,12 +50,13 @@ case "$1 $2" in
 esac
 """,
     )
+    flags = []
+    if plugin:
+        flags = ["--codex-plugin"]
+    elif platform == "Darwin":
+        flags = ["--with-skills", "codex", "--with-hooks"]
     result = subprocess.run(
-        [
-            "bash",
-            str(INSTALLER),
-            *(["--with-skills", "codex", "--with-hooks"] if platform == "Darwin" else []),
-        ],
+        ["bash", str(INSTALLER), *flags],
         env={
             **os.environ,
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
@@ -81,6 +86,9 @@ esac
         "--upgrade-package snelstart-web-mcp snelstart-web-mcp[browser]" in commands
     )
     assert "tool update-shell" not in commands
-    assert ("install codex --skills-only --apply --text" in commands) == (platform == "Darwin")
-    assert ("install codex --hooks-only --apply --text" in commands) == (platform == "Darwin")
+    addons = platform == "Darwin" and not plugin
+    assert ("install codex --skills-only --apply --text" in commands) == addons
+    assert ("install codex --hooks-only --apply --text" in commands) == addons
+    assert ("plugin marketplace add Martijn-minus/snelstart-web-mcp" in commands) == plugin
+    assert ("plugin add snelstart@snelstart-mcp" in commands) == plugin
     assert "snelstart-mcp login --method browser" in result.stdout

@@ -65,6 +65,7 @@ class ArchiveListEntry(BaseModel):
     archive: str
     path: Path
     year: int
+    size_bytes: int = Field(ge=0)
     through_date: date | None = None
     created_at: AwareDatetime | None = None
     mcp_administration_id: UUID | None = None
