@@ -292,6 +292,7 @@ def main():
             result.update(
                 connected=True,
                 audit=summary,
+                server_version=installed_version() or "unknown",
                 update=UpdateChecker().check(),
                 administration_name=selected_name,
                 administration_count=len(administrations),

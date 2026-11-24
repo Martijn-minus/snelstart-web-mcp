@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,13 @@ def environment(tmp_path, monkeypatch):
     home = tmp_path / "test home"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: home)
-    for variable in ("XDG_CONFIG_HOME", "GEMINI_HOME", "OPENCODE_CONFIG", "OPENCODE_CONFIG_DIR"):
+    for variable in (
+        "CODEX_HOME",
+        "XDG_CONFIG_HOME",
+        "GEMINI_HOME",
+        "OPENCODE_CONFIG",
+        "OPENCODE_CONFIG_DIR",
+    ):
         monkeypatch.delenv(variable, raising=False)
     monkeypatch.setattr(installer.shutil, "which", lambda name: None)
     monkeypatch.setattr(installer.sys, "platform", "darwin")
@@ -183,6 +190,70 @@ def test_codex_registration_preserves_existing_settings(environment, monkeypatch
     else:
         assert result["status"] == ("already_configured" if registration == "same" else "error")
         assert requests == [["codex", "mcp", "list", "--json"]]
+
+
+@pytest.mark.parametrize("explicit_profile", [False, True])
+def test_codex_refresh_preserves_server_settings_and_installs_addons(
+    environment, monkeypatch, explicit_profile
+):
+    config = environment / ".codex/config.toml"
+    config.parent.mkdir()
+    original = """# User settings
+[mcp_servers.other]
+url = "https://example.test"
+
+[mcp_servers.snelstart]
+command = "/old environment/bin/snelstart-mcp" # MCP launcher
+args = ["--config-dir", "/existing profile", "serve"]
+enabled = false
+startup_timeout_sec = 20
+enabled_tools = ["snelstart_status"]
+
+[mcp_servers.snelstart.env]
+EXAMPLE = "kept"
+"""
+    config.write_text(original)
+
+    def run(argv):
+        assert argv == ["codex", "mcp", "list", "--json"]
+        transport = tomllib.loads(config.read_text())["mcp_servers"]["snelstart"]
+        return json.dumps([{"name": "snelstart", "transport": {"type": "stdio", **transport}}])
+
+    monkeypatch.setattr(installer, "_run", run)
+    profile = environment / "explicit profile" if explicit_profile else None
+    options = {"profile": profile, "config_path": None, "with_skills": True, "with_hooks": True}
+    (result,) = installer.install(["codex"], apply=True, **options)
+    assert result["status"] == "updated"
+    assert result["hooks"]["status"] == "installed"
+    assert all(skill["status"] == "installed" for skill in result["skills"])
+    updated = config.read_text()
+    expected = original.replace(
+        "/old environment/bin/snelstart-mcp",
+        str(Path(sys.executable).absolute().with_name("snelstart-mcp")),
+    )
+    if profile is not None:
+        expected = expected.replace("/existing profile", str(profile))
+    assert updated == expected
+    (again,) = installer.install(["codex"], apply=True, **options)
+    assert again["status"] == "already_configured"
+    assert config.read_text() == updated
+
+
+def test_codex_refresh_leaves_mismatched_user_config_untouched(environment, monkeypatch):
+    config = environment / ".codex/config.toml"
+    config.parent.mkdir()
+    original = '[mcp_servers.snelstart]\ncommand = "another-server"\nargs = ["serve"]\n'
+    config.write_text(original)
+    active = [
+        {
+            "name": "snelstart",
+            "transport": {"type": "stdio", "command": "/old/bin/snelstart-mcp", "args": ["serve"]},
+        }
+    ]
+    monkeypatch.setattr(installer, "_run", lambda argv: json.dumps(active))
+    (result,) = installer.install(["codex"], apply=True, profile=None, config_path=None)
+    assert result["status"] == "error"
+    assert config.read_text() == original
 
 
 def test_legacy_antigravity_and_opencode_layouts(environment, monkeypatch):

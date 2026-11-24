@@ -17,8 +17,22 @@ from snelstart_mcp.client import Client, catalog
 from snelstart_mcp.config import SnelStartError, Store
 from snelstart_mcp.dates import AMSTERDAM
 from snelstart_mcp.server import create_server
+from snelstart_mcp.version import installed_version
 
 TEST_ADMINISTRATION = "mcp-test"
+
+
+def test_stdio_handshake_reports_the_running_package_version(tmp_path):
+    async def check():
+        command = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "snelstart_mcp.cli", "--config-dir", str(tmp_path), "serve"],
+        )
+        async with stdio_client(command) as (reader, writer), ClientSession(reader, writer) as mcp:
+            protocol = await mcp.initialize()
+            assert protocol.serverInfo.version == installed_version()
+
+    asyncio.run(check())
 
 
 class IsolatedTestStore(Store):

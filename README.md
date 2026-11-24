@@ -76,7 +76,7 @@ snelstart-mcp update
 
 If you installed a version before the updater existed, run `uv tool upgrade snelstart-web-mcp` once. `snelstart-mcp update` uses the active `uv tool` installation and keeps its source and extras. Reconnect the MCP client after an upgrade. From a source checkout, update the checkout and run `uv sync --locked`.
 
-`doctor` and `snelstart_status` show whether an update is available. For PyPI installs, the check compares package versions. For GitHub installs tracking `main`, it compares the installed public commit with the current branch. The MCP caches successful checks for one hour and asks the client to report an available update. Call `snelstart_check_update` to check immediately. Checks use public package metadata and send no SnelStart account data.
+`doctor` and `snelstart_status` show the SnelStart MCP version and update availability. MCP clients also receive the running package version in `serverInfo.version` when they connect. For PyPI installs, the update check compares package versions. For GitHub installs tracking `main`, it compares the installed public commit with the current branch. The MCP caches successful checks for one hour and asks the client to report an available update. Call `snelstart_check_update` to check immediately. Checks use public package metadata and send no SnelStart account data.
 
 ## Quick start from a source checkout
 
@@ -128,7 +128,9 @@ uv run --frozen snelstart-mcp install codex claude-code antigravity --apply
 | `zed` | Zed user settings |
 | `stdio` | Generic `mcpServers` registration, including the MCP settings files used by Cline and Roo Code |
 
-The installer uses the absolute path of the installed executable. Keep the virtual environment at that path or update the registration if you move the repository. Preview writes no client settings. With `--apply`, file-based registrations merge into plain JSON and preserve existing settings and servers. If an existing file uses JSON with comments, merge the preview snippet in the client's config editor. Use `--client-config PATH` for a different file location or editor profile. Use `--config-dir PATH` **before** `install` to start the MCP with a separate accounting profile.
+The installer uses the absolute path of the installed executable. Run `snelstart-mcp install codex --apply --with-skills --with-hooks` again after moving from a source checkout to a global installation. The installer updates a recognized user-level Codex registration and any bundled hook commands that point to the old executable. It keeps the configured accounting profile and other Codex settings. Use `--config-dir PATH` **before** `install` to explicitly choose an accounting profile.
+
+Preview writes no client settings. With `--apply`, file-based registrations merge into plain JSON and preserve existing settings and servers. If an existing file uses JSON with comments, merge the preview snippet in the client's config editor. Use `--client-config PATH` for a different file location or editor profile.
 
 For other clients, `install stdio` prints a reusable snippet. Add `--client-config PATH --apply` to merge it into a local file that uses an `mcpServers` map.
 
@@ -173,7 +175,7 @@ The MCP interface uses English tool names, argument names, option values, help a
 
 | Tool | What it does |
 | --- | --- |
-| `snelstart_status` | Shows the selected administration, sign-in and refresh status, effective write settings, and update availability. |
+| `snelstart_status` | Shows the running MCP version, selected administration, sign-in and refresh status, effective write settings, and update availability. |
 | `snelstart_check_update` | Checks the installed package's public source for a newer version. |
 | `snelstart_list_administrations` | Lists the administrations accessible to the signed-in account. |
 | `snelstart_select_administration` | Opens an administration by UUID and saves that selection locally. |

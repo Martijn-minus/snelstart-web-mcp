@@ -8,10 +8,14 @@ from pathlib import Path
 from .config import SnelStartError
 
 
-def read_client_config(path: Path) -> tuple[dict, bytes | None]:
+def read_config_bytes(path: Path) -> bytes | None:
     if path.is_symlink() or (path.exists() and not path.is_file()):
         raise SnelStartError("The client configuration must be a regular file.")
-    original = path.read_bytes() if path.exists() else None
+    return path.read_bytes() if path.exists() else None
+
+
+def read_client_config(path: Path) -> tuple[dict, bytes | None]:
+    original = read_config_bytes(path)
     try:
         config = {} if original is None else json.loads(original)
     except (UnicodeError, ValueError):
@@ -24,12 +28,16 @@ def read_client_config(path: Path) -> tuple[dict, bytes | None]:
 
 
 def write_client_config(path: Path, config: dict, original: bytes | None) -> None:
+    content = json.dumps(config, ensure_ascii=False, indent=2) + "\n"
+    write_config_bytes(path, content.encode("utf-8"), original)
+
+
+def write_config_bytes(path: Path, content: bytes, original: bytes | None) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=".snelstart-", dir=path.parent)
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            json.dump(config, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
+        with os.fdopen(fd, "wb") as stream:
+            stream.write(content)
             stream.flush()
             os.fsync(stream.fileno())
         current = path.read_bytes() if path.exists() else None

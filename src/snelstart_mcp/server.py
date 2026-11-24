@@ -20,10 +20,11 @@ from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
 from .tools_review import register_review_tools
 from .updater import UpdateChecker
+from .version import installed_version
 
 
 class AuditedMCP(FastMCP):
-    def __init__(self, audit: AuditLog):
+    def __init__(self, audit: AuditLog, server_version: str):
         super().__init__(
             "snelstart",
             instructions=(
@@ -35,6 +36,8 @@ class AuditedMCP(FastMCP):
             ),
             log_level="WARNING",
         )
+        # FastMCP exposes its implementation version through the underlying MCP server.
+        self._mcp_server.version = server_version
         self.audit = audit
         self.registered_requests: dict[str, type[ToolRequest] | None] = {}
 
@@ -75,9 +78,10 @@ class AuditedMCP(FastMCP):
 def create_server(client: Client | None = None) -> FastMCP:
     client = client or Client(Store())
     audit = AuditLog(client.store)
-    mcp = AuditedMCP(audit)
+    server_version = installed_version() or "unknown"
+    mcp = AuditedMCP(audit, server_version)
     tool = tool_registrar(mcp, mcp.registered_requests)
-    register_connection_tools(tool, client, UpdateChecker())
+    register_connection_tools(tool, client, UpdateChecker(), server_version=server_version)
     register_bookkeeping_tools(tool, client)
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)

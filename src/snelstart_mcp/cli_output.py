@@ -130,6 +130,8 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
 
     fields = _fields()
     name = status.administration_name if isinstance(status, DoctorResponse) else None
+    if status.server_version is not None:
+        fields.add_row("SnelStart MCP version", _literal(version_label(status.server_version)))
     fields.add_row("Selected administration", _literal(name or status.administration_id or "None"))
     fields.add_row(
         "Write access", _write_scope(status.allow_writes, bool(status.approved_write_operations))
@@ -202,6 +204,7 @@ def show_install(
     labels = {
         "preview": ("Ready to register", "cyan"),
         "installed": ("Registered", "green"),
+        "updated": ("Updated", "green"),
         "already_configured": ("Already configured", "green"),
         "error": ("Error", "red"),
     }

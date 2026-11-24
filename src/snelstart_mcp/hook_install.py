@@ -38,7 +38,7 @@ def install_hooks(*, apply: bool) -> CodexHooksInstallResponse:
     if not isinstance(events, dict):
         raise SnelStartError("The Codex hooks configuration has an unexpected structure.")
 
-    changed = False
+    installed = updated = False
     for event, additions in entries.items():
         groups = events.setdefault(event.value, [])
         if not isinstance(groups, list) or any(not isinstance(group, dict) for group in groups):
@@ -47,7 +47,7 @@ def install_hooks(*, apply: bool) -> CodexHooksInstallResponse:
             entry = addition.model_dump(mode="json")
             if entry in groups:
                 continue
-            for group in groups:
+            for index, group in enumerate(groups):
                 if group.get("matcher") != addition.matcher:
                     continue
                 handlers = group.get("hooks")
@@ -57,16 +57,33 @@ def install_hooks(*, apply: bool) -> CodexHooksInstallResponse:
                     and handler["command"].endswith(" -m " + MODULE)
                     for handler in handlers
                 ):
+                    if len(handlers) == 1 and handlers[0].get("type") == "command":
+                        old_command = shlex.split(handlers[0]["command"])
+                        expected = entry["hooks"][0]
+                        if (
+                            len(old_command) == 4
+                            and Path(old_command[0]).is_absolute()
+                            and old_command[1:] == ["-I", "-m", MODULE]
+                            and {
+                                **group,
+                                "hooks": [{**handlers[0], "command": expected["command"]}],
+                            }
+                            == entry
+                        ):
+                            groups[index] = entry
+                            updated = True
+                            break
                     raise SnelStartError(
                         "A different bundled SnelStart hook is already configured."
                     )
-            groups.append(entry)
-            changed = True
+            else:
+                groups.append(entry)
+                installed = True
 
     status = "already_configured"
-    if changed:
+    if installed or updated:
         status = "preview"
         if apply:
             write_client_config(path, config, original)
-            status = "installed"
+            status = "updated" if updated else "installed"
     return CodexHooksInstallResponse(path=path, entries=entries, status=status)

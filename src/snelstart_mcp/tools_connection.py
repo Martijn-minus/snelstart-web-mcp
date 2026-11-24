@@ -20,11 +20,15 @@ from .tooling import READ, WRITE, Register
 from .updater import UpdateChecker
 
 
-def register_connection_tools(tool: Register, client: Client, updates: UpdateChecker) -> None:
+def register_connection_tools(
+    tool: Register, client: Client, updates: UpdateChecker, *, server_version: str
+) -> None:
     @tool(annotations=READ)
     def snelstart_status() -> ConnectionStatus:
-        """Show local connection, write access and package update status without credentials."""
-        return ConnectionStatus.model_validate({**client.status(), "update": updates.check()})
+        """Show the running MCP version, connection, write access and available updates."""
+        return ConnectionStatus.model_validate(
+            {**client.status(), "server_version": server_version, "update": updates.check()}
+        )
 
     @tool(annotations=READ)
     def snelstart_check_update() -> UpdateCheckResponse:

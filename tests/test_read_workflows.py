@@ -19,6 +19,7 @@ from snelstart_mcp.config import SnelStartError, Store
 from snelstart_mcp.enums import UpdateStatus
 from snelstart_mcp.models.update import UpdateCheckResponse
 from snelstart_mcp.server import create_server
+from snelstart_mcp.version import installed_version
 
 ADMIN = "11111111-1111-4111-8111-111111111111"
 ENTRY = "33333333-3333-4333-8333-333333333333"
@@ -657,7 +658,9 @@ def test_update_notice_is_visible_in_mcp_status_and_update_tool(session, monkeyp
         message="An update is available.",
     )
     monkeypatch.setattr("snelstart_mcp.updater._check_update", lambda: notice)
-    assert call(client, "snelstart_status", {})["update"]["status"] == "available"
+    status = call(client, "snelstart_status", {})
+    assert status["update"]["status"] == "available"
+    assert status["server_version"] == installed_version()
     assert call(client, "snelstart_check_update", {})["latest_version"] == "2026.1.2"
     assert not requests
 

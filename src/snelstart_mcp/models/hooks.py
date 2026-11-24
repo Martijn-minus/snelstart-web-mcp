@@ -40,5 +40,5 @@ class CodexHookGroup(BaseModel):
 
 class CodexHooksInstallResponse(BaseModel):
     path: Path
-    status: Literal["preview", "installed", "already_configured"]
+    status: Literal["preview", "installed", "updated", "already_configured"]
     entries: dict[CodexHookEvent, list[CodexHookGroup]]

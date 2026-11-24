@@ -44,6 +44,27 @@ def test_hooks_merge_preserves_existing_rules_and_is_idempotent(hooks_file):
     assert json.loads(hooks_file.read_bytes()) == saved
 
 
+def test_bundled_hooks_follow_the_installer_environment(hooks_file, monkeypatch):
+    options = {"profile": None, "config_path": None, "hooks_only": True}
+    installer.install(["codex"], apply=True, **options)
+    before = hooks_file.read_bytes()
+    executable = "/new environment/bin/python"
+    monkeypatch.setattr(installer.sys, "executable", executable)
+    (preview,) = installer.install(["codex"], apply=False, **options)
+    assert preview["hooks"]["status"] == "preview"
+    assert hooks_file.read_bytes() == before
+    (updated,) = installer.install(["codex"], apply=True, **options)
+    assert updated["status"] == updated["hooks"]["status"] == "updated"
+    expected = json.loads(before)
+    for groups in expected["hooks"].values():
+        for group in groups:
+            for hook in group["hooks"]:
+                hook["command"] = shlex.join([executable, *shlex.split(hook["command"])[1:]])
+    assert json.loads(hooks_file.read_bytes()) == expected
+    (again,) = installer.install(["codex"], apply=True, **options)
+    assert again["status"] == "already_configured"
+
+
 def test_installed_hook_command_limits_scope_and_does_not_echo_tool_data(hooks_file):
     (installed,) = installer.install(
         ["codex"], apply=True, profile=None, config_path=None, hooks_only=True

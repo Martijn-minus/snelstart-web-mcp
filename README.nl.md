@@ -101,7 +101,9 @@ snelstart-mcp install codex claude-code antigravity --apply
 
 Naast Codex, Claude Code en Antigravity ondersteunt de installer Claude Desktop op macOS, Cursor, VS Code, Gemini CLI, OpenCode, Windsurf en Zed. Met `install stdio` krijg je een algemeen configuratiefragment. Gebruik `--client-config PAD --apply` om dat in een ander bestaand JSON-configuratiebestand te zetten. De installer bewaart bestaande instellingen en registraties. Voor JSON met commentaar kun je het voorbeeld in de editor van de client invoegen.
 
-Controleer na registratie met `snelstart_status` de actieve administratie. Zoek zo nodig de UUID op met `snelstart_list_administrations` en kies de juiste administratie met `snelstart_select_administration`. Toolnamen en argumenten zijn in het Engels. Je kunt je vraag in het Nederlands stellen. Gebruik datums in de vorm `YYYY-MM-DD`. De CLI toont leesbare uitvoer in Terminal en JSON bij omleiding. Met `--json` en `--text` kies je expliciet.
+Voer `snelstart-mcp install codex --apply --with-skills --with-hooks` opnieuw uit als je overstapt van een lokale checkout naar een globale installatie. De installer werkt een bekende SnelStart-registratie en de bijbehorende standaardhooks bij. Het bestaande administratieprofiel en de overige Codex-instellingen blijven behouden. Met `--config-dir PAD` vóór `install` kies je expliciet een profiel.
+
+Controleer na registratie met `snelstart_status` de actieve administratie en de draaiende MCP-versie. Zoek zo nodig de UUID op met `snelstart_list_administrations` en kies de juiste administratie met `snelstart_select_administration`. Toolnamen en argumenten zijn in het Engels. Je kunt je vraag in het Nederlands stellen. Gebruik datums in de vorm `YYYY-MM-DD`. De CLI toont leesbare uitvoer in Terminal en JSON bij omleiding. Met `--json` en `--text` kies je expliciet.
 
 ## Inkopen, verkopen en betalingen
 
@@ -201,6 +203,6 @@ snelstart-mcp update --check
 snelstart-mcp update
 ```
 
-Bijwerken via de CLI werkt voor installaties die door `uv tool` worden beheerd. Met een oudere versie kun je beginnen met `uv tool upgrade snelstart-web-mcp`. Verbind de client opnieuw na het bijwerken. `snelstart_status` en `snelstart_check_update` tonen ook beschikbare updates. Versies gebruiken `YYYY.M.D.N`. Het laatste getal begint elke dag bij `1` en gaat bij elke uitgave omhoog, bijvoorbeeld van `2026.11.24.1` naar `2026.11.24.2`.
+Bijwerken via de CLI werkt voor installaties die door `uv tool` worden beheerd. Met een oudere versie kun je beginnen met `uv tool upgrade snelstart-web-mcp`. Verbind de client opnieuw na het bijwerken. `doctor` en `snelstart_status` tonen de versie en of er een update beschikbaar is. Met `snelstart_check_update` controleer je dit direct. Versies gebruiken `YYYY.M.D.N`. Het laatste getal begint elke dag bij `1` en gaat bij elke uitgave omhoog, bijvoorbeeld van `2026.11.24.1` naar `2026.11.24.2`.
 
 Werk je vanuit een broncheckout, dan gebruik je `uv sync --locked --extra browser` en `uv run --frozen snelstart-mcp doctor`. De Engelstalige handleiding bevat de [tests, pre-commit en uitgaveprocedure](README.md#code-and-tests).
