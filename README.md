@@ -321,6 +321,19 @@ A grant stays active until revoked. `writes off` disables global writing and cle
 
 For each write, the first MCP call returns an approval ID. In your own terminal, run `snelstart-mcp writes approve APPROVAL_ID` for the same profile, review the operation, administration and exact content, then type `APPROVE`. The MCP client can retry the same request with `approval_id` within two minutes. A change to the payload or PDF checksum requires a new approval. An approval is consumed once, including when the result is uncertain. The approval protects the MCP tool boundary. Treat unrestricted shell and filesystem access under your OS account as trusted.
 
+## Evidence and reconciliation
+
+| Tool | Use |
+| --- | --- |
+| `snelstart_get_entries` | Read up to 20 mixed purchase, bank, journal and opening-balance bookings. Pass `entries` as objects with `kind` and `entry_id`. Each result keeps its ID and reports whether it was found, missing, failed or too large for the batch. |
+| `snelstart_export_bank_entries` | Pass `journal_ids`, `start_date` and `through_date`. All checked pages are exported to a private JSONL file. The result includes the administration, row counts per journal and SHA-256. The file preserves journal metadata and original bank rows, including markings and invoice links when present. A failed page discards the export. |
+| `snelstart_reconcile_bank` | Review recorded links and suggested matches for the same journal and date inputs. Use `invoice_start_date` to adjust the default 90-day invoice lookback and `skip` and `take` to page the report. |
+| `snelstart_compare_archives` | Pass `before`, `after` and a booking `dataset` such as `purchases` or `bank_entries`. The tool compares checksummed dataset files locally. Both archives must identify the same administration, year and cutoff. Journal datasets must cover the same journals. |
+
+Reconciliation reports recorded SnelStart links separately from suggestions. Suggestions use the bank entry’s signed amount, an invoice date on or before the payment date, and reference or counterparty evidence. Competing and amount-only matches remain ambiguous. Duplicate flags and missing-document indicators are review signals. Document indicators come from SnelStart’s attachment flags. Suggested matches require human review before making any bookkeeping changes.
+
+Archive comparisons report additions, removals, and changed field names between the selected snapshots. These describe differences in the saved datasets.
+
 ## Year archives
 
 The MCP mentions local backups when you ask about backups or year-end work and can create and verify them on request. `snelstart-mcp doctor` lists the local backups for the current profile, with their creation time, through date, ZIP size and whether a native BACPAC is included. Use `doctor --json` or `snelstart_list_archives` for filenames, paths and exact sizes in bytes. To check that the ZIP contains the expected files and that their contents still match the original checksums, ask Codex to verify a backup. This uses the MCP tool `snelstart_verify_archive`.
@@ -366,7 +379,7 @@ snelstart-mcp audit --profile
 
 The log covers MCP calls made through this profile. Verify accounting changes against the affected records in SnelStart.
 
-A verified mutation log would add an entry-specific before state, an expected change, a durable intent, and a read-after-write check. A timeout after sending a write would remain unresolved until the record can be read back. A rollback would be a new, explicit operation with a check that the record has not changed in the meantime. This is a proposed design. Automatic rollback and financial mutations are not exercised by the tests.
+`snelstart_mutation_receipts` lists recent write receipts for the selected administration. The MCP stores the operation, record or processing ID when available, request and response checksums, and outcome. It records the intent before dispatch. A timeout or interrupted call remains unresolved. Use `snelstart_verify_mutation` with the `receipt_id` to perform supported read-back checks for created bank, journal and opening-balance entries, recorded deletions, and finished purchase PDF processing. The verification label describes exactly what the read established. Other operations require manual verification. The CLI includes receipts in `snelstart-mcp audit`. Reversal requires an explicit new write.
 
 ## Code and tests
 

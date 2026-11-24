@@ -90,8 +90,8 @@ class Snapshot:
         self.info = info
         self.members = members
 
-    def read(self, request: SnapshotReadRequest) -> SnapshotPage:
-        member = self.members.get(request.dataset)
+    def load(self, dataset: ArchiveDataset) -> JsonValue:
+        member = self.members.get(dataset)
         if member is None:
             raise SnelStartError("This dataset is unavailable in the selected archive.")
         name, expected = member
@@ -103,11 +103,12 @@ class Snapshot:
             with self.archive.open(name) as stream, BytesIO() as payload:
                 if _record(stream, payload) != expected.model_dump():
                     raise SnelStartError(f"Checksum mismatch for {name}.")
-                value = json.loads(payload.getvalue())
+                return json.loads(payload.getvalue())
         except INVALID_ARCHIVE:
             raise SnelStartError("The archived dataset is unreadable.") from None
 
-        rows = self._rows(value, request)
+    def read(self, request: SnapshotReadRequest) -> SnapshotPage:
+        rows = self._rows(self.load(request.dataset), request)
         page = rows[request.skip : request.skip + request.take]
         if len(json.dumps(page, ensure_ascii=False).encode()) > MAX_PAGE_BYTES:
             raise SnelStartError(

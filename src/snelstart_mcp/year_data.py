@@ -9,10 +9,12 @@ from .client import Client
 from .config import SnelStartError
 from .dates import AMSTERDAM, window
 from .enums import ArchiveDataset
-from .models import ApiPage
+from .models import ApiPage, JsonObject
 from .models.api import GeneralJournalReference, JournalReference
 
 DATASETS = frozenset(item.value for item in ArchiveDataset)
+BANK_JOURNALS = "GET /KasBankBoeking/GetKasEnBankDagboeken"
+BANK_ENTRIES = "GET /KasBankBoeking/GetKasBankBoekingenWithTimespan"
 
 
 def pages(
@@ -61,28 +63,25 @@ def entries_in_period(rows: list[dict], start: date, end: date, *date_fields: st
         value = next((row[field] for field in date_fields if row.get(field)), None)
         if not isinstance(value, str):
             raise SnelStartError("SnelStart returned an entry without a readable date.")
-        try:
-            parsed = datetime.fromisoformat(value)
-        except ValueError:
-            raise SnelStartError("SnelStart returned an entry with an invalid date.") from None
-        local = parsed.astimezone(AMSTERDAM).date() if parsed.tzinfo else parsed.date()
-        if start <= local <= end:
+        if start <= booking_date(value) <= end:
             result.append(row)
     return result
 
 
-def collect(client: Client, year: int, end: date, administration: str) -> dict:
-    start = date(year, 1, 1)
-    # Ask for a margin in case an endpoint parses the bounds as dates rather than instants.
-    first, last = window(start - timedelta(days=1), end + timedelta(days=1))
-    request = partial(client.request, expected_administration=administration)
-    banks = request("GET /KasBankBoeking/GetKasEnBankDagboeken")
-    journals = request("GET /Grootboek/GetMemoriaalAndBeginBalansDagboekenWithSaldo")
+def booking_date(value: str) -> date:
     try:
-        bank_references = TypeAdapter(list[JournalReference]).validate_python(banks)
-        journal_references = TypeAdapter(list[GeneralJournalReference]).validate_python(journals)
-    except ValidationError:
-        raise SnelStartError("SnelStart returned invalid journal references.") from None
+        parsed = datetime.fromisoformat(value)
+    except ValueError:
+        raise SnelStartError("SnelStart returned an entry with an invalid date.") from None
+    return parsed.astimezone(AMSTERDAM).date() if parsed.tzinfo else parsed.date()
+
+
+def _server_window(start: date, end: date) -> tuple[str, str]:
+    # Allow for endpoints that parse the bounds as calendar dates.
+    return window(start - timedelta(days=1), end + timedelta(days=1))
+
+
+def sales_between(request, start: date, end: date) -> list[JsonObject]:
     sales = pages(
         request,
         "POST /Invoices/Search",
@@ -94,6 +93,11 @@ def collect(client: Client, year: int, end: date, administration: str) -> dict:
         ("factuurNummerPublicIdentifier", "verkoopOrderId", "factuurNummerId"),
         {"rawSearchTerm": "", "globalSearchTerms": [], "columnSearchTerms": []},
     )
+    return entries_in_period(sales, start, end, "invoiceDate", "date")
+
+
+def purchases_between(request, start: date, end: date) -> list[JsonObject]:
+    first, last = _server_window(start, end)
     purchases = pages(
         request,
         "GET /Purchases/SearchAllInkopen",
@@ -108,24 +112,46 @@ def collect(client: Client, year: int, end: date, administration: str) -> dict:
         },
         ("publicIdentifier", "factuurnummeridentifier"),
     )
+    return entries_in_period(purchases, start, end, "factuurdatum")
+
+
+def bank_entries_between(
+    request, journal_id: str, start: date, end: date
+) -> tuple[int, list[JsonObject]]:
+    first, last = _server_window(start, end)
+    rows = pages(
+        request,
+        BANK_ENTRIES,
+        {
+            "grootboekIdentifier": journal_id,
+            "searchTerm": "",
+            "statusFilter": 0,
+            "vanaf": first,
+            "totEnMet": last,
+        },
+        ("identifier", "publicIdentifier"),
+    )
+    return len(rows), entries_in_period(rows, start, end, "date")
+
+
+def collect(client: Client, year: int, end: date, administration: str) -> dict:
+    start = date(year, 1, 1)
+    first, last = _server_window(start, end)
+    request = partial(client.request, expected_administration=administration)
+    banks = request(BANK_JOURNALS)
+    journals = request("GET /Grootboek/GetMemoriaalAndBeginBalansDagboekenWithSaldo")
+    try:
+        bank_references = TypeAdapter(list[JournalReference]).validate_python(banks)
+        journal_references = TypeAdapter(list[GeneralJournalReference]).validate_python(journals)
+    except ValidationError:
+        raise SnelStartError("SnelStart returned invalid journal references.") from None
+    sales = sales_between(request, start, end)
+    purchases = purchases_between(request, start, end)
     bank_rows = []
     for bank in bank_references:
         key = str(bank.grootboekIdentifier)
-        rows = pages(
-            request,
-            "GET /KasBankBoeking/GetKasBankBoekingenWithTimespan",
-            {
-                "grootboekIdentifier": key,
-                "searchTerm": "",
-                "statusFilter": 0,
-                "vanaf": first,
-                "totEnMet": last,
-            },
-            ("identifier", "publicIdentifier"),
-        )
-        bank_rows.append(
-            {"journal_id": key, "entries": entries_in_period(rows, start, end, "date")}
-        )
+        _, rows = bank_entries_between(request, key, start, end)
+        bank_rows.append({"journal_id": key, "entries": rows})
     journal_rows = []
     for journal in journal_references:
         key = str(journal.grootboekIdentifier)
@@ -153,8 +179,8 @@ def collect(client: Client, year: int, end: date, administration: str) -> dict:
             "GET /Grootboek/GetBalansResultaatAndRubrieken", {"datumTotEnMet": end.isoformat()}
         ),
         "chart_of_accounts": request("GET /Grootboek/GetAllMinimal"),
-        "purchases": entries_in_period(purchases, start, end, "factuurdatum"),
-        "sales": entries_in_period(sales, start, end, "invoiceDate", "date"),
+        "purchases": purchases,
+        "sales": sales,
         "bank_journals": banks,
         "bank_entries": bank_rows,
         "general_journals": journals,

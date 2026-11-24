@@ -20,6 +20,7 @@ from .tooling import tool_registrar, validate_request
 from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
+from .tools_mutation import register_mutation_tools
 from .tools_review import register_review_tools
 from .updater import UpdateChecker
 from .version import installed_version
@@ -34,6 +35,8 @@ LIVE_INSTRUCTIONS = (
     "for local confirmation. Never perform the terminal confirmation on their behalf. "
     "Retry only the exact approved request. Never request or display "
     "credentials. The audit log records tool calls and their outcomes. "
+    "After a write, inspect snelstart_mutation_receipts and use snelstart_verify_mutation "
+    "for supported read-back checks. Resolve uncertain outcomes before considering a retry. "
     "Use snelstart_list_archives to find backups, snelstart_create_year_archive to create one "
     "on request, and snelstart_verify_archive to check files. "
     "An MCP export covers its declared scope; restoring in SnelStart 12 requires a native BACPAC. "
@@ -112,6 +115,7 @@ def create_server(client: Client | None = None) -> FastMCP:
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)
+    register_mutation_tools(tool, client, audit)
 
     @tool(annotations=LOCAL_READ)
     def snelstart_audit_log(request: LimitRequest) -> DataResponse[list[AuditCallResponse]]:

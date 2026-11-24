@@ -12,6 +12,8 @@ audit/*.sqlite3*
 **/audit/*.sqlite3*
 snelstart-*.zip
 ledger-*.jsonl
+bank-*.jsonl
+.pending-bank-*.jsonl
 observed-api.json
 purchase-uploads.json
 write-approvals.json

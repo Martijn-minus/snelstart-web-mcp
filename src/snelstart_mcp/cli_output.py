@@ -129,6 +129,21 @@ def show_audit(console: Console, report: AuditReport) -> None:
             )
         console.print()
         console.print(history)
+    if report.mutations:
+        console.print("\nRecent bookkeeping writes", style="bold")
+        writes = Table(box=None, padding=(0, 1, 0, 0))
+        writes.add_column("Time", style="dim")
+        writes.add_column("Status")
+        writes.add_column("Operation", overflow="fold")
+        writes.add_column("Receipt ID", overflow="fold")
+        for receipt in report.mutations:
+            writes.add_row(
+                _audit_time(receipt.started_at),
+                _literal(receipt.status),
+                _literal(receipt.operation),
+                _literal(receipt.receipt_id),
+            )
+        console.print(writes)
 
 
 def show_update_check(console: Console, result: UpdateCheckResponse) -> None:

@@ -208,6 +208,17 @@ snelstart-mcp audit --administration ADMINISTRATIE_UUID --json
 
 Vanuit de MCP geeft `snelstart_audit_log` de recente aanroepen voor de gekozen administratie. Een nieuw profielbestand neemt bij het openen van de betreffende database passende oude gebeurtenissen over uit een gezamenlijke `audit.sqlite3`.
 
+## Boekingscontrole en afstemming
+
+| Tool | Gebruik |
+| --- | --- |
+| `snelstart_get_entries` | Haal maximaal twintig inkoop-, bank-, memoriaal- en beginbalansboekingen in één keer op. Geef per item een `kind` en `entry_id` mee. De uitkomst toont per boeking of die gevonden, afwezig, mislukt of te groot was. |
+| `snelstart_export_bank_entries` | Exporteer met `journal_ids`, `start_date` en `through_date` alle gecontroleerde pagina’s naar privé-JSONL. De uitvoer bevat aantallen per dagboek en een SHA-256-controlesom. Markeringen en factuurkoppelingen blijven in de bronregels behouden. Bij een mislukte pagina vervalt de hele export. |
+| `snelstart_reconcile_bank` | Bekijk geregistreerde SnelStart-koppelingen en mogelijke factuurmatches. De tool kijkt naar bedrag, datum, omschrijving en tegenpartij. Hij meldt twijfelgevallen, mogelijke dubbelen en signalen over ontbrekende bijlagen. Controleer voorgestelde matches vóór je boekt. |
+| `snelstart_compare_archives` | Vergelijk twee lokale jaararchieven met `before`, `after` en een `dataset` zoals `purchases` of `bank_entries`. De administratie, peildatum en dagboekdekking moeten overeenkomen. De uitvoer toont toegevoegde, verdwenen en gewijzigde regels in de opgeslagen kopieën. |
+
+`snelstart_mutation_receipts` en `snelstart-mcp audit` tonen de uitgevoerde schrijfoperatie, een beschikbaar boekings- of verwerkings-ID, controlesommen en de uitkomst. Een time-out blijft onopgelost. Met `snelstart_verify_mutation` kun je op basis van het `receipt_id` ondersteunde acties teruglezen, waaronder nieuw aangemaakte boekingen, geregistreerde verwijderingen en verwerkte inkoop-PDF’s. Andere acties controleer je aan de hand van de brongegevens. Een controle herhaalt de schrijfopdracht nooit.
+
 ## Jaararchieven en herstel
 
 Gebruik `snelstart_create_year_archive` met `year` en `through_date`. Voeg zo nodig een officiële Web-export toe met `official_zip_path` of geef `auditfile_path`, `attachments_zip_path` en `bacpac_path` apart mee. Met `live_export: false` bundel je bestanden zonder de administratie uit te lezen.

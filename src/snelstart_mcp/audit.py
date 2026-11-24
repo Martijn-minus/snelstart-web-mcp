@@ -9,8 +9,14 @@ from pathlib import Path
 from uuid import UUID, uuid4
 
 from .config import SnelStartError, Store
-from .enums import AuditOutcome
-from .models.audit import AuditCallResponse, AuditCallStart, AuditReport, AuditSummary
+from .enums import AuditOutcome, MutationStatus
+from .models.audit import (
+    AuditCallResponse,
+    AuditCallStart,
+    AuditReport,
+    AuditSummary,
+    MutationReceipt,
+)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS events (
@@ -28,6 +34,21 @@ CREATE TABLE IF NOT EXISTS legacy_import (
     id INTEGER PRIMARY KEY CHECK (id = 1),
     last_seq INTEGER NOT NULL
 );
+CREATE TABLE IF NOT EXISTS mutation_receipts (
+    receipt_id TEXT PRIMARY KEY,
+    administration_id TEXT NOT NULL,
+    tool TEXT NOT NULL,
+    operation TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    status TEXT NOT NULL,
+    request_sha256 TEXT NOT NULL,
+    response_sha256 TEXT,
+    record_id TEXT,
+    record_id_from_response INTEGER NOT NULL DEFAULT 0,
+    verification TEXT
+);
+CREATE INDEX IF NOT EXISTS mutations_by_time ON mutation_receipts(started_at);
 """
 
 INSERT_EVENT = """
@@ -171,12 +192,128 @@ class AuditLog:
             raise SnelStartError("Could not write the local audit log.") from None
 
     def start(self, tool: str) -> AuditCallStart:
-        call = AuditCallStart(call_id=uuid4().hex, administration_id=self._selected())
+        call = AuditCallStart(call_id=uuid4().hex, administration_id=self._selected(), tool=tool)
         self._event(call, tool, AuditOutcome.START, None)
         return call
 
     def finish(self, call: AuditCallStart, tool: str, phase: AuditOutcome, elapsed_ms: int) -> None:
         self._event(call, tool, phase, elapsed_ms)
+
+    def begin_mutation(self, receipt: MutationReceipt) -> None:
+        try:
+            with self._database(receipt.administration_id, create=True) as db:
+                assert db is not None
+                with db:
+                    db.execute(
+                        "INSERT INTO mutation_receipts(receipt_id, administration_id, tool, operation, "
+                        "started_at, updated_at, status, request_sha256, record_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (
+                            receipt.receipt_id,
+                            str(receipt.administration_id),
+                            receipt.tool,
+                            receipt.operation,
+                            receipt.started_at,
+                            receipt.updated_at,
+                            receipt.status,
+                            receipt.request_sha256,
+                            receipt.record_id,
+                        ),
+                    )
+        except (OSError, sqlite3.Error):
+            raise SnelStartError(
+                "Could not save the mutation receipt. The write was not sent."
+            ) from None
+
+    def finish_mutation(self, receipt: MutationReceipt) -> None:
+        try:
+            with self._database(receipt.administration_id) as db:
+                if db is None:
+                    raise SnelStartError(
+                        "Mutation receipt unavailable. Check the outcome before retrying."
+                    )
+                with db:
+                    db.execute(
+                        "UPDATE mutation_receipts SET updated_at = ?, status = ?, response_sha256 = ?, "
+                        "record_id = ?, record_id_from_response = ? WHERE receipt_id = ? AND status = ?",
+                        (
+                            receipt.updated_at,
+                            receipt.status,
+                            receipt.response_sha256,
+                            receipt.record_id,
+                            receipt.record_id_from_response,
+                            receipt.receipt_id,
+                            MutationStatus.SENDING,
+                        ),
+                    )
+        except (OSError, sqlite3.Error):
+            raise SnelStartError(
+                "Could not finish the mutation receipt. Check the outcome before retrying."
+            ) from None
+
+    def mark_mutation_verified(self, receipt: MutationReceipt, verification: str) -> None:
+        try:
+            with self._database(receipt.administration_id) as db:
+                if db is None:
+                    raise SnelStartError("Mutation receipt unavailable.")
+                with db:
+                    db.execute(
+                        "UPDATE mutation_receipts SET updated_at = ?, status = ?, verification = ? "
+                        "WHERE receipt_id = ? AND status IN (?, ?)",
+                        (
+                            datetime.now(UTC).isoformat(),
+                            MutationStatus.VERIFIED,
+                            verification,
+                            receipt.receipt_id,
+                            MutationStatus.ACCEPTED,
+                            MutationStatus.UNRESOLVED,
+                        ),
+                    )
+        except (OSError, sqlite3.Error):
+            raise SnelStartError("Could not save the receipt verification.") from None
+
+    @staticmethod
+    def _receipt(row: sqlite3.Row) -> MutationReceipt:
+        receipt = MutationReceipt.model_validate(dict(row))
+        if receipt.status is MutationStatus.SENDING:
+            receipt.status = MutationStatus.UNRESOLVED
+        return receipt
+
+    def _recent_mutations(self, db: sqlite3.Connection, limit: int) -> list[MutationReceipt]:
+        return [
+            self._receipt(row)
+            for row in db.execute(
+                "SELECT * FROM mutation_receipts ORDER BY started_at DESC, receipt_id LIMIT ?",
+                (limit,),
+            )
+        ]
+
+    def mutations(self, administration: UUID, limit: int) -> list[MutationReceipt]:
+        _check_limit(limit)
+        try:
+            with self._database(administration) as db:
+                if db is None:
+                    return []
+                return self._recent_mutations(db, limit)
+        except (OSError, sqlite3.Error, ValueError):
+            raise SnelStartError("Could not read the local mutation receipts.") from None
+
+    def mutation(self, administration: UUID, receipt_id: str) -> MutationReceipt:
+        try:
+            with self._database(administration) as db:
+                row = (
+                    db.execute(
+                        "SELECT * FROM mutation_receipts WHERE receipt_id = ?", (receipt_id,)
+                    ).fetchone()
+                    if db is not None
+                    else None
+                )
+                if row is None:
+                    raise SnelStartError(
+                        "No mutation receipt in the selected administration has that ID."
+                    )
+                return self._receipt(row)
+        except (OSError, sqlite3.Error, ValueError):
+            raise SnelStartError("Could not read the local mutation receipt.") from None
 
     def recent(self, limit: int) -> list[AuditCallResponse]:
         _check_limit(limit)
@@ -193,12 +330,14 @@ class AuditLog:
         path = self.path(administration_id)
         summary = AuditSummary(database=path, exists=False)
         calls: list[AuditCallResponse] = []
+        mutations: list[MutationReceipt] = []
         try:
             with self._database(administration_id) as db:
                 if db is not None:
                     with db:
                         db.execute("BEGIN")
                         calls = _recent(db, limit)
+                        mutations = self._recent_mutations(db, limit)
                         counts = dict(
                             db.execute(
                                 "SELECT outcome, COUNT(*) FROM (" + CALLS + ") GROUP BY outcome"
@@ -216,4 +355,6 @@ class AuditLog:
                     )
         except (OSError, sqlite3.Error, ValueError):
             raise SnelStartError("Could not read the local audit log.") from None
-        return AuditReport(administration_id=administration_id, summary=summary, calls=calls)
+        return AuditReport(
+            administration_id=administration_id, summary=summary, calls=calls, mutations=mutations
+        )

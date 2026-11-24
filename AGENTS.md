@@ -16,7 +16,7 @@ Recommend making and verifying a backup before bookkeeping work. Let the user ch
 | --- | --- |
 | Find and review a purchase | `snelstart_search_purchases`, then `snelstart_get_entry` with `kind: "purchase"`. Read recorded settlements with `snelstart_purchase_payments`. |
 | Download the purchase PDF | Call `snelstart_list_attachments` with the purchase UUID, then `snelstart_download_document` with the PDF's attachment identifier. |
-| Check bank transactions | Get the ledger UUID with `snelstart_bank_journals`, then call `snelstart_bank_entries` for the requested dates. These tools read transactions available in SnelStart. |
+| Check bank transactions | Get journal UUIDs with `snelstart_bank_journals`, then use `snelstart_export_bank_entries` for checked coverage across journals or `snelstart_get_entries` for a mixed batch of booking details. `snelstart_reconcile_bank` provides evidence and candidates for human review. |
 | Check figures or tax returns | Use `snelstart_balance_sheet`, `snelstart_financial_result`, or `snelstart_vat_returns` as appropriate. |
 | Submit a new purchase PDF | On an explicit request, call `snelstart_upload_purchase_pdf` for the named administration and file. Use the returned ID with `snelstart_purchase_upload_status`. |
 | Archive a year | Call `snelstart_create_year_archive`, then verify the returned archive with `snelstart_verify_archive`. Report the scope recorded in the manifest. |
@@ -26,6 +26,8 @@ Use ISO dates (`YYYY-MM-DD`). Read all relevant pages before reporting totals. V
 ## Handle requested writes
 
 Check the target administration, record and write permissions first. Include the target UUID in every write request. If the MCP returns an approval ID, ask the user to review it with `snelstart-mcp writes approve ID` in their own terminal. The assistant must not run the confirmation command or enter the confirmation value. After the user confirms, retry exactly the same request with the returned `approval_id`. Verify the result through a read or processing-status call. If the outcome is uncertain, check SnelStart and the local audit log before retrying.
+
+Check `snelstart_mutation_receipts` for the outcome and use `snelstart_verify_mutation` when a supported read-back is available. Report the verification label and reconcile an unresolved receipt before asking about another write.
 
 ## Test changes
 

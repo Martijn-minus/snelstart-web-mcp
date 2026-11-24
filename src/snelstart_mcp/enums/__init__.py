@@ -20,6 +20,45 @@ class ArchiveDataset(StrEnum):
     VAT_RETURNS = "vat_returns_all_years"
 
 
+class BookingLookupStatus(StrEnum):
+    FOUND = "found"
+    MISSING = "missing"
+    FAILED = "failed"
+    TOO_LARGE = "too_large"
+
+
+class ArchiveChange(StrEnum):
+    ADDED = "added"
+    CHANGED = "changed"
+    REMOVED = "removed"
+
+
+class ReconciliationStatus(StrEnum):
+    LINKED = "recorded_link"
+    SUGGESTED = "suggested"
+    AMBIGUOUS = "ambiguous"
+    UNMATCHED = "unmatched"
+    INSUFFICIENT = "insufficient_data"
+
+
+class DocumentStatus(StrEnum):
+    PRESENT = "present"
+    MISSING = "missing"
+    UNKNOWN = "unknown"
+
+
+class InvoiceKind(StrEnum):
+    PURCHASE = "purchase"
+    SALE = "sale"
+
+
+class MutationStatus(StrEnum):
+    SENDING = "sending"
+    UNRESOLVED = "unresolved"
+    ACCEPTED = "accepted"
+    VERIFIED = "verified"
+
+
 class BrowserStatus(StrEnum):
     MISSING_EXTRA = "missing_extra"
     CHROME_NOT_FOUND = "chrome_not_found"

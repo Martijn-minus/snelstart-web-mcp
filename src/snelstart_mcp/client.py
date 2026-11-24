@@ -15,11 +15,12 @@ import httpx
 from pydantic import JsonValue, ValidationError
 
 from .auth import AUDIENCE, Auth
-from .config import SnelStartError, Store
+from .config import SnelStartError, SnelStartHTTPError, Store
 from .enums import HttpMethod
 from .models import JsonObject
 from .models.api import JSON_ROWS, JSON_VALUE, OperationSpec, WebApiRequest
 from .models.responses import ConnectionStatus
+from .mutation import send_with_receipt
 from .write_policy import needs_scoped_grant
 
 MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
@@ -113,8 +114,9 @@ class Client:
                     )
                     continue
                 if response.status_code >= 300:
-                    raise SnelStartError(
-                        f"SnelStart API returned HTTP {response.status_code} for {method} {path}."
+                    raise SnelStartHTTPError(
+                        response.status_code,
+                        f"SnelStart API returned HTTP {response.status_code} for {method} {path}.",
                     )
                 if download:
                     return self._save_download(response)
@@ -287,16 +289,34 @@ class Client:
                 )
             if self._opened != identifier:
                 self.select_administration(identifier, persist=False)
-            normalized = {
+            normalized: JsonObject = {
                 k: (str(v).lower() if isinstance(v, bool) else "" if v is None else v)
                 for k, v in (command.parameters or {}).items()
             }
-            return self._send(
-                entry.method,
-                entry.path,
-                normalized,
-                command.body,
-                identifier,
-                download=command.download,
-                read_only=entry.read_only,
-            )
+
+            def send() -> JsonValue:
+                return self._send(
+                    entry.method,
+                    entry.path,
+                    normalized,
+                    command.body,
+                    identifier,
+                    download=command.download,
+                    read_only=entry.read_only,
+                )
+
+            if (
+                not entry.read_only
+                and entry.method is not HttpMethod.GET
+                and audit_call is not None
+            ):
+                return send_with_receipt(
+                    self.store,
+                    audit_call,
+                    UUID(identifier),
+                    command.operation,
+                    normalized,
+                    command.body,
+                    send,
+                )
+            return send()

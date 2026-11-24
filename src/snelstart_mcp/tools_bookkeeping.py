@@ -38,6 +38,15 @@ LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
 PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
+ENTRY_DETAILS = {
+    EntryKind.PURCHASE: (PURCHASE_DETAILS, "journaalpostIdentifier"),
+    EntryKind.JOURNAL: ("GET /MemoriaalBoekingen/GetDetails", "publicIdentifier"),
+    EntryKind.OPENING_BALANCE: ("GET /BalansBoekingen/GetDetails", "publicIdentifier"),
+    EntryKind.BANK: (
+        "GET /KasBankBoeking/GetKasBankboekingDetails",
+        "kasBankboekingIdentifier",
+    ),
+}
 ATTACHMENT_OPERATIONS = frozenset(
     {
         PURCHASE_ATTACHMENTS,
@@ -180,16 +189,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
     @tool(annotations=READ)
     def snelstart_get_entry(request: EntryDetailRequest) -> JsonResponse:
         """Read a purchase, journal, opening balance or bank entry by UUID."""
-        operations = {
-            EntryKind.PURCHASE: (PURCHASE_DETAILS, "journaalpostIdentifier"),
-            EntryKind.JOURNAL: ("GET /MemoriaalBoekingen/GetDetails", "publicIdentifier"),
-            EntryKind.OPENING_BALANCE: ("GET /BalansBoekingen/GetDetails", "publicIdentifier"),
-            EntryKind.BANK: (
-                "GET /KasBankBoeking/GetKasBankboekingDetails",
-                "kasBankboekingIdentifier",
-            ),
-        }
-        operation, parameter = operations[request.kind]
+        operation, parameter = ENTRY_DETAILS[request.kind]
         return JsonResponse(data=client.request(operation, {parameter: str(request.entry_id)}))
 
     @tool(annotations=READ)

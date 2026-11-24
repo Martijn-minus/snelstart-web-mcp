@@ -8,16 +8,28 @@ from functools import partial
 from pathlib import Path
 from uuid import UUID
 
+from mcp.types import ToolAnnotations
+
+from .archive_compare import compare_archives
 from .client import Client
 from .config import SnelStartError, Store
+from .financial_review import booking_batch, export_bank_entries, reconcile_bank
 from .models import JsonObject
 from .models.responses import DataResponse
 from .models.review import (
+    ArchiveComparison,
+    BankExportRequest,
+    BankExportResponse,
+    BookingBatchRequest,
+    BookingBatchResponse,
+    CompareArchivesRequest,
     LedgerExportAccount,
     LedgerExportRequest,
     LedgerExportResponse,
     PurchaseEvidence,
     PurchaseEvidenceRequest,
+    ReconciliationReport,
+    ReconciliationRequest,
     RecordDetails,
     SalesBookingDetailsRequest,
     VatReturnDetailsRequest,
@@ -91,6 +103,36 @@ def export_ledger_entries(client: Client, request: LedgerExportRequest) -> Ledge
 
 
 def register_review_tools(tool: Register, client: Client) -> None:
+    @tool(annotations=READ)
+    def snelstart_get_entries(request: BookingBatchRequest) -> BookingBatchResponse:
+        """Read up to 20 mixed booking IDs in the selected administration. Inspect per-record status and completeness."""
+        administration = _selected_administration(client)
+        read = partial(client.request, expected_administration=str(administration))
+        return booking_batch(read, administration, request)
+
+    @tool(
+        annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=True)
+    )
+    def snelstart_export_bank_entries(request: BankExportRequest) -> BankExportResponse:
+        """Export all checked bank and cash pages in a range to private JSONL with per-journal coverage and a checksum."""
+        administration = _selected_administration(client)
+        read = partial(client.request, expected_administration=str(administration))
+        return export_bank_entries(client.store, read, administration, request)
+
+    @tool(
+        annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
+    )
+    def snelstart_compare_archives(request: CompareArchivesRequest) -> ArchiveComparison:
+        """Compare verified booking datasets from two local archives with matching administration and cutoff."""
+        return compare_archives(client.store, request)
+
+    @tool(annotations=READ)
+    def snelstart_reconcile_bank(request: ReconciliationRequest) -> ReconciliationReport:
+        """Review recorded invoice links and possible matches. Reports evidence, ambiguous items, duplicates and document flags."""
+        administration = _selected_administration(client)
+        read = partial(client.request, expected_administration=str(administration))
+        return reconcile_bank(read, administration, request)
+
     @tool(annotations=READ)
     def snelstart_export_ledger_entries(request: LedgerExportRequest) -> LedgerExportResponse:
         """Export all checked pages for up to 20 ledger accounts, restricted to an inclusive date range. Returns a private JSONL path, row counts and checksum."""

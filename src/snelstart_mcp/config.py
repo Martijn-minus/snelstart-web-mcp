@@ -20,6 +20,12 @@ class SnelStartError(Exception):
     """A deliberately credential-free error suitable for MCP output."""
 
 
+class SnelStartHTTPError(SnelStartError):
+    def __init__(self, status_code: int, message: str):
+        super().__init__(message)
+        self.status_code = status_code
+
+
 class Store:
     def __init__(self, directory: Path | None = None):
         requested = (
