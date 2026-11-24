@@ -13,7 +13,8 @@ Check that Google Chrome is available for browser sign-in.
 Find the installed snelstart-mcp executable with uv tool dir --bin if it is outside PATH.
 Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
 Register the MCP with this client using snelstart-mcp install <client> --apply. Ask me
-which client to use if you cannot identify it. Then run snelstart-mcp doctor and tell
+which client to use if you cannot identify it. If I requested the bundled skills,
+add --with-skills for Codex or Claude Code. Then run snelstart-mcp doctor and tell
 me which administration is selected, what write access it has, and whether an
 update is available. Keep credentials private and leave write permissions and
 accounting records untouched. Tell me if the MCP client needs to reconnect.
@@ -32,6 +33,19 @@ The script checks for Python 3.11 or newer, including Homebrew and the Python su
 Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
 
 For GitHub main builds, use `uv tool install 'snelstart-web-mcp[browser] @ git+https://github.com/Martijn-minus/snelstart-web-mcp.git'`.
+
+## Optional bookkeeping skills
+
+- `snelstart-reconcile` guides invoice, attachment, and payment checks against bank and processor evidence.
+- `snelstart-year-end` guides ledger exports, opening and closing balance checks, and VAT comparisons.
+
+To install the package and skills together, pass `--with-skills codex` or `--with-skills claude-code` to the downloaded Bash installer. To register the MCP and install the skills in one command, use the CLI.
+
+```sh
+snelstart-mcp install codex --with-skills --apply
+```
+
+If the server is already registered, use `snelstart-mcp install codex --skills-only --apply`. Leave off `--apply` to preview the files. The installer preserves existing skills when their contents differ. Begin a fresh client session to load the new skills. [Codex skill locations](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills) · [Claude Code skills](https://code.claude.com/docs/en/skills)
 
 ## Windows
 
@@ -163,11 +177,13 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_search_purchases` | Lists purchases for an inclusive date range. Set `review_only: true` to find entries SnelStart has flagged for review. |
 | `snelstart_get_entry` | Reads details for a purchase, general journal entry, opening balance entry or bank entry by UUID. |
 | `snelstart_purchase_payments` | Reads payments and settlements recorded against a purchase. |
+| `snelstart_purchase_evidence` | Reads purchase records, recorded settlements, and optional attachment metadata for up to 20 purchase UUIDs. |
 | `snelstart_list_attachments` | Lists files linked to a purchase, bank entry or journal entry and returns their download identifiers. |
 | `snelstart_download_document` | Downloads an attachment by UUID or a sales invoice PDF by invoice-number ID. Returns a private local path and checksum. |
 | `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
 | `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
 | `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
+| `snelstart_sales_booking_details` | Reads sales booking details for up to 20 booking UUIDs. |
 | `snelstart_search_relations` | Searches customers or suppliers by name or number. |
 | `snelstart_bank_journals` | Lists bank and cash journals, including their ledger UUIDs. |
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
@@ -210,11 +226,15 @@ The profile keeps a local receipt keyed by administration and PDF checksum. Repe
 | `snelstart_balance_sheet` | Reads the balance sheet, profit and loss, and reporting categories for a `through_date`. |
 | `snelstart_financial_result` | Reads the financial result for `start_date` through `through_date` using the report called by the Tax Monitor. |
 | `snelstart_ledger_entries` | Reads one page of postings for an account through a given date. |
+| `snelstart_export_ledger_entries` | Reads and checks all pages for up to 20 account UUIDs, then exports the requested date range to a private JSONL file. Returns a path, SHA-256, and per-account counts. |
 | `snelstart_vat_returns` | Lists existing VAT returns in their recorded states. |
+| `snelstart_vat_return_details` | Reads the details of up to 20 VAT returns by public UUID. |
 | `snelstart_supplemental_vat_years` | Lists years eligible for a supplemental VAT return. |
 | `snelstart_year_end_review` | Reads open entries, open purchases, open sales or year-end bookings for a year, when available. |
 
-For 2025 and November 2026 balances, call `snelstart_balance_sheet` separately with `2025-12-31` and `2026-11-30`. For a specific VAT return, start with `snelstart_vat_returns`. Use the numeric return ID with `snelstart_read` and `GET /BtwAangiftes/Get`.
+For 2025 and November 2026 balances, call `snelstart_balance_sheet` separately with `2025-12-31` and `2026-11-30`. For detailed VAT returns, start with `snelstart_vat_returns` and pass the public identifiers as `return_ids` to `snelstart_vat_return_details`.
+
+For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line of the export contains `ledger_id` and the original `entry`. The export only includes entries within the inclusive date range. `fetched_rows` counts the rows the API reported through the closing date and `exported_rows` counts the rows within the requested period. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
 
 ```json
 {"operation":"GET /BtwAangiftes/Get","parameters":{"id":123}}

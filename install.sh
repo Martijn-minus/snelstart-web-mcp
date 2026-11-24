@@ -31,11 +31,17 @@ add_homebrew_python_to_path() {
 }
 
 main() {
+    local skills_client=""
     if [[ "${1:-}" == --help && $# == 1 ]]; then
-        printf 'Usage: bash install.sh\nInstall SnelStart MCP on macOS or Linux.\n'
+        printf 'Usage: bash install.sh [--with-skills codex|claude-code]\n'
+        printf 'Install SnelStart MCP on macOS or Linux.\n'
         return
     fi
-    [[ $# == 0 ]] || fail 'Run bash install.sh without arguments.'
+    if [[ $# == 2 && "$1" == --with-skills && ( "$2" == codex || "$2" == claude-code ) ]]; then
+        skills_client=$2
+    elif [[ $# != 0 ]]; then
+        fail 'Run bash install.sh --help for installer options.'
+    fi
 
     case "$(uname -s)" in
         Darwin) add_homebrew_python_to_path ;;
@@ -63,9 +69,13 @@ main() {
 
     printf 'Using %s (%s)\n' "$("$python" --version)" "$python"
     printf 'Installing SnelStart MCP from PyPI…\n'
-    "$uv_path" tool install --quiet --python "$python" --no-python-downloads 'snelstart-web-mcp[browser]'
+    "$uv_path" tool install --quiet --python "$python" --no-python-downloads \
+        --upgrade-package snelstart-web-mcp 'snelstart-web-mcp[browser]'
     bin_dir=$("$uv_path" tool dir --bin)
     "$bin_dir/snelstart-mcp" --version
+    if [[ -n "$skills_client" ]]; then
+        "$bin_dir/snelstart-mcp" install "$skills_client" --skills-only --apply --text
+    fi
 
     case ":$PATH:" in
         *":$bin_dir:"*) ;;

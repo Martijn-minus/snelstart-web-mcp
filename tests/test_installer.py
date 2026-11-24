@@ -57,6 +57,39 @@ def test_all_targets_preview_correct_client_formats_without_writing(environment,
     }
 
 
+@pytest.mark.parametrize(("client", "root"), [("codex", ".agents"), ("claude-code", ".claude")])
+def test_skills_can_be_previewed_and_installed_without_mcp_registration(environment, client, root):
+    options = {"profile": None, "config_path": None, "skills_only": True}
+    (preview,) = installer.install([client], apply=False, **options)
+    assert preview["status"] == "preview"
+    assert list(environment.iterdir()) == []
+    (result,) = installer.install([client], apply=True, **options)
+    assert result["status"] == "installed" and "command" not in result
+    assert {skill["name"] for skill in result["skills"]} == {
+        "snelstart-reconcile",
+        "snelstart-year-end",
+    }
+    for skill in result["skills"]:
+        path = Path(skill["path"])
+        assert path == environment / root / "skills" / skill["name"] / "SKILL.md"
+        assert path.is_file()
+    (again,) = installer.install([client], apply=True, **options)
+    assert again["status"] == "already_configured"
+
+
+def test_with_skills_refuses_conflict_before_registering_the_server(environment, monkeypatch):
+    custom = environment / ".agents/skills/snelstart-year-end/SKILL.md"
+    custom.parent.mkdir(parents=True)
+    custom.write_text("Custom year-end instructions.")
+    monkeypatch.setattr(installer, "_run", lambda *args: pytest.fail("Unexpected registration"))
+    (result,) = installer.install(
+        ["codex"], apply=True, profile=None, config_path=None, with_skills=True
+    )
+    assert result["status"] == "error"
+    assert custom.read_text() == "Custom year-end instructions."
+    assert sorted(path.name for path in custom.parent.parent.iterdir()) == ["snelstart-year-end"]
+
+
 def test_cli_install_merges_preserves_settings_and_is_idempotent(
     environment, tmp_path, monkeypatch, capsys
 ):

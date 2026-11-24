@@ -165,6 +165,17 @@ def main():
     )
     installer.add_argument("clients", nargs="+", choices=[*CLIENTS, "all", "stdio"])
     installer.add_argument("--apply", action="store_true", help="Apply the previewed registration")
+    skill_options = installer.add_mutually_exclusive_group()
+    skill_options.add_argument(
+        "--with-skills",
+        action="store_true",
+        help="Also install the bundled skills for Codex or Claude Code",
+    )
+    skill_options.add_argument(
+        "--skills-only",
+        action="store_true",
+        help="Install skills without changing the MCP registration",
+    )
     installer.add_argument("--client-config", type=Path, help="Override one client config file")
     writes = commands.add_parser(
         "writes", parents=[output_options], help="Inspect or manage bookkeeping write permissions"
@@ -201,13 +212,15 @@ def main():
                 apply=args.apply,
                 profile=args.config_dir,
                 config_path=args.client_config,
+                with_skills=args.with_skills,
+                skills_only=args.skills_only,
             )
         except SnelStartError as error:
             parser.error(str(error))
         if json_output:
             print(json.dumps(result, indent=2))
         else:
-            show_install(Console(), result, apply=args.apply)
+            show_install(Console(), result, apply=args.apply, skills_only=args.skills_only)
         if any(item["status"] == "error" for item in result):
             sys.exit(1)
         return

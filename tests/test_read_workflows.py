@@ -38,6 +38,8 @@ def session(tmp_path, monkeypatch):
         assert request.url.host == "webapi.snelstart.nl"
         requests.append(request)
         reply = replies[request.url.path]
+        if callable(reply):
+            reply = reply(request)
         return reply if isinstance(reply, httpx.Response) else httpx.Response(200, json=reply)
 
     with httpx.Client(transport=httpx.MockTransport(handle)) as http:
@@ -51,6 +53,113 @@ def call(client, name, params):
     if isinstance(result, tuple):
         return result[1]
     return json.loads(result[0].text)
+
+
+def test_ledger_export_pages_and_filters_each_account(session):
+    client, requests, replies = session
+    ledger_path = "/Grootboek/GetGrootboekMutaties"
+    other = "22222222-2222-4222-8222-222222222222"
+
+    def ledger(request):
+        if request.url.params["grootboekIdentifier"] == other:
+            return {"resultList": [], "totalMatchCount": 0}
+        rows = {
+            "0": [{"publicIdentifier": "current", "datum": "2024-12-31T23:00:00"}],
+            "1": [{"publicIdentifier": "prior", "datum": "2023-12-31T22:59:59Z"}],
+        }
+        return {"resultList": rows[request.url.params["skip"]], "totalMatchCount": 2}
+
+    replies[ledger_path] = ledger
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY, other], "start_date": "2024-01-01", "through_date": "2024-12-31"},
+    )
+    assert result["administration_id"] == ADMIN
+    assert result["total_exported_rows"] == 1
+    assert result["ledgers"][0]["fetched_rows"] == 2
+    assert result["ledgers"][1]["exported_rows"] == 0
+    exported = Path(result["path"])
+    assert stat.S_IMODE(exported.stat().st_mode) == 0o600
+    assert sha256(exported.read_bytes()).hexdigest() == result["sha256"]
+    assert json.loads(exported.read_text()) == {
+        "ledger_id": ENTRY,
+        "entry": {"publicIdentifier": "current", "datum": "2024-12-31T23:00:00"},
+    }
+    ledger_calls = [request for request in requests if request.url.path == ledger_path]
+    assert [request.url.params["skip"] for request in ledger_calls] == ["0", "1", "0"]
+
+
+def test_incomplete_ledger_export_does_not_leave_partial_file(session):
+    client, _, replies = session
+    replies["/Grootboek/GetGrootboekMutaties"] = {
+        "resultList": [{"publicIdentifier": "repeated", "datum": "2024-01-01"}],
+        "totalMatchCount": 2,
+    }
+    with pytest.raises(ToolError, match="duplicate row ID"):
+        call(
+            client,
+            "snelstart_export_ledger_entries",
+            {"ledger_ids": [ENTRY], "start_date": "2024-01-01", "through_date": "2024-12-31"},
+        )
+    assert list((client.store.directory / "exports").iterdir()) == []
+
+
+def test_purchase_evidence_uses_same_attachment_redaction_and_can_skip_attachments(session):
+    client, requests, replies = session
+    attachment_path = "/Purchases/GetAttachmentsWithIdentifier"
+    replies.update(
+        {
+            "/Purchases/Get": {"booking": "fixture"},
+            "/Purchases/GetInkoopBetalingen": [{"settlement": "fixture"}],
+            attachment_path: [
+                {"publicIdentifier": ENTRY, "name": "example.pdf", "thumbnailUrl": "private"}
+            ],
+        }
+    )
+    (evidence,) = call(client, "snelstart_purchase_evidence", {"purchase_ids": [ENTRY]})["data"]
+    assert evidence["purchase_id"] == ENTRY
+    assert evidence["purchase"] == {"booking": "fixture"}
+    assert evidence["payments"] == [{"settlement": "fixture"}]
+    assert evidence["attachments"] == [{"attachmentIdentifier": ENTRY, "fileName": "example.pdf"}]
+    requests.clear()
+    (without,) = call(
+        client,
+        "snelstart_purchase_evidence",
+        {"purchase_ids": [ENTRY], "include_attachments": False},
+    )["data"]
+    assert without["attachments"] is None
+    assert attachment_path not in [request.url.path for request in requests]
+
+
+@pytest.mark.parametrize(
+    ("tool", "ids", "path", "key"),
+    [
+        (
+            "snelstart_sales_booking_details",
+            "booking_ids",
+            "/Invoices/GetVerkoopBoekingDetailsForExpandRow",
+            "verkoopboekingIdentifier",
+        ),
+        (
+            "snelstart_vat_return_details",
+            "return_ids",
+            "/BtwAangiftes/GetByPublicIdentifier",
+            "publicIentifier",
+        ),
+    ],
+)
+def test_batch_detail_tools_keep_order_and_validate_duplicate_ids(session, tool, ids, path, key):
+    client, requests, replies = session
+    replies[path] = lambda request: {"id": request.url.params[key]}
+    with pytest.raises(ToolError, match="only once"):
+        call(client, tool, {ids: [ENTRY, ENTRY]})
+    assert not requests
+    expected = [ENTRY, "22222222-2222-4222-8222-222222222222"]
+    assert call(client, tool, {ids: expected})["data"] == [
+        {"identifier": identifier, "details": {"id": identifier}} for identifier in expected
+    ]
+    assert [request.url.params[key] for request in requests if request.url.path == path] == expected
 
 
 @pytest.mark.parametrize(
@@ -136,7 +245,7 @@ def test_backup_filters_rows_using_local_dates():
     early = {"date": "2024-12-31T23:00:00Z"}
     last = {"date": "2025-12-31T23:59:59.999"}
     outside = {"date": "2025-12-31T23:00:00Z"}
-    assert year_data._in_period(
+    assert year_data.entries_in_period(
         [early, outside, last],
         date(2025, 1, 1),
         date(2025, 12, 31),
@@ -740,7 +849,7 @@ def test_pagination_rejects_inconsistent_or_oversized_pages(page, error):
 )
 def test_export_rejects_entries_with_unusable_dates(row, message):
     with pytest.raises(SnelStartError, match=message):
-        year_data._in_period([row], date(2020, 1, 1), date(2020, 12, 31), "date")
+        year_data.entries_in_period([row], date(2020, 1, 1), date(2020, 12, 31), "date")
 
 
 def test_invalid_config_flag_cannot_enable_writes(session):

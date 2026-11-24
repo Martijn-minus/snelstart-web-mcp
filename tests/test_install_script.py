@@ -24,7 +24,10 @@ def test_install_script_selects_python_and_rejects_native_windows(tmp_path, plat
     executable(bin_dir / "uname", 'printf "%s\\n" "$TEST_PLATFORM"\n')
     executable(bin_dir / "brew", 'printf "%s\\n" "$TEST_BREW_PREFIX"\n')
     executable(python, 'printf "Python 3.13.0\\n"\n')
-    executable(bin_dir / "snelstart-mcp", 'printf "SnelStart MCP [test]\\n"\n')
+    executable(
+        bin_dir / "snelstart-mcp",
+        'printf "%s\\n" "$*" >> "$TEST_UV_LOG"\nprintf "SnelStart MCP [test]\\n"\n',
+    )
     executable(
         bin_dir / "uv",
         r"""printf '%s\n' "$*" >> "$TEST_UV_LOG"
@@ -44,7 +47,7 @@ esac
 """,
     )
     result = subprocess.run(
-        ["bash", str(INSTALLER)],
+        ["bash", str(INSTALLER), *(["--with-skills", "codex"] if platform == "Darwin" else [])],
         env={
             **os.environ,
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
@@ -70,8 +73,9 @@ esac
     )
     assert ("python install 3.13" in commands) == (platform == "Linux")
     assert (
-        f"tool install --quiet --python {python} --no-python-downloads snelstart-web-mcp[browser]"
-        in commands
+        f"tool install --quiet --python {python} --no-python-downloads "
+        "--upgrade-package snelstart-web-mcp snelstart-web-mcp[browser]" in commands
     )
     assert "tool update-shell" not in commands
+    assert ("install codex --skills-only --apply --text" in commands) == (platform == "Darwin")
     assert "snelstart-mcp login --method browser" in result.stdout

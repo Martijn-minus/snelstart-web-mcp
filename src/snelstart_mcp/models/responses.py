@@ -1,7 +1,7 @@
 """MCP and CLI output contracts."""
 
 from pathlib import Path
-from typing import Generic, TypeVar
+from typing import Generic, Literal, TypeVar
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr
@@ -104,6 +104,12 @@ class DoctorResponse(ConnectionStatus):
 class ToolUpdateResponse(BaseModel):
     package: str
     completed: bool
+
+
+class SkillInstallResponse(BaseModel):
+    name: str
+    path: Path
+    status: Literal["preview", "installed", "already_configured"]
 
 
 class HarImportResponse(BaseModel):

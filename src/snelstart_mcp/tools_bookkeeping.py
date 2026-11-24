@@ -1,3 +1,6 @@
+from datetime import date
+from uuid import UUID
+
 from pydantic import JsonValue
 
 from .client import Client
@@ -30,6 +33,54 @@ from .models.requests import (
 )
 from .models.responses import DataResponse, DownloadResponse, JsonResponse
 from .tooling import READ, Register
+
+LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
+PURCHASE_DETAILS = "GET /Purchases/Get"
+PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
+PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
+
+
+def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonObject:
+    return {
+        "grootboekIdentifier": str(ledger_id),
+        "dateTo": window(through_date, through_date)[1],
+        "searchTerm": query,
+        "sortDescending": True,
+    }
+
+
+def attachment_metadata(data: JsonValue) -> list[JsonValue]:
+    if not isinstance(data, list):
+        raise SnelStartError("SnelStart returned unexpected attachment metadata.")
+    # Thumbnail and temporary blob URLs are not required to retrieve the document.
+    fields = (
+        "attachmentIdentifier",
+        "attachmentId",
+        "fileName",
+        "originalFileName",
+        "documentType",
+        "size",
+        "contentType",
+        "extension",
+        "createdOn",
+    )
+    attachments: list[JsonValue] = []
+    for row in data:
+        if not isinstance(row, dict):
+            raise SnelStartError("SnelStart returned unexpected attachment metadata.")
+        item = {key: row[key] for key in fields if key in row}
+        for target, source in (
+            ("attachmentIdentifier", "publicIdentifier"),
+            ("attachmentId", "id"),
+            ("fileName", "name"),
+            ("size", "originalSizeInBytes"),
+        ):
+            if not item.get(target) and row.get(source) is not None:
+                item[target] = row[source]
+        if not item.get("attachmentIdentifier"):
+            raise SnelStartError("A SnelStart attachment has no download ID.")
+        attachments.append(item)
+    return attachments
 
 
 def register_bookkeeping_tools(tool: Register, client: Client) -> None:
@@ -68,14 +119,11 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         """Read one page of ledger entries for an account UUID."""
         return JsonResponse(
             data=client.request(
-                "GET /Grootboek/GetGrootboekMutaties",
+                LEDGER_ENTRIES,
                 {
-                    "grootboekIdentifier": str(request.ledger_id),
-                    "dateTo": window(request.through_date, request.through_date)[1],
-                    "searchTerm": request.query,
+                    **ledger_query(request.ledger_id, request.through_date, request.query),
                     "skip": request.skip,
                     "top": request.top,
-                    "sortDescending": True,
                 },
             )
         )
@@ -126,7 +174,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
     def snelstart_get_entry(request: EntryDetailRequest) -> JsonResponse:
         """Read a purchase, journal, opening balance or bank entry by UUID."""
         operations = {
-            EntryKind.PURCHASE: ("GET /Purchases/Get", "journaalpostIdentifier"),
+            EntryKind.PURCHASE: (PURCHASE_DETAILS, "journaalpostIdentifier"),
             EntryKind.JOURNAL: ("GET /MemoriaalBoekingen/GetDetails", "publicIdentifier"),
             EntryKind.OPENING_BALANCE: ("GET /BalansBoekingen/GetDetails", "publicIdentifier"),
             EntryKind.BANK: (
@@ -217,7 +265,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         """Read payments and settlements recorded for a purchase."""
         return JsonResponse(
             data=client.request(
-                "GET /Purchases/GetInkoopBetalingen",
+                PURCHASE_PAYMENTS,
                 {
                     "journaalpostIdentifier": str(request.entry_id),
                 },
@@ -229,7 +277,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         """List attachments for a purchase, bank transaction or journal entry."""
         operations = {
             AttachmentKind.PURCHASE: (
-                "GET /Purchases/GetAttachmentsWithIdentifier",
+                PURCHASE_ATTACHMENTS,
                 "journaalpostIdentifier",
             ),
             AttachmentKind.BANK: ("GET /KasBankBoeking/GetAttachments", "journaalpostIdentifier"),
@@ -237,37 +285,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         }
         operation, key = operations[request.kind]
         data = client.request(operation, {key: str(request.entry_id)})
-        if not isinstance(data, list):
-            raise SnelStartError("SnelStart returned unexpected attachment metadata.")
-        # Thumbnail and temporary blob URLs are not required to retrieve the document.
-        fields = (
-            "attachmentIdentifier",
-            "attachmentId",
-            "fileName",
-            "originalFileName",
-            "documentType",
-            "size",
-            "contentType",
-            "extension",
-            "createdOn",
-        )
-        attachments: list[JsonValue] = []
-        for row in data:
-            if not isinstance(row, dict):
-                raise SnelStartError("SnelStart returned unexpected attachment metadata.")
-            item = {key: row[key] for key in fields if key in row}
-            for target, source in (
-                ("attachmentIdentifier", "publicIdentifier"),
-                ("attachmentId", "id"),
-                ("fileName", "name"),
-                ("size", "originalSizeInBytes"),
-            ):
-                if not item.get(target) and row.get(source) is not None:
-                    item[target] = row[source]
-            if not item.get("attachmentIdentifier"):
-                raise SnelStartError("A SnelStart attachment has no download ID.")
-            attachments.append(item)
-        return JsonResponse(data=attachments)
+        return JsonResponse(data=attachment_metadata(data))
 
     @tool(annotations=READ)
     def snelstart_download_document(request: DocumentRequest) -> DownloadResponse:

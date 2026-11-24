@@ -9,6 +9,7 @@ import tempfile
 from pathlib import Path
 
 from .config import SnelStartError
+from .skill_install import SKILL_CLIENTS, install_skills
 
 SERVER = "snelstart"
 CLIENTS = (
@@ -176,12 +177,19 @@ def install(
     apply: bool,
     profile: Path | None,
     config_path: Path | None,
+    with_skills: bool = False,
+    skills_only: bool = False,
 ) -> list[dict]:
     selected = CLIENTS if "all" in clients else list(dict.fromkeys(clients))
+    include_skills = with_skills or skills_only
+    if include_skills and any(client not in SKILL_CLIENTS for client in selected):
+        raise SnelStartError("Choose codex or claude-code when installing bundled skills.")
+    if skills_only and config_path is not None:
+        raise SnelStartError("The client config override applies to MCP registrations.")
     if config_path is not None and (len(selected) != 1 or selected[0] in {"codex", "claude-code"}):
         raise SnelStartError("The client config override requires one file-based client.")
     executable = Path(sys.executable).absolute().with_name("snelstart-mcp")
-    if not executable.is_file() or not os.access(executable, os.X_OK):
+    if not skills_only and (not executable.is_file() or not os.access(executable, os.X_OK)):
         raise SnelStartError("Install the SnelStart MCP package before registering clients.")
     invocation = [str(executable)]
     if profile is not None:
@@ -190,7 +198,20 @@ def install(
     results = []
     for client in selected:
         try:
-            results.append(_register(client, invocation, apply=apply, config_path=config_path))
+            skills = install_skills(client, apply=False) if include_skills else []
+            registration: dict
+            if skills_only:
+                registration = {"client": client, "status": "preview"}
+            else:
+                registration = _register(client, invocation, apply=apply, config_path=config_path)
+            if include_skills:
+                if apply:
+                    skills = install_skills(client, apply=True)
+                    if skills_only:
+                        added = any(item.status == "installed" for item in skills)
+                        registration["status"] = "installed" if added else "already_configured"
+                registration["skills"] = [item.model_dump(mode="json") for item in skills]
+            results.append(registration)
         except SnelStartError as error:
             results.append({"client": client, "status": "error", "message": str(error)})
         except (OSError, ValueError, TypeError, KeyError):
@@ -198,7 +219,7 @@ def install(
                 {
                     "client": client,
                     "status": "error",
-                    "message": "Could not read or update the client configuration.",
+                    "message": "Could not read or update the local client configuration or skills.",
                 }
             )
     return results

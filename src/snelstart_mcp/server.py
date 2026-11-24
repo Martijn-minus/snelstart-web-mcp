@@ -18,6 +18,7 @@ from .tooling import tool_registrar, validate_request
 from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
+from .tools_review import register_review_tools
 from .updater import UpdateChecker
 
 
@@ -78,6 +79,7 @@ def create_server(client: Client | None = None) -> FastMCP:
     tool = tool_registrar(mcp, mcp.registered_requests)
     register_connection_tools(tool, client, UpdateChecker())
     register_bookkeeping_tools(tool, client)
+    register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)
 

@@ -65,7 +65,7 @@ def pages(
     raise SnelStartError(f"Incomplete pagination while exporting {operation}.")
 
 
-def _in_period(rows: list[dict], start: date, end: date, *date_fields: str) -> list[dict]:
+def entries_in_period(rows: list[dict], start: date, end: date, *date_fields: str) -> list[dict]:
     # SnelStart sends either a date, an offset timestamp or a naive local timestamp.
     result = []
     for row in rows:
@@ -134,7 +134,9 @@ def collect(client: Client, year: int, end: date, administration: str) -> dict:
             },
             ("identifier", "publicIdentifier"),
         )
-        bank_rows.append({"journal_id": key, "entries": _in_period(rows, start, end, "date")})
+        bank_rows.append(
+            {"journal_id": key, "entries": entries_in_period(rows, start, end, "date")}
+        )
     journal_rows = []
     for journal in journal_references:
         key = str(journal.grootboekIdentifier)
@@ -154,14 +156,16 @@ def collect(client: Client, year: int, end: date, administration: str) -> dict:
         if function == 7:
             params["mustBeChecked"] = False
         rows = pages(request, operation, params, ("publicIdentifier",), size_param="top")
-        journal_rows.append({"journal_id": key, "entries": _in_period(rows, start, end, "datum")})
+        journal_rows.append(
+            {"journal_id": key, "entries": entries_in_period(rows, start, end, "datum")}
+        )
     return {
         "balance_and_profit_loss": request(
             "GET /Grootboek/GetBalansResultaatAndRubrieken", {"datumTotEnMet": end.isoformat()}
         ),
         "chart_of_accounts": request("GET /Grootboek/GetAllMinimal"),
-        "purchases": _in_period(purchases, start, end, "factuurdatum"),
-        "sales": _in_period(sales, start, end, "invoiceDate", "date"),
+        "purchases": entries_in_period(purchases, start, end, "factuurdatum"),
+        "sales": entries_in_period(sales, start, end, "invoiceDate", "date"),
         "bank_journals": banks,
         "bank_entries": bank_rows,
         "general_journals": journals,

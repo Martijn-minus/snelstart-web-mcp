@@ -189,8 +189,11 @@ def show_writes(console: Console, mode: WriteMode, result: dict) -> None:
             console.print("  No approved operations.", style="dim")
 
 
-def show_install(console: Console, results: list[dict], *, apply: bool) -> None:
-    _heading(console, "Client registration" if apply else "Client registration preview")
+def show_install(
+    console: Console, results: list[dict], *, apply: bool, skills_only: bool = False
+) -> None:
+    title = "Skill installation" if skills_only else "Client registration"
+    _heading(console, title if apply else title + " preview")
     labels = {
         "preview": ("Ready to register", "cyan"),
         "installed": ("Registered", "green"),
@@ -204,13 +207,23 @@ def show_install(console: Console, results: list[dict], *, apply: bool) -> None:
             console.print(Text("  ") + _literal(item["config"], "dim"))
         if "message" in item:
             console.print(Text("  ") + _literal(item["message"]))
+        for skill in item.get("skills", []):
+            label, style = labels[skill["status"]]
+            console.print(
+                Text("  Skill ")
+                + _literal(skill["name"], "bold")
+                + Text(f"  · {label}", style=style)
+            )
+            console.print(Text("    ") + _literal(skill["path"], "dim"))
         if len(results) == 1 and not apply:
             if "command" in item:
                 console.print(_literal(join(item["command"])))
             if "snippet" in item:
                 console.print_json(data=item["snippet"], indent=2)
     if not apply and any(item["status"] == "preview" for item in results):
-        if len(results) == 1 and results[0]["client"] == "stdio" and "config" not in results[0]:
+        if skills_only:
+            console.print("\nAdd --apply to install the selected skills.", style="dim")
+        elif len(results) == 1 and results[0]["client"] == "stdio" and "config" not in results[0]:
             console.print("\nAdd --client-config PATH --apply to save the snippet.", style="dim")
         else:
             console.print("\nAdd --apply to register the selected clients.", style="dim")
