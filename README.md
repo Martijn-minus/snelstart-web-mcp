@@ -203,6 +203,8 @@ The MCP interface uses English tool names, argument names, option values, help a
 | `snelstart_list_operations` | Searches the API catalog and returns exact operation names and parameters. Set `read_only: false` to include write operations. |
 | `snelstart_read` | Runs an allowlisted read. Pass query values as `parameters` and search-body fields as `filters`. |
 | `snelstart_write` | Sends a permitted catalog mutation for the required `administration_id`, with `operation`, `payload`, optional `parameters` and a one-use `approval_id`. |
+| `snelstart_open_write_review` | Opens pending `approval_ids` together in a private local browser window for the user to review and select. |
+| `snelstart_write_approval_status` | Returns the local status and expiry per supplied approval ID. |
 | `snelstart_audit_log` | Lists recent calls for the selected administration with their outcome and elapsed time. |
 
 The catalog records known Web API operations. Availability depends on the administration, the account's permissions and the SnelStart package.
@@ -243,7 +245,7 @@ Example purchase filter for entries flagged during November 2026.
 #### Submit a new purchase PDF
 
 1. Check that the selected administration is the one intended for the upload. For scoped write access, grant both upload operations listed below.
-2. Call `snelstart_upload_purchase_pdf` with the selected administration UUID as `administration_id` and an absolute local PDF path as `file_path`. Review the path and file checksum with the local approval command, then retry with its `approval_id`. The tool accepts one PDF of up to 25 MiB and returns an `instance_id`.
+2. Call `snelstart_upload_purchase_pdf` with the selected administration UUID as `administration_id` and an absolute local PDF path as `file_path`. Review the path and file checksum in the local approval window, then retry with its `approval_id`. The tool accepts one PDF of up to 25 MiB and returns an `instance_id`.
 3. Call `snelstart_purchase_upload_status` with that ID and the same administration UUID. Once processing completes, review the recognized invoice under **Inkopen → Te controleren**. [SnelStart purchase recognition](https://kennispleinweb.snelstart.nl/nl/inkoopfacturen-of-bonnetjes-automatisch-inlezen-in-snelstart-web)
 
 With scoped permissions, grant both operations for the same administration.
@@ -321,7 +323,13 @@ uv run snelstart-mcp writes off
 
 A grant stays active until revoked. `writes off` disables global writing and clears all grants. Global mode covers standard operations. Filing, emailing invoices, changing invoice destinations and year-end operations require a specific grant for the administration.
 
-For each write, the first MCP call returns an approval ID. In your own terminal, run `snelstart-mcp writes approve APPROVAL_ID` for the same profile, review the operation, administration and exact content, then type `APPROVE`. The MCP client can retry the same request with `approval_id` within two minutes. A change to the payload or PDF checksum requires a new approval. An approval is consumed once, including when the result is uncertain. The approval protects the MCP tool boundary. Treat unrestricted shell and filesystem access under your OS account as trusted.
+**Per-write confirmation** is required by default. To send explicitly authorized writes directly, run `snelstart-mcp writes confirmations off` for the selected administration. Use `snelstart-mcp writes confirmations on` to restore per-write confirmation and `snelstart-mcp writes confirmations` to check the setting. The setting applies to the selected administration only. Global and scoped write permissions still apply.
+
+With confirmations enabled, the first MCP call returns an approval ID. Ask your chat to group the IDs with `snelstart_open_write_review`. In the local browser window, review the administration and exact contents. Check the individual changes you want to authorize and click **Approve selected requests**. Return to your chat and say to continue. It can check the approvals with `snelstart_write_approval_status` and repeat the exact approved requests within two minutes.
+
+The browser window stays on the computer running the MCP and shows only the requests selected for review. You can also run `snelstart-mcp writes review` locally to open the pending approvals for the selected administration. For a terminal-only session, run `snelstart-mcp writes approve APPROVAL_ID` for the same profile, review the request and type `APPROVE`.
+
+A change to the payload or PDF checksum requires a new approval. An approval is consumed once, including when the result is uncertain. The approval protects the MCP tool boundary. Treat unrestricted shell and filesystem access under your OS account as trusted.
 
 ## Evidence and reconciliation
 

@@ -79,6 +79,49 @@ def test_tool_checks_administration_and_sensitive_grant_before_dispatch(tmp_path
             )
 
 
+def test_direct_write_still_requires_the_administration_and_operation_grant(tmp_path, monkeypatch):
+    store = Store(tmp_path)
+    store.write(
+        "config.json",
+        {
+            "administration_id": str(ADMIN),
+            "write_permissions": {str(ADMIN): [CREATE]},
+            "direct_write_administrations": [str(ADMIN)],
+        },
+    )
+    sent = []
+
+    def request(operation, parameters, payload, **kwargs):
+        sent.append((operation, parameters, payload, kwargs))
+        return {"accepted": True}
+
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda req: pytest.fail("Unexpected live API request"))
+    ) as http:
+        client = Client(store, http)
+        monkeypatch.setattr(client, "request", request)
+        server = create_server(client)
+        request_args = {"operation": CREATE, "payload": {}, "administration_id": str(ADMIN)}
+        with pytest.raises(ToolError, match="differs from the write request"):
+            asyncio.run(
+                server.call_tool(
+                    "snelstart_write", request_args | {"administration_id": str(UUID(int=2))}
+                )
+            )
+        with pytest.raises(ToolError, match="Writing is disabled"):
+            asyncio.run(
+                server.call_tool(
+                    "snelstart_write", request_args | {"operation": "POST /BtwAangiftes/Send"}
+                )
+            )
+        assert not sent
+        _, result = asyncio.run(server.call_tool("snelstart_write", request_args))
+        assert result["data"] == {"accepted": True}
+        assert len(sent) == 1 and sent[0][0] == CREATE
+        assert sent[0][3]["expected_administration"] == str(ADMIN)
+        assert store.read(approval.FILE) == {}
+
+
 def test_store_migrates_legacy_secrets_and_refuses_git_profiles(tmp_path, test_vault):
     repo = tmp_path / "repo"
     repo.mkdir()

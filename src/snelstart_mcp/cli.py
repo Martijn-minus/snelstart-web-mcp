@@ -9,6 +9,7 @@ import httpx
 from rich.console import Console
 
 from .approval import approve_write
+from .approval_browser import open_write_review
 from .audit import AuditLog
 from .backup import list_archives
 from .browser_login import check_browser
@@ -23,14 +24,14 @@ from .cli_output import (
 )
 from .client import Client
 from .config import SnelStartError, Store
-from .enums import LoginMethod, WriteMode
+from .enums import LoginMethod, WriteConfirmationAction, WriteMode
 from .har import import_har
 from .installer import CLIENTS, install
 from .models.audit import AuditSummary
 from .models.responses import ConnectionStatus, DoctorResponse, HarImportResponse
 from .updater import UpdateChecker, update_tool
 from .version import installed_version, version_label
-from .write_access import set_write_access
+from .write_access import set_write_access, write_confirmation_settings
 
 
 def _doctor(client: Client, *, launch_browser: bool) -> DoctorResponse:
@@ -207,6 +208,26 @@ def main():
         "approve", help="Review and approve one pending write in your terminal"
     )
     approval.add_argument("approval_id", type=UUID)
+    review = write_modes.add_parser("review", help="Open a local browser review for pending writes")
+    review.add_argument("approval_ids", type=UUID, metavar="APPROVAL_ID", nargs="*")
+    confirmations = write_modes.add_parser(
+        "confirmations",
+        parents=[output_options],
+        help="Show or change per-write confirmations for the selected administration",
+    )
+    confirmations.add_argument(
+        "action",
+        type=WriteConfirmationAction,
+        choices=list(WriteConfirmationAction),
+        default=WriteConfirmationAction.STATUS,
+        nargs="?",
+    )
+    confirmations.add_argument(
+        "--administration",
+        type=UUID,
+        metavar="UUID",
+        help="Require this administration to be selected",
+    )
     write_modes.add_parser(
         "on",
         parents=[output_options],
@@ -287,6 +308,19 @@ def main():
             return
         store = Store(args.config_dir)
         if args.command == "writes":
+            if args.mode == "confirmations":
+                setting = write_confirmation_settings(store, args.action, args.administration)
+                if json_output:
+                    print(setting.model_dump_json(indent=2))
+                else:
+                    state = "Required" if setting.write_confirmations_required else "Off"
+                    print(f"Confirm each write: {state}")
+                return
+            if args.mode == "review":
+                response, thread = open_write_review(store, args.approval_ids or None)
+                print(response.message)
+                thread.join()
+                return
             if args.mode == "approve":
                 approve_write(store, args.approval_id)
                 print("Approved this request once. Retry the same MCP call within two minutes.")

@@ -194,6 +194,9 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
     fields.add_row(
         "Write access", _write_scope(status.allow_writes, bool(status.approved_write_operations))
     )
+    fields.add_row(
+        "Confirm each write", "Required" if status.write_confirmations_required else "Off"
+    )
     fields.add_row("Saved credentials", "Available" if status.automatic_login else "None")
     fields.add_row("Automatic refresh", "Enabled" if status.automatic_refresh else "Unavailable")
     fields.add_row("Access token expires", _expiry(status.access_token_expires_at))

@@ -73,6 +73,7 @@ class Client:
             approved_write_operations=[]
             if self.read_only
             else sorted(settings.approved_write_operations()),
+            write_confirmations_required=settings.write_confirmations_required(),
             config_directory=self.store.directory,
         ).model_dump(mode="json")
 

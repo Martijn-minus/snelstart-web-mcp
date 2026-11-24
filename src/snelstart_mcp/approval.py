@@ -2,18 +2,19 @@
 
 import hmac
 import json
+from datetime import UTC, datetime
 from time import time
 from uuid import UUID, uuid4
 
 from pydantic import TypeAdapter, ValidationError
 
 from .config import SnelStartError, Store
-from .models.approval import PendingWrite, WriteIntent
+from .enums import WriteApprovalStatus
+from .models.approval import MAX_PENDING, PendingWrite, WriteApprovalState, WriteIntent
 
 FILE = "write-approvals.json"
 LIFETIME = 600
 APPROVED_LIFETIME = 120
-MAX_PENDING = 24
 MAX_PREVIEW = 256 * 1024
 RECORDS = TypeAdapter(dict[UUID, PendingWrite])
 
@@ -36,10 +37,15 @@ def _preview(intent: WriteIntent) -> str:
 
 
 def require_approval(store: Store, intent: WriteIntent, approval_id: UUID | None) -> None:
-    preview = _preview(intent)
-    if len(preview) > MAX_PREVIEW:
-        raise SnelStartError("This write is too large to review as one operation.")
     with store.locked():
+        settings = store.settings()
+        if settings.administration_id != intent.administration_id:
+            raise SnelStartError("The selected administration differs from the write request.")
+        if approval_id is None and not settings.write_confirmations_required():
+            return
+        preview = _preview(intent)
+        if len(preview) > MAX_PREVIEW:
+            raise SnelStartError("This write is too large to review as one operation.")
         records = _records(store)
         if approval_id is not None:
             record = records.get(approval_id)
@@ -63,20 +69,84 @@ def require_approval(store: Store, intent: WriteIntent, approval_id: UUID | None
             records[approval_id] = PendingWrite(intent=intent, expires=time() + LIFETIME)
             _save(store, records)
     raise SnelStartError(
-        f"Local confirmation required. Ask the user to run 'snelstart-mcp writes approve "
-        f"{approval_id}' in their terminal for this profile. After they confirm, retry the "
-        f"same request with approval_id {approval_id}."
+        f"Local confirmation required. Approval ID: {approval_id}. "
+        "Use snelstart_open_write_review to open a local browser review for this and any "
+        "other pending requests. If the browser is unavailable, ask the user to run "
+        f"'snelstart-mcp writes approve {approval_id}' for this profile. After the user "
+        f"confirms, retry the same request with approval_id {approval_id}."
     )
 
 
-def approve_write(store: Store, approval_id: UUID) -> None:
+def pending_writes(
+    store: Store, approval_ids: list[UUID] | None = None
+) -> dict[UUID, PendingWrite]:
     with store.locked():
-        record = _records(store).get(approval_id)
-    if record is None or record.approved:
-        raise SnelStartError("This approval request is unavailable or has expired.")
-    if store.settings().administration_id != record.intent.administration_id:
-        raise SnelStartError("The selected administration differs from the write request.")
+        records = _records(store)
+        administration = store.settings().administration_id
+        if approval_ids is None:
+            return {
+                identifier: record
+                for identifier, record in records.items()
+                if not record.approved and record.intent.administration_id == administration
+            }
+        if not 1 <= len(approval_ids) <= MAX_PENDING or len(set(approval_ids)) != len(approval_ids):
+            raise SnelStartError("Provide between 1 and 24 distinct approval IDs.")
+        selected = {}
+        for identifier in approval_ids:
+            record = records.get(identifier)
+            if record is None or record.approved:
+                raise SnelStartError("This approval request is unavailable or has expired.")
+            if record.intent.administration_id != administration:
+                raise SnelStartError("The selected administration differs from the write request.")
+            selected[identifier] = record
+        return selected
 
+
+def write_approval_states(store: Store, approval_ids: list[UUID]) -> list[WriteApprovalState]:
+    with store.locked():
+        records = _records(store)
+        administration = store.settings().administration_id
+    states = []
+    for identifier in approval_ids:
+        record = records.get(identifier)
+        if record is None or record.intent.administration_id != administration:
+            states.append(
+                WriteApprovalState(approval_id=identifier, status=WriteApprovalStatus.UNAVAILABLE)
+            )
+            continue
+        states.append(
+            WriteApprovalState(
+                approval_id=identifier,
+                status=WriteApprovalStatus.APPROVED
+                if record.approved
+                else WriteApprovalStatus.PENDING,
+                expires_at=datetime.fromtimestamp(record.expires, UTC),
+            )
+        )
+    return states
+
+
+def approve_reviewed_writes(store: Store, reviewed: dict[UUID, PendingWrite]) -> None:
+    with store.locked():
+        records = _records(store)
+        administration = store.settings().administration_id
+        if any(
+            records.get(identifier) != record
+            or record.approved
+            or administration != record.intent.administration_id
+            for identifier, record in reviewed.items()
+        ):
+            raise SnelStartError(
+                "An approval request expired or the active administration changed."
+            )
+        expires = time() + APPROVED_LIFETIME
+        for identifier, record in reviewed.items():
+            records[identifier] = record.model_copy(update={"approved": True, "expires": expires})
+        _save(store, records)
+
+
+def approve_write(store: Store, approval_id: UUID) -> None:
+    record = pending_writes(store, [approval_id])[approval_id]
     try:
         with (
             open("/dev/tty", encoding="utf-8") as answer,
@@ -99,15 +169,4 @@ def approve_write(store: Store, approval_id: UUID) -> None:
     if not confirmed:
         raise SnelStartError("The write was not approved.")
 
-    with store.locked():
-        records = _records(store)
-        latest = records.get(approval_id)
-        if (
-            latest != record
-            or store.settings().administration_id != record.intent.administration_id
-        ):
-            raise SnelStartError("The approval request or active administration changed.")
-        record.approved = True
-        record.expires = time() + APPROVED_LIFETIME
-        records[approval_id] = record
-        _save(store, records)
+    approve_reviewed_writes(store, {approval_id: record})

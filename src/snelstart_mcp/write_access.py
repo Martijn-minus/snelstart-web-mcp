@@ -5,8 +5,9 @@ from uuid import UUID
 
 from .client import catalog
 from .config import SnelStartError, Store
-from .enums import WriteMode
+from .enums import WriteConfirmationAction, WriteMode
 from .models import Settings
+from .models.approval import WriteConfirmationSettings
 from .models.permissions import WriteSelection
 from .write_policy import needs_scoped_grant
 
@@ -64,7 +65,37 @@ def set_write_access(store: Store, args: Namespace) -> dict:
 def _save_settings(store: Store, settings: Settings) -> None:
     config = settings.model_dump(mode="json", exclude_none=True)
     config["write_permissions"] = _write_permissions(settings)
+    config["direct_write_administrations"] = sorted(
+        str(identifier) for identifier in settings.direct_write_administrations
+    )
     store.write("config.json", config)
+
+
+def write_confirmation_settings(
+    store: Store, action: WriteConfirmationAction, expected_administration: UUID | None = None
+) -> WriteConfirmationSettings:
+    with store.locked():
+        settings = store.settings()
+        if (
+            expected_administration is not None
+            and settings.administration_id != expected_administration
+        ):
+            raise SnelStartError("The selected administration changed.")
+        if action is not WriteConfirmationAction.STATUS:
+            administration = settings.administration_id
+            if administration is None:
+                raise SnelStartError(
+                    "Select an administration before changing write confirmations."
+                )
+            if action is WriteConfirmationAction.ON:
+                settings.direct_write_administrations.discard(administration)
+            else:
+                settings.direct_write_administrations.add(administration)
+            _save_settings(store, settings)
+    return WriteConfirmationSettings(
+        administration_id=settings.administration_id,
+        write_confirmations_required=settings.write_confirmations_required(),
+    )
 
 
 def save_selection(

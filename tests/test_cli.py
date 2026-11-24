@@ -47,6 +47,42 @@ def test_cli_status_and_write_setting(command):
     assert run("writes", "off") == {"allow_writes": False}
 
 
+def test_cli_write_confirmations_are_independent_and_administration_specific(command):
+    profile, run = command
+    store = Store(profile)
+    config = {
+        "administration_id": ADMIN,
+        "allow_writes": False,
+        "write_permissions": {ADMIN: [OPERATION]},
+    }
+    store.write("config.json", config)
+    assert run("writes", "confirmations")["write_confirmations_required"] is True
+    assert run("writes", "confirmations", "off") == {
+        "administration_id": ADMIN,
+        "write_confirmations_required": False,
+    }
+    assert run("status")["write_confirmations_required"] is False
+    assert run("writes", "list") == {
+        "allow_writes": False,
+        "write_permissions": {ADMIN: [OPERATION]},
+    }
+    store.write("config.json", store.read("config.json") | {"administration_id": OTHER})
+    assert run("status")["write_confirmations_required"] is True
+    store.write("config.json", store.read("config.json") | {"administration_id": ADMIN})
+    assert run("writes", "confirmations", "on")["write_confirmations_required"] is True
+    assert store.read("config.json")["direct_write_administrations"] == []
+
+
+def test_cli_confirmation_change_requires_the_expected_administration(command, capsys):
+    profile, run = command
+    store = Store(profile)
+    store.write("config.json", {"administration_id": OTHER})
+    with pytest.raises(SystemExit, match="1"):
+        run("writes", "confirmations", "off", "--administration", ADMIN)
+    assert "The selected administration changed." in capsys.readouterr().err
+    assert store.settings().write_confirmations_required() is True
+
+
 def test_cli_grants_and_revokes_an_exact_operation(command):
     profile, run = command
     Store(profile).write("config.json", {"administration_id": ADMIN, "existing_key": True})

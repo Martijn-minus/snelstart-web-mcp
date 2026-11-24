@@ -17,6 +17,7 @@ from .models.snapshot import SnapshotInfo, SnapshotPage, SnapshotReadRequest
 from .purchase_upload import register_purchase_upload_tools
 from .snapshot import Snapshot
 from .tooling import tool_registrar, validate_request
+from .tools_approval import register_approval_tools
 from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
@@ -31,9 +32,11 @@ LIVE_INSTRUCTIONS = (
     "a backup, switch modes, or change permissions without the user's request. "
     "Check the selected SnelStart administration before accessing records. "
     "Recorded balances do not prove payment. Write only on an explicit request "
-    "and verify the record before and after any change. Give any write approval ID to the user "
-    "for local confirmation. Never perform the terminal confirmation on their behalf. "
-    "Retry only the exact approved request. Never request or display "
+    "and verify the record before and after any change. If a write returns an approval ID, "
+    "use snelstart_open_write_review for the pending IDs from the user's requested changes. "
+    "Only the user may confirm "
+    "in their local browser or terminal. When the user returns, check which IDs were approved "
+    "with snelstart_write_approval_status and retry only those exact requests. Never request or display "
     "credentials. The audit log records tool calls and their outcomes. "
     "After a write, inspect snelstart_mutation_receipts and use snelstart_verify_mutation "
     "for supported read-back checks. Resolve uncertain outcomes before considering a retry. "
@@ -120,6 +123,8 @@ def create_server(client: Client | None = None) -> FastMCP:
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)
     register_mutation_tools(tool, client, audit)
+    if not client.read_only:
+        register_approval_tools(tool, client.store)
 
     @tool(annotations=LOCAL_READ)
     def snelstart_audit_log(request: LimitRequest) -> DataResponse[list[AuditCallResponse]]:

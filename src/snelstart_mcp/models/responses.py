@@ -28,6 +28,7 @@ class ConnectionStatus(BaseModel):
     administration_id: UUID | None
     allow_writes: bool
     approved_write_operations: list[str]
+    write_confirmations_required: bool = True
     config_directory: Path
     server_version: str | None = Field(default=None, exclude_if=lambda value: value is None)
     update: UpdateCheckResponse | None = Field(default=None, exclude_if=lambda value: value is None)

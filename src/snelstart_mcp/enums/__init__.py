@@ -104,6 +104,12 @@ class WriteMode(StrEnum):
     CONFIGURE = "configure"
 
 
+class WriteConfirmationAction(StrEnum):
+    STATUS = "status"
+    ON = "on"
+    OFF = "off"
+
+
 class RelationKind(StrEnum):
     CUSTOMERS = "customers"
     SUPPLIERS = "suppliers"
@@ -158,6 +164,12 @@ class UpdateStatus(StrEnum):
     AVAILABLE = "available"
     CURRENT = "current"
     RECONNECT_REQUIRED = "reconnect_required"
+    UNAVAILABLE = "unavailable"
+
+
+class WriteApprovalStatus(StrEnum):
+    PENDING = "pending"
+    APPROVED = "approved"
     UNAVAILABLE = "unavailable"
 
 

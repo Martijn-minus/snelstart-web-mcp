@@ -20,11 +20,15 @@ class Settings(BaseModel):
     session_id: UUID | None = None
     allow_writes: StrictBool = False
     write_permissions: dict[UUID, set[str]] = Field(default_factory=dict)
+    direct_write_administrations: set[UUID] = Field(default_factory=set)
 
     def approved_write_operations(self) -> set[str]:
         if self.administration_id is None:
             return set()
         return self.write_permissions.get(self.administration_id, set())
+
+    def write_confirmations_required(self) -> bool:
+        return self.administration_id not in self.direct_write_administrations
 
 
 class ArchiveFile(BaseModel):

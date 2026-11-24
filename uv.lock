@@ -1652,7 +1652,7 @@ wheels = [
 
 [[package]]
 name = "snelstart-web-mcp"
-version = "2026.11.24.12"
+version = "2026.11.24.13"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
