@@ -46,10 +46,11 @@ class ReadOperationRequest(ToolRequest):
     filters: JsonObject | None = None
 
 
-class WriteOperationRequest(ToolRequest):
+class WriteOperationRequest(AdministrationRequest):
     operation: str
     payload: JsonObject
     parameters: JsonObject | None = None
+    approval_id: UUID | None = None
 
 
 class ThroughDateRequest(ToolRequest):
@@ -167,6 +168,7 @@ class ArchiveRequest(ToolRequest):
 
 class PurchaseUploadRequest(AdministrationRequest):
     file_path: Path
+    approval_id: UUID | None = None
 
 
 class UploadStatusRequest(AdministrationRequest):

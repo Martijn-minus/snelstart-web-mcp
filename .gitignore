@@ -9,3 +9,10 @@ credentials.json
 tokens.json
 audit.sqlite3*
 audit/*.sqlite3*
+**/audit/*.sqlite3*
+snelstart-*.zip
+ledger-*.jsonl
+observed-api.json
+purchase-uploads.json
+write-approvals.json
+.keyring-*.json

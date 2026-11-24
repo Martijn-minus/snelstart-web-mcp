@@ -11,8 +11,10 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 import httpx
 
+from .approval import require_approval
 from .client import Client
 from .config import SnelStartError
+from .models.approval import WriteIntent
 from .models.requests import PurchaseUploadRequest, UploadStatusRequest
 from .models.responses import PurchaseUploadResponse, UploadStatusResponse
 from .tooling import READ, WRITE, Register
@@ -94,9 +96,8 @@ def _upload_to_storage(url: object, pdf: bytes) -> str:
     return target._replace(query="").geturl()
 
 
-def submit_purchase_pdf(client: Client, administration_id: str, path: Path) -> dict:
+def submit_purchase_pdf(client: Client, administration_id: str, path: Path, pdf: bytes) -> dict:
     _check_upload_access(client, administration_id)
-    pdf = _read_pdf(path)
     checksum = sha256(pdf).hexdigest()
     key = f"{administration_id}/{checksum}"
     store = client.store
@@ -153,9 +154,26 @@ def submit_purchase_pdf(client: Client, administration_id: str, path: Path) -> d
 def register_purchase_upload_tools(tool: Register, client: Client) -> None:
     @tool(annotations=WRITE)
     def snelstart_upload_purchase_pdf(request: PurchaseUploadRequest) -> PurchaseUploadResponse:
-        """Submit a local PDF as a new purchase for review. Returns a processing ID."""
+        """Submit a PDF after one-use local approval of its path and SHA-256."""
+        administration = str(request.administration_id)
+        _check_upload_access(client, administration)
+        pdf = _read_pdf(request.file_path)
+        require_approval(
+            client.store,
+            WriteIntent(
+                tool="snelstart_upload_purchase_pdf",
+                operation=SUBMIT_PURCHASE,
+                administration_id=request.administration_id,
+                details={
+                    "file_path": str(request.file_path),
+                    "sha256": sha256(pdf).hexdigest(),
+                    "bytes": len(pdf),
+                },
+            ),
+            request.approval_id,
+        )
         return PurchaseUploadResponse.model_validate(
-            submit_purchase_pdf(client, str(request.administration_id), request.file_path)
+            submit_purchase_pdf(client, administration, request.file_path, pdf)
         )
 
     @tool(annotations=READ)

@@ -87,7 +87,7 @@ Gebruik `--with-hooks` als je de MCP tegelijk wilt registreren. Het Bash-script 
 
 ## Aanmelden
 
-De MCP bewaart de lokale instellingen en tokens onder `~/.config/snelstart-mcp`. Met `SNELSTART_CONFIG_DIR` of `--config-dir PAD` vóór de subopdracht kies je een ander profiel. Met een geldig vernieuwingstoken vernieuwt de server de toegang automatisch.
+De lokale instellingen staan standaard onder `~/.config/snelstart-mcp`. Wachtwoorden en OAuth-tokens staan in macOS Sleutelhanger of Linux Secret Service. Bij het eerste gebruik verplaatst de MCP bestaande geheimen uit JSON en verwijdert hij het oude bestand nadat de veilige opslag is gelukt. Ontgrendel de sleutelopslag vóór het aanmelden. Op Linux en WSL is een werkende Secret Service vereist. Kies met `SNELSTART_CONFIG_DIR` of `--config-dir PAD` een profielmap buiten Git-repositories.
 
 ```sh
 snelstart-mcp login --method browser
@@ -194,7 +194,9 @@ snelstart-mcp writes revoke ADMINISTRATIE_UUID 'POST /MemoriaalBoekingen/Create'
 snelstart-mcp writes off
 ```
 
-Een toekenning geldt voor de gekozen handeling binnen die administratie totdat je deze intrekt. `writes on` schakelt alle toegestane schrijfhandelingen van het profiel in. `writes off` schakelt globaal schrijven uit en wist de specifieke toekenningen. Voor algemene API-operaties vind je de route en parameters met `snelstart_list_operations`. Gebruik `snelstart_read` voor leesoperaties en `snelstart_write` voor toegestane schrijfoperaties.
+Een toekenning geldt voor de gekozen handeling binnen die administratie totdat je deze intrekt. `writes on` schakelt de standaardhandelingen in. Voor bijvoorbeeld aangiften indienen, facturen verzenden of een boekjaar afsluiten heb je een expliciet recht voor die administratie nodig. Open in de editor een groep om die rechten afzonderlijk te kiezen. `writes off` schakelt globaal schrijven uit en wist de specifieke toekenningen.
+
+Elke schrijfopdracht vraagt daarnaast een eenmalige bevestiging. Voer `snelstart-mcp writes approve APPROVAL_ID` uit in je eigen terminal met hetzelfde profiel, controleer de administratie en inhoud en typ `APPROVE`. Geef Codex de bevestigings-ID. De client moet precies dezelfde toolopdracht binnen twee minuten herhalen met `approval_id`. Bij een PDF zijn ook het pad en de controlesom onderdeel van de bevestiging. Deze controle beveiligt de MCP-tools. Onbeperkte terminal- en bestandstoegang onder je eigen account blijft vertrouwde toegang.
 
 Het profiel bewaart per administratie een auditdatabase met aanroepen, tijdstippen, uitkomsten en duur. Aanroepen zonder gekozen administratie komen in een afzonderlijke profieldatabase. De log laat invoer, antwoordteksten, wachtwoorden en tokens weg. Bij een onzekere uitkomst controleer je het record en de auditgeschiedenis voordat je iets opnieuw probeert.
 

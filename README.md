@@ -157,7 +157,7 @@ Client configuration holds the executable and arguments. Sign-in remains in the 
 
 ## Sign in
 
-The MCP stores its local configuration and tokens under `~/.config/snelstart-mcp`. Its directory is private (`0700`) and profile files are restricted to the current user (`0600`). A valid profile refreshes access tokens automatically. Set `SNELSTART_CONFIG_DIR` or pass `--config-dir PATH` before the subcommand to use another profile.
+The MCP stores local settings under `~/.config/snelstart-mcp` and keeps the credentials and OAuth tokens in macOS Keychain or Linux Secret Service. On first access, the MCP migrates legacy JSON secrets and removes each old file after secure storage succeeds. Unlock the system keyring before signing in. Linux and WSL require a working Secret Service. A valid profile refreshes access tokens automatically. Use `SNELSTART_CONFIG_DIR` or `--config-dir PATH` before the subcommand to select a profile outside Git worktrees.
 
 ### Browser OAuth
 
@@ -182,7 +182,7 @@ Follow these steps if the interactive OAuth window is unavailable.
    uv run --frozen snelstart-mcp doctor
    ```
 
-The legacy `setup` and `import-har --save-password` commands store a plaintext password in the profile. Use browser OAuth or the token-only workflow for new profiles in this repository.
+The legacy `setup` and `import-har --save-password` commands save passwords in the system keyring. Prefer browser OAuth or token-only import for new profiles.
 
 ## Language and input
 
@@ -200,7 +200,7 @@ The MCP interface uses English tool names, argument names, option values, help a
 | `snelstart_select_administration` | Opens an administration by UUID and saves that selection locally. |
 | `snelstart_list_operations` | Searches the API catalog and returns exact operation names and parameters. Set `read_only: false` to include write operations. |
 | `snelstart_read` | Runs an allowlisted read. Pass query values as `parameters` and search-body fields as `filters`. |
-| `snelstart_write` | Sends a permitted catalog mutation using `operation`, `payload` and optional query `parameters`. |
+| `snelstart_write` | Sends a permitted catalog mutation for the required `administration_id`, with `operation`, `payload`, optional `parameters` and a one-use `approval_id`. |
 | `snelstart_audit_log` | Lists recent calls for the selected administration with their outcome and elapsed time. |
 
 The catalog records known Web API operations. Availability depends on the administration, the account's permissions and the SnelStart package.
@@ -241,7 +241,7 @@ Example purchase filter for entries flagged during November 2026.
 #### Submit a new purchase PDF
 
 1. Check that the selected administration is the one intended for the upload. For scoped write access, grant both upload operations listed below.
-2. Call `snelstart_upload_purchase_pdf` with the selected administration UUID as `administration_id` and an absolute local PDF path as `file_path`. The tool accepts one PDF of up to 25 MiB and returns an `instance_id`.
+2. Call `snelstart_upload_purchase_pdf` with the selected administration UUID as `administration_id` and an absolute local PDF path as `file_path`. Review the path and file checksum with the local approval command, then retry with its `approval_id`. The tool accepts one PDF of up to 25 MiB and returns an `instance_id`.
 3. Call `snelstart_purchase_upload_status` with that ID and the same administration UUID. Once processing completes, review the recognized invoice under **Inkopen → Te controleren**. [SnelStart purchase recognition](https://kennispleinweb.snelstart.nl/nl/inkoopfacturen-of-bonnetjes-automatisch-inlezen-in-snelstart-web)
 
 With scoped permissions, grant both operations for the same administration.
@@ -294,7 +294,7 @@ Bookkeeping writes are disabled by default. Open the permission editor in a term
 snelstart-mcp writes configure
 ```
 
-The editor opens on the selected administration. Pass `--administration UUID` to edit another one. Move with the arrow keys and press Space to select or clear a group, an individual operation, or all eligible operations for that administration. Use Tab on a group to expand or collapse it, or on the all-operations row to toggle all details. `[-]` marks a partial selection. Use the **Purchase PDF upload** group to select the two operations for that workflow together.
+The editor opens on the selected administration. Pass `--administration UUID` to edit another one. Move with the arrow keys and press Space to select or clear a group, an individual operation, or all standard operations for that administration. Use Tab to expand a group and choose sensitive operations individually. `[-]` marks a partial selection. Use the **Purchase PDF upload** group to select the two operations for that workflow together.
 
 The global switch affects all administrations. The editor preserves scoped grants for other administrations. Press Enter to review the proposed changes and confirm saving, or Esc to cancel.
 
@@ -317,7 +317,9 @@ uv run snelstart-mcp writes revoke ADMINISTRATION_UUID 'POST /MemoriaalBoekingen
 uv run snelstart-mcp writes off
 ```
 
-A grant stays active until revoked. It applies to every record covered by the operation in that administration, across MCP clients sharing the profile. `writes off` disables global writing and clears all grants. The legacy `writes on` switch enables all eligible operations across the profile, subject to the SnelStart account's permissions. The server sends a failed write only once. Client-side confirmations are managed separately.
+A grant stays active until revoked. `writes off` disables global writing and clears all grants. Global mode covers standard operations. Filing, emailing invoices, changing invoice destinations and year-end operations require a specific grant for the administration.
+
+For each write, the first MCP call returns an approval ID. In your own terminal, run `snelstart-mcp writes approve APPROVAL_ID` for the same profile, review the operation, administration and exact content, then type `APPROVE`. The MCP client can retry the same request with `approval_id` within two minutes. A change to the payload or PDF checksum requires a new approval. An approval is consumed once, including when the result is uncertain. The approval protects the MCP tool boundary. Treat unrestricted shell and filesystem access under your OS account as trusted.
 
 ## Year archives
 

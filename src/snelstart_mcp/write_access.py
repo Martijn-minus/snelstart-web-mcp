@@ -8,6 +8,7 @@ from .config import SnelStartError, Store
 from .enums import WriteMode
 from .models import Settings
 from .models.permissions import WriteSelection
+from .write_policy import needs_scoped_grant
 
 
 def grantable_operations() -> set[str]:
@@ -39,7 +40,7 @@ def set_write_access(store: Store, args: Namespace) -> dict:
                 settings.write_permissions.clear()
             result = {"allow_writes": settings.allow_writes}
         else:
-            if settings.allow_writes:
+            if settings.allow_writes and not needs_scoped_grant(args.operation):
                 raise SnelStartError("Turn off global writing before managing scoped permissions.")
             if args.operation not in grantable_operations():
                 raise SnelStartError("Choose an allowlisted bookkeeping write operation.")

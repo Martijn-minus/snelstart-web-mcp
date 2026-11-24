@@ -13,6 +13,7 @@ from .config import SnelStartError, Store
 from .models.permissions import PermissionRow, WriteSelection
 from .purchase_upload import SUBMIT_PURCHASE, UPLOAD_URL
 from .write_access import grantable_operations, save_selection
+from .write_policy import needs_scoped_grant
 
 GROUP_NAMES = {
     "Articles": "Products",
@@ -51,17 +52,27 @@ def permission_groups(operations: set[str]) -> dict[str, frozenset[str]]:
 
 def _rows(groups: dict[str, frozenset[str]], expanded: set[str]) -> list[PermissionRow]:
     rows = [
-        PermissionRow(label="Global access (all administrations)"),
+        PermissionRow(label="Global standard access (all administrations)"),
         PermissionRow(
-            label="All eligible operations for this administration",
-            operations=frozenset().union(*groups.values()),
+            label="All standard operations for this administration",
+            operations=frozenset(
+                operation
+                for operations in groups.values()
+                for operation in operations
+                if not needs_scoped_grant(operation)
+            ),
         ),
     ]
     for name, operations in groups.items():
-        rows.append(PermissionRow(label=name, operations=operations, group=name))
+        bulk = frozenset(operation for operation in operations if not needs_scoped_grant(operation))
+        rows.append(PermissionRow(label=name, operations=bulk, group=name))
         if name in expanded:
             rows.extend(
-                PermissionRow(label=operation, operations=frozenset({operation}), detail=True)
+                PermissionRow(
+                    label=f"{operation} (scoped)" if needs_scoped_grant(operation) else operation,
+                    operations=frozenset({operation}),
+                    detail=True,
+                )
                 for operation in sorted(operations)
             )
     return rows

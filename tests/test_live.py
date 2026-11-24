@@ -180,6 +180,7 @@ async def run_live_contract(path: Path):
             "snelstart_write",
             {
                 "operation": "POST /MemoriaalBoekingen/Create",
+                "administration_id": status["administration_id"],
                 "payload": {},
             },
             expect_error=True,

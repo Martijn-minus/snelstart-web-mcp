@@ -8,6 +8,7 @@ from uuid import UUID
 import httpx
 from rich.console import Console
 
+from .approval import approve_write
 from .audit import AuditLog
 from .backup import list_archives
 from .browser_login import check_browser
@@ -202,10 +203,14 @@ def main():
         "writes", parents=[output_options], help="Inspect or manage bookkeeping write permissions"
     )
     write_modes = writes.add_subparsers(dest="mode", required=True)
+    approval = write_modes.add_parser(
+        "approve", help="Review and approve one pending write in your terminal"
+    )
+    approval.add_argument("approval_id", type=UUID)
     write_modes.add_parser(
         "on",
         parents=[output_options],
-        help="Enable global access to allowlisted bookkeeping writes",
+        help="Enable global access to standard bookkeeping writes",
     )
     write_modes.add_parser(
         "off",
@@ -282,6 +287,10 @@ def main():
             return
         store = Store(args.config_dir)
         if args.command == "writes":
+            if args.mode == "approve":
+                approve_write(store, args.approval_id)
+                print("Approved this request once. Retry the same MCP call within two minutes.")
+                return
             if args.mode == WriteMode.CONFIGURE:
                 if json_output:
                     raise SnelStartError(
@@ -328,7 +337,7 @@ def main():
         if args.command == "setup":
             print("SnelStart email address: ", end="", file=sys.stderr, flush=True)
             username = input("").strip()
-            password = getpass.getpass("SnelStart password (stored privately under ~/.config): ")
+            password = getpass.getpass("SnelStart password (stored in the system keyring): ")
             if not username or not password:
                 raise SnelStartError("Email address and password are required.")
             with store.locked():

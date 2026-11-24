@@ -124,7 +124,8 @@ def test_browser_sign_in_without_refresh_does_not_replace_the_current_profile(st
 def test_private_atomic_storage(store):
     store.write("credentials.json", {"username": "example@test.nl", "password": "private"})
     assert stat.S_IMODE(store.directory.stat().st_mode) == 0o700
-    assert stat.S_IMODE((store.directory / "credentials.json").stat().st_mode) == 0o600
+    assert stat.S_IMODE((store.directory / ".keyring-credentials.json").stat().st_mode) == 0o600
+    assert not (store.directory / "credentials.json").exists()
     store.write("credentials.json", {"password": "replacement"})
     assert not list(store.directory.glob(".pending-*"))
     assert store.read("credentials.json") == {"password": "replacement"}

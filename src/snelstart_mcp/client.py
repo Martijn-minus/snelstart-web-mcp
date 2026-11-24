@@ -3,6 +3,7 @@
 import json
 import os
 import threading
+from contextlib import nullcontext
 from email.message import Message
 from hashlib import sha256
 from importlib.resources import files
@@ -19,6 +20,7 @@ from .enums import HttpMethod
 from .models import JsonObject
 from .models.api import JSON_ROWS, JSON_VALUE, OperationSpec, WebApiRequest
 from .models.responses import ConnectionStatus
+from .write_policy import needs_scoped_grant
 
 MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
 READ_POST_OPERATIONS = {"POST /Invoices/Search"}
@@ -36,15 +38,25 @@ class Client:
         self.auth = Auth(store, self.http)
         self._mutex = threading.RLock()
         self._opened = None
-        with store.locked():
-            settings = store.settings()
-            if settings.session_id is None:
-                settings.session_id = uuid4()
-                store.write("config.json", settings.model_dump(mode="json", exclude_none=True))
-        self.session_id = str(settings.session_id)
+        self.session_id = str(uuid4())
 
     def close(self):
         self.http.close()
+
+    def check_write_access(self, operation: str, administration: UUID) -> None:
+        if self.read_only:
+            raise SnelStartError("Writing is disabled in live read-only mode.")
+        settings = self.store.settings()
+        if settings.administration_id != administration:
+            raise SnelStartError("The selected administration differs from the write request.")
+        if operation in settings.approved_write_operations():
+            return
+        if settings.allow_writes and not needs_scoped_grant(operation):
+            return
+        raise SnelStartError(
+            "Writing is disabled for this operation in the selected administration. "
+            "Grant it locally with 'snelstart-mcp writes grant'."
+        )
 
     def status(self) -> dict:
         settings = self.store.settings()
@@ -238,7 +250,7 @@ class Client:
             return administrations
         if entry.path.startswith("/Administrations/"):
             raise SnelStartError("Use snelstart_select_administration to select an administration.")
-        with self._mutex:
+        with self._mutex, nullcontext() if entry.read_only else self.store.locked():
             settings = self.store.settings()
             audit_call = self.store.audit_call.get()
             if (
@@ -249,15 +261,10 @@ class Client:
                     "The selected administration changed during this tool call. "
                     "Check the active administration before retrying."
                 )
-            if (
-                not entry.read_only
-                and not settings.allow_writes
-                and command.operation not in settings.approved_write_operations()
-            ):
-                raise SnelStartError(
-                    "Writing is disabled for this operation in the selected administration. "
-                    "Grant it locally with 'snelstart-mcp writes grant'."
-                )
+            if not entry.read_only:
+                if settings.administration_id is None:
+                    raise SnelStartError("Select the administration before attempting a write.")
+                self.check_write_access(command.operation, settings.administration_id)
             unknown = set(command.parameters or {}) - set(entry.query_parameters)
             if unknown:
                 raise SnelStartError("Unknown query parameter. Use snelstart_list_operations.")

@@ -197,7 +197,7 @@ def test_cli_doctor_prefers_text_in_the_terminal_and_accepts_json_override(
     assert "Audit log" in output
     assert "Chrome sign-in" in output
     assert "Local backups (0)" in output
-    assert "Global · all eligible operations" in output
+    assert "Global · standard operations" in output
     assert "Selected [bold] fixture  · Selected" in output
     assert OTHER in output and "Administrations (2)" in output
     assert "2026" in output and "1770000000" not in output
@@ -240,4 +240,5 @@ def test_cli_setup_does_not_print_credential(command, monkeypatch):
     output = run("setup")
     assert output["automatic_login"]
     assert "test-private" not in json.dumps(output)
-    assert (profile / "credentials.json").stat().st_mode & 0o777 == 0o600
+    assert (profile / ".keyring-credentials.json").stat().st_mode & 0o777 == 0o600
+    assert not (profile / "credentials.json").exists()

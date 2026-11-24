@@ -689,6 +689,7 @@ def test_audit_records_outcomes_without_tool_arguments_or_response_payload(sessi
             "snelstart_write",
             {
                 "operation": "POST /MemoriaalBoekingen/Create",
+                "administration_id": ADMIN,
                 "payload": {"password": "PRIVATE-PASSWORD"},
             },
         )
@@ -825,7 +826,7 @@ def test_connection_tools_select_only_an_accessible_administration(session):
         ("read", {"operation": "POST /MemoriaalBoekingen/Create"}, "Unknown read operation"),
         (
             "write",
-            {"operation": "GET /Administrations/All", "payload": {}},
+            {"operation": "GET /Administrations/All", "payload": {}, "administration_id": ADMIN},
             "Unknown write operation",
         ),
         ("download_document", {}, "exactly one"),
@@ -915,7 +916,9 @@ def test_invalid_config_flag_cannot_enable_writes(session):
     assert not requests
 
 
-def test_local_write_permission_is_limited_to_one_operation_and_administration(session):
+def test_local_write_permission_is_limited_to_one_operation_and_administration(
+    session, monkeypatch
+):
     client, requests, replies = session
     operation = "POST /MemoriaalBoekingen/Create"
     client.store.write(
@@ -923,7 +926,8 @@ def test_local_write_permission_is_limited_to_one_operation_and_administration(s
     )
     replies["/MemoriaalBoekingen/Create"] = {"fixture": True}
     payload = {"description": "synthetic request"}
-    args = {"operation": operation, "payload": payload}
+    args = {"operation": operation, "payload": payload, "administration_id": ADMIN}
+    monkeypatch.setattr("snelstart_mcp.tools_connection.require_approval", lambda *_: None)
     assert call(client, "snelstart_write", args) == {"data": {"fixture": True}}
     assert json.loads(requests[-1].content) == payload
     assert [request.url.path for request in requests] == [
@@ -939,7 +943,7 @@ def test_local_write_permission_is_limited_to_one_operation_and_administration(s
         "config.json", {"administration_id": other, "write_permissions": {ADMIN: [operation]}}
     )
     assert call(client, "snelstart_status", {})["approved_write_operations"] == []
-    with pytest.raises(ToolError, match="Writing is disabled"):
+    with pytest.raises(ToolError, match="differs from the write request"):
         call(client, "snelstart_write", args)
     assert not requests
 
@@ -954,7 +958,11 @@ def test_malformed_write_permissions_cannot_enable_writes(session, permissions):
         call(
             client,
             "snelstart_write",
-            {"operation": "POST /MemoriaalBoekingen/Create", "payload": {}},
+            {
+                "operation": "POST /MemoriaalBoekingen/Create",
+                "payload": {},
+                "administration_id": ADMIN,
+            },
         )
     assert not requests
 

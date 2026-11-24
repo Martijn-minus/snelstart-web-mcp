@@ -38,6 +38,13 @@ LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
 PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
+ATTACHMENT_OPERATIONS = frozenset(
+    {
+        PURCHASE_ATTACHMENTS,
+        "GET /KasBankBoeking/GetAttachments",
+        "GET /MemoriaalBoekingen/GetAttachments",
+    }
+)
 
 
 def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonObject:

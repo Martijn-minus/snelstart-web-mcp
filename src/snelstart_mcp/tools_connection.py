@@ -1,7 +1,9 @@
 from mcp.types import ToolAnnotations
 
+from .approval import require_approval
 from .client import Client, catalog
 from .config import SnelStartError
+from .models.approval import WriteIntent
 from .models.requests import (
     AdministrationRequest,
     OperationListRequest,
@@ -17,6 +19,7 @@ from .models.responses import (
 )
 from .models.update import UpdateCheckResponse
 from .tooling import READ, WRITE, Register
+from .tools_bookkeeping import ATTACHMENT_OPERATIONS, attachment_metadata
 from .updater import UpdateChecker
 
 
@@ -66,16 +69,33 @@ def register_connection_tools(
         entry = catalog().get(request.operation)
         if not entry or not entry["read_only"]:
             raise SnelStartError("Unknown read operation. Use snelstart_list_operations.")
-        return JsonResponse(
-            data=client.request(request.operation, request.parameters, request.filters)
-        )
+        result = client.request(request.operation, request.parameters, request.filters)
+        if request.operation in ATTACHMENT_OPERATIONS:
+            result = attachment_metadata(result)
+        return JsonResponse(data=result)
 
     @tool(annotations=WRITE)
     def snelstart_write(request: WriteOperationRequest) -> JsonResponse:
         """Call a catalog mutation when writes are locally enabled and explicitly requested. Verify the accounting record after the call."""
         entry = catalog().get(request.operation)
-        if not entry or entry["read_only"]:
+        if not entry or entry["read_only"] or entry["path"].startswith("/Administrations/"):
             raise SnelStartError("Unknown write operation. Use snelstart_list_operations.")
+        client.check_write_access(request.operation, request.administration_id)
+        require_approval(
+            client.store,
+            WriteIntent(
+                tool="snelstart_write",
+                operation=request.operation,
+                administration_id=request.administration_id,
+                details={"parameters": request.parameters, "payload": request.payload},
+            ),
+            request.approval_id,
+        )
         return JsonResponse(
-            data=client.request(request.operation, request.parameters, request.payload)
+            data=client.request(
+                request.operation,
+                request.parameters,
+                request.payload,
+                expected_administration=str(request.administration_id),
+            )
         )

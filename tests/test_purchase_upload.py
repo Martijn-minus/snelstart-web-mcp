@@ -72,6 +72,7 @@ def workflow(tmp_path, monkeypatch):
             pass
 
     monkeypatch.setattr(purchase_upload, "HTTPSConnection", Storage)
+    monkeypatch.setattr(purchase_upload, "require_approval", lambda *_: None)
     with httpx.Client(transport=httpx.MockTransport(handle)) as http:
         client = Client(profile, http)
         monkeypatch.setattr(client.auth, "access_token", lambda *a, **kw: "api-fixture-token")

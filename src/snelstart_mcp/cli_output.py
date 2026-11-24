@@ -154,7 +154,7 @@ def show_update(console: Console, update: ToolUpdateResponse) -> None:
 
 def _write_scope(global_access: bool, scoped_access: bool) -> Text:
     if global_access:
-        return Text("Global · all eligible operations", style="bold yellow")
+        return Text("Global · standard operations", style="bold yellow")
     if scoped_access:
         return Text("Scoped · approved operations only", style="yellow")
     return Text("Read-only", style="green")

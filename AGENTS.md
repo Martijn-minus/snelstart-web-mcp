@@ -25,7 +25,7 @@ Use ISO dates (`YYYY-MM-DD`). Read all relevant pages before reporting totals. V
 
 ## Handle requested writes
 
-Check the target administration, record and write permissions before acting. A global or scoped grant makes a mutation technically possible. The user still needs to request the specific change. Verify the result through a read or processing-status call. If the outcome is uncertain, check SnelStart and the local audit log before retrying.
+Check the target administration, record and write permissions first. Include the target UUID in every write request. If the MCP returns an approval ID, ask the user to review it with `snelstart-mcp writes approve ID` in their own terminal. The assistant must not run the confirmation command or enter the confirmation value. After the user confirms, retry exactly the same request with the returned `approval_id`. Verify the result through a read or processing-status call. If the outcome is uncertain, check SnelStart and the local audit log before retrying.
 
 ## Test changes
 
