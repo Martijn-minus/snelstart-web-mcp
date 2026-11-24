@@ -1,0 +1,2545 @@
+{
+  "DELETE /Administrations/Delete": {
+    "method": "DELETE",
+    "path": "/Administrations/Delete",
+    "query_parameters": [
+      "administrationId"
+    ],
+    "required_parameters": [
+      "administrationId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Articles/Delete": {
+    "method": "DELETE",
+    "path": "/Articles/Delete",
+    "query_parameters": [
+      "articleId"
+    ],
+    "required_parameters": [
+      "articleId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Attachments/RemoveAttachment": {
+    "method": "DELETE",
+    "path": "/Attachments/RemoveAttachment",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "DELETE /BtwAangiftes/DeleteBtwAangifte": {
+    "method": "DELETE",
+    "path": "/BtwAangiftes/DeleteBtwAangifte",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "DELETE /Customers/Delete": {
+    "method": "DELETE",
+    "path": "/Customers/Delete",
+    "query_parameters": [
+      "customerId"
+    ],
+    "required_parameters": [
+      "customerId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Invoices/Delete": {
+    "method": "DELETE",
+    "path": "/Invoices/Delete",
+    "query_parameters": [
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /KasBankBoeking/DeleteAttachment": {
+    "method": "DELETE",
+    "path": "/KasBankBoeking/DeleteAttachment",
+    "query_parameters": [
+      "attachmentIdentifier"
+    ],
+    "required_parameters": [
+      "attachmentIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /KasBankBoeking/DeleteKasBankBoeking": {
+    "method": "DELETE",
+    "path": "/KasBankBoeking/DeleteKasBankBoeking",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /MemoriaalBoekingen/Delete": {
+    "method": "DELETE",
+    "path": "/MemoriaalBoekingen/Delete",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /MemoriaalBoekingen/DeleteAttachment": {
+    "method": "DELETE",
+    "path": "/MemoriaalBoekingen/DeleteAttachment",
+    "query_parameters": [
+      "attachmentIdentifier"
+    ],
+    "required_parameters": [
+      "attachmentIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Purchases/DeleteInkoop": {
+    "method": "DELETE",
+    "path": "/Purchases/DeleteInkoop",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Purchases/DeleteInkoopBetaling": {
+    "method": "DELETE",
+    "path": "/Purchases/DeleteInkoopBetaling",
+    "query_parameters": [
+      "betalingIdentifier"
+    ],
+    "required_parameters": [
+      "betalingIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Purchases/DeleteInkoopboeking": {
+    "method": "DELETE",
+    "path": "/Purchases/DeleteInkoopboeking",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "DELETE /Suppliers/Delete": {
+    "method": "DELETE",
+    "path": "/Suppliers/Delete",
+    "query_parameters": [
+      "supplierId"
+    ],
+    "required_parameters": [
+      "supplierId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Administrations/All": {
+    "method": "GET",
+    "path": "/Administrations/All",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Administrations/GetAdministrationAccountantCode": {
+    "method": "GET",
+    "path": "/Administrations/GetAdministrationAccountantCode",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Administrations/GetPointInTimeRestoreOptions": {
+    "method": "GET",
+    "path": "/Administrations/GetPointInTimeRestoreOptions",
+    "query_parameters": [
+      "administrationIdentifier"
+    ],
+    "required_parameters": [
+      "administrationIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Administrations/IsOwnAdministration": {
+    "method": "GET",
+    "path": "/Administrations/IsOwnAdministration",
+    "query_parameters": [
+      "administrationIdentifier"
+    ],
+    "required_parameters": [
+      "administrationIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Administrations/IsRgsReady": {
+    "method": "GET",
+    "path": "/Administrations/IsRgsReady",
+    "query_parameters": [
+      "administrationIdentifier"
+    ],
+    "required_parameters": [
+      "administrationIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Administrations/SearchAdministrationsByName": {
+    "method": "GET",
+    "path": "/Administrations/SearchAdministrationsByName",
+    "query_parameters": [
+      "searchTerm"
+    ],
+    "required_parameters": [
+      "searchTerm"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/Get": {
+    "method": "GET",
+    "path": "/Articles/Get",
+    "query_parameters": [
+      "id"
+    ],
+    "required_parameters": [
+      "id"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Articles/GetArticleForCustomer": {
+    "method": "GET",
+    "path": "/Articles/GetArticleForCustomer",
+    "query_parameters": [
+      "articleId",
+      "customerId",
+      "orderDate",
+      "factuurDate"
+    ],
+    "required_parameters": [
+      "articleId",
+      "customerId",
+      "orderDate"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/GetArticleWithUsageDetails": {
+    "method": "GET",
+    "path": "/Articles/GetArticleWithUsageDetails",
+    "query_parameters": [
+      "id"
+    ],
+    "required_parameters": [
+      "id"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/GetArtikelOmzetgroepen": {
+    "method": "GET",
+    "path": "/Articles/GetArtikelOmzetgroepen",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/GetNextArticleCode": {
+    "method": "GET",
+    "path": "/Articles/GetNextArticleCode",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/HasOnlyDefaultArticle": {
+    "method": "GET",
+    "path": "/Articles/HasOnlyDefaultArticle",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/IsAvailableArticlecode": {
+    "method": "GET",
+    "path": "/Articles/IsAvailableArticlecode",
+    "query_parameters": [
+      "articleCode"
+    ],
+    "required_parameters": [
+      "articleCode"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Articles/Search": {
+    "method": "GET",
+    "path": "/Articles/Search",
+    "query_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Articles/SearchMinimal": {
+    "method": "GET",
+    "path": "/Articles/SearchMinimal",
+    "query_parameters": [
+      "searchTerm"
+    ],
+    "required_parameters": [
+      "searchTerm"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Attachments/GetAttachment": {
+    "method": "GET",
+    "path": "/Attachments/GetAttachment",
+    "query_parameters": [
+      "attachmentIdentifier"
+    ],
+    "required_parameters": [
+      "attachmentIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetAttachmentUploadUri": {
+    "method": "GET",
+    "path": "/Attachments/GetAttachmentUploadUri",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetAttachmentUploadUriNew": {
+    "method": "GET",
+    "path": "/Attachments/GetAttachmentUploadUriNew",
+    "query_parameters": [
+      "filename"
+    ],
+    "required_parameters": [
+      "filename"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetBulkAttachmentDownloadUrl": {
+    "method": "GET",
+    "path": "/Attachments/GetBulkAttachmentDownloadUrl",
+    "query_parameters": [
+      "operationIdentifier"
+    ],
+    "required_parameters": [
+      "operationIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetContentByIdentifier": {
+    "method": "GET",
+    "path": "/Attachments/GetContentByIdentifier",
+    "query_parameters": [
+      "attachmentIdentifier",
+      "fileNameForApp"
+    ],
+    "required_parameters": [
+      "attachmentIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true,
+    "binary": true
+  },
+  "GET /Attachments/GetGebruikersDocumentUsage": {
+    "method": "GET",
+    "path": "/Attachments/GetGebruikersDocumentUsage",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetPdfAttachmentPreviewUrl": {
+    "method": "GET",
+    "path": "/Attachments/GetPdfAttachmentPreviewUrl",
+    "query_parameters": [
+      "attachmentId"
+    ],
+    "required_parameters": [
+      "attachmentId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/GetPdfAttachmentPreviewUrlByIdentifier": {
+    "method": "GET",
+    "path": "/Attachments/GetPdfAttachmentPreviewUrlByIdentifier",
+    "query_parameters": [
+      "attachmentIdentifier"
+    ],
+    "required_parameters": [
+      "attachmentIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Attachments/SearchGebruikersDocuments": {
+    "method": "GET",
+    "path": "/Attachments/SearchGebruikersDocuments",
+    "query_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataField",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataField",
+      "sortDescending"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /BalansBoekingen/GetDetails": {
+    "method": "GET",
+    "path": "/BalansBoekingen/GetDetails",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BalansBoekingen/Search": {
+    "method": "GET",
+    "path": "/BalansBoekingen/Search",
+    "query_parameters": [
+      "grootboekIdentifier",
+      "dateFrom",
+      "dateUntil",
+      "searchTerm",
+      "skip",
+      "top",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "grootboekIdentifier",
+      "dateFrom",
+      "dateUntil",
+      "searchTerm",
+      "skip",
+      "top"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BoekhoudingSettings/Get": {
+    "method": "GET",
+    "path": "/BoekhoudingSettings/Get",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BoekhoudingSettings/HasBeenTurnedOn": {
+    "method": "GET",
+    "path": "/BoekhoudingSettings/HasBeenTurnedOn",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /BtwAangiftes/Get": {
+    "method": "GET",
+    "path": "/BtwAangiftes/Get",
+    "query_parameters": [
+      "id"
+    ],
+    "required_parameters": [
+      "id"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetAll": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetAll",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetAllMinimal": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetAllMinimal",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetBtwAangiftePeriodeSoort": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetBtwAangiftePeriodeSoort",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /BtwAangiftes/GetBtwAangifteSettings": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetBtwAangifteSettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetBtwAangiftesData": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetBtwAangiftesData",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetByPublicIdentifier": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetByPublicIdentifier",
+    "query_parameters": [
+      "publicIentifier"
+    ],
+    "required_parameters": [
+      "publicIentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetGrootboekenMetGewijzigdeFunctie": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetGrootboekenMetGewijzigdeFunctie",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /BtwAangiftes/GetHasKleineOndernemersregeling": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetHasKleineOndernemersregeling",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /BtwAangiftes/GetJarenVoorJaarSuppletie": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetJarenVoorJaarSuppletie",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /BtwAangiftes/GetSendBtwAangiftenWithStatusFoutOrHerberekend": {
+    "method": "GET",
+    "path": "/BtwAangiftes/GetSendBtwAangiftenWithStatusFoutOrHerberekend",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /CompanySettings/GetCompanySettings": {
+    "method": "GET",
+    "path": "/CompanySettings/GetCompanySettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Customers/Get": {
+    "method": "GET",
+    "path": "/Customers/Get",
+    "query_parameters": [
+      "relationCode"
+    ],
+    "required_parameters": [
+      "relationCode"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Customers/GetCustomerWithUsageDetails": {
+    "method": "GET",
+    "path": "/Customers/GetCustomerWithUsageDetails",
+    "query_parameters": [
+      "relationCode"
+    ],
+    "required_parameters": [
+      "relationCode"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Customers/IsAvailableCode": {
+    "method": "GET",
+    "path": "/Customers/IsAvailableCode",
+    "query_parameters": [
+      "customerCode"
+    ],
+    "required_parameters": [
+      "customerCode"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Customers/Search": {
+    "method": "GET",
+    "path": "/Customers/Search",
+    "query_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Customers/SearchMinimal": {
+    "method": "GET",
+    "path": "/Customers/SearchMinimal",
+    "query_parameters": [
+      "searchTerm"
+    ],
+    "required_parameters": [
+      "searchTerm"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/FindVoorkeur": {
+    "method": "GET",
+    "path": "/Grootboek/FindVoorkeur",
+    "query_parameters": [
+      "searchTerm",
+      "supplierId",
+      "boekdatum",
+      "splitByVat",
+      "grootboekFuncties"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "supplierId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetAllMinimal": {
+    "method": "GET",
+    "path": "/Grootboek/GetAllMinimal",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetBalansBoeking": {
+    "method": "GET",
+    "path": "/Grootboek/GetBalansBoeking",
+    "query_parameters": [
+      "hoofdboekingPublicIdentifier"
+    ],
+    "required_parameters": [
+      "hoofdboekingPublicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetBalansResultaat": {
+    "method": "GET",
+    "path": "/Grootboek/GetBalansResultaat",
+    "query_parameters": [
+      "datumTotEnMet"
+    ],
+    "required_parameters": [
+      "datumTotEnMet"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetBalansResultaatAndRubrieken": {
+    "method": "GET",
+    "path": "/Grootboek/GetBalansResultaatAndRubrieken",
+    "query_parameters": [
+      "datumTotEnMet"
+    ],
+    "required_parameters": [
+      "datumTotEnMet"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetDagboekBankGrootboeken": {
+    "method": "GET",
+    "path": "/Grootboek/GetDagboekBankGrootboeken",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetGrootboekByNumber": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekByNumber",
+    "query_parameters": [
+      "number"
+    ],
+    "required_parameters": [
+      "number"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekMutatie": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekMutatie",
+    "query_parameters": [
+      "grootboekMutatieIdentifier"
+    ],
+    "required_parameters": [
+      "grootboekMutatieIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekMutaties": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekMutaties",
+    "query_parameters": [
+      "grootboekIdentifier",
+      "skip",
+      "top",
+      "dateTo",
+      "searchTerm",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "grootboekIdentifier",
+      "skip",
+      "top",
+      "dateTo",
+      "searchTerm"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekRgsCodes": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekRgsCodes",
+    "query_parameters": [
+      "number",
+      "desciption"
+    ],
+    "required_parameters": [
+      "number",
+      "desciption"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetGrootboekSchemaValidityInfo": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekSchemaValidityInfo",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetGrootboekbyIdentifiers": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekbyIdentifiers",
+    "query_parameters": [
+      "identifiers"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekbyIdentifiersIncludingVat": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekbyIdentifiersIncludingVat",
+    "query_parameters": [
+      "boekdatum",
+      "identifiers"
+    ],
+    "required_parameters": [
+      "boekdatum"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekenForFunctie": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekenForFunctie",
+    "query_parameters": [
+      "grootboekFunctieIds"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetGrootboekenForRegisteringPayment": {
+    "method": "GET",
+    "path": "/Grootboek/GetGrootboekenForRegisteringPayment",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetMaxJournaalpostDatesForDagboekGrootboekIds": {
+    "method": "GET",
+    "path": "/Grootboek/GetMaxJournaalpostDatesForDagboekGrootboekIds",
+    "query_parameters": [
+      "dagboekGrootboekIds"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/GetMemoriaalAndBeginBalansDagboekenWithSaldo": {
+    "method": "GET",
+    "path": "/Grootboek/GetMemoriaalAndBeginBalansDagboekenWithSaldo",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Grootboek/GetNextGrootboekNumber": {
+    "method": "GET",
+    "path": "/Grootboek/GetNextGrootboekNumber",
+    "query_parameters": [
+      "startingNumber"
+    ],
+    "required_parameters": [
+      "startingNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/IsAvailableGrootboekNumber": {
+    "method": "GET",
+    "path": "/Grootboek/IsAvailableGrootboekNumber",
+    "query_parameters": [
+      "number"
+    ],
+    "required_parameters": [
+      "number"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/SearchWithVatPercentageDate": {
+    "method": "GET",
+    "path": "/Grootboek/SearchWithVatPercentageDate",
+    "query_parameters": [
+      "grootboekFunctieIds",
+      "searchTerm",
+      "splitByVat",
+      "vatPercentageDate",
+      "skip",
+      "rgsCodeFilter"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Grootboek/SearchWithVatPercentageDateOrderBy": {
+    "method": "GET",
+    "path": "/Grootboek/SearchWithVatPercentageDateOrderBy",
+    "query_parameters": [
+      "grootboekFunctieIds",
+      "searchTerm",
+      "splitByVat",
+      "vatPercentageDate",
+      "orderBy",
+      "skip",
+      "rgsCodeFilter",
+      "rekeningCode"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /IcpAangiftes/GetByPublicIdentifier": {
+    "method": "GET",
+    "path": "/IcpAangiftes/GetByPublicIdentifier",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /IcpAangiftes/GetIcpAangifteSettings": {
+    "method": "GET",
+    "path": "/IcpAangiftes/GetIcpAangifteSettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /IcpAangiftes/GetIcpAangiftes": {
+    "method": "GET",
+    "path": "/IcpAangiftes/GetIcpAangiftes",
+    "query_parameters": [
+      "skip",
+      "top"
+    ],
+    "required_parameters": [
+      "skip",
+      "top"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /IcpAangiftes/GetSendIcpAangiftenWithStatusFoutOrHerberekend": {
+    "method": "GET",
+    "path": "/IcpAangiftes/GetSendIcpAangiftenWithStatusFoutOrHerberekend",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/Get": {
+    "method": "GET",
+    "path": "/Invoices/Get",
+    "query_parameters": [
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Invoices/GetCopyOf": {
+    "method": "GET",
+    "path": "/Invoices/GetCopyOf",
+    "query_parameters": [
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/GetCreditOf": {
+    "method": "GET",
+    "path": "/Invoices/GetCreditOf",
+    "query_parameters": [
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/GetHerkomstData": {
+    "method": "GET",
+    "path": "/Invoices/GetHerkomstData",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/GetLastSendMethod": {
+    "method": "GET",
+    "path": "/Invoices/GetLastSendMethod",
+    "query_parameters": [
+      "customerId"
+    ],
+    "required_parameters": [
+      "customerId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/GetPdfByFactuurNummerId": {
+    "method": "GET",
+    "path": "/Invoices/GetPdfByFactuurNummerId",
+    "query_parameters": [
+      "factuurNummerId",
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "factuurNummerId"
+    ],
+    "json_body": false,
+    "read_only": true,
+    "binary": true
+  },
+  "GET /Invoices/GetVerkoopBoekingDetailsForExpandRow": {
+    "method": "GET",
+    "path": "/Invoices/GetVerkoopBoekingDetailsForExpandRow",
+    "query_parameters": [
+      "verkoopboekingIdentifier"
+    ],
+    "required_parameters": [
+      "verkoopboekingIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Invoices/GetVerkoopBoekingState": {
+    "method": "GET",
+    "path": "/Invoices/GetVerkoopBoekingState",
+    "query_parameters": [
+      "factuurnummer",
+      "factuurnummerId"
+    ],
+    "required_parameters": [
+      "factuurnummer",
+      "factuurnummerId"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Invoices/GetVerkoopVoorBijlageStatus": {
+    "method": "GET",
+    "path": "/Invoices/GetVerkoopVoorBijlageStatus",
+    "query_parameters": [
+      "instanceId"
+    ],
+    "required_parameters": [
+      "instanceId"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/HasAny": {
+    "method": "GET",
+    "path": "/Invoices/HasAny",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Invoices/IsInvoiceNumberInUse": {
+    "method": "GET",
+    "path": "/Invoices/IsInvoiceNumberInUse",
+    "query_parameters": [
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Jaarafsluiting/GetAllJaarafsluiting": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetAllJaarafsluiting",
+    "query_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "status",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "status"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetEindjaarsboekingen": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetEindjaarsboekingen",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetGrootboekSaldo": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetGrootboekSaldo",
+    "query_parameters": [
+      "jaar",
+      "grootboekPublicIdentifier"
+    ],
+    "required_parameters": [
+      "jaar",
+      "grootboekPublicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Jaarafsluiting/GetInstellingen": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetInstellingen",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetJaarafsluiting": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetJaarafsluiting",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Jaarafsluiting/GetOpenstaandeBoekingen": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetOpenstaandeBoekingen",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetOpenstaandeInkoopfacturen": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetOpenstaandeInkoopfacturen",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetOpenstaandeVerkoopfacturen": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetOpenstaandeVerkoopfacturen",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Jaarafsluiting/GetResultaatWegboekenSuggesties": {
+    "method": "GET",
+    "path": "/Jaarafsluiting/GetResultaatWegboekenSuggesties",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /KasBankBoeking/GetAttachments": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetAttachments",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/GetKasBankBoekingen": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetKasBankBoekingen",
+    "query_parameters": [
+      "grootboekIdentifier",
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "vanaf",
+      "totEnMet",
+      "orderBy",
+      "orderByDescending"
+    ],
+    "required_parameters": [
+      "grootboekIdentifier",
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "vanaf",
+      "totEnMet",
+      "orderBy"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/GetKasBankBoekingenWithTimespan": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetKasBankBoekingenWithTimespan",
+    "query_parameters": [
+      "grootboekIdentifier",
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "vanaf",
+      "totEnMet"
+    ],
+    "required_parameters": [
+      "grootboekIdentifier",
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "vanaf",
+      "totEnMet"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/GetKasBankboekingDetails": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetKasBankboekingDetails",
+    "query_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "required_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/GetKasEnBankDagboeken": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetKasEnBankDagboeken",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/GetKasEnBankDagboekenWithBankSaldoInfo": {
+    "method": "GET",
+    "path": "/KasBankBoeking/GetKasEnBankDagboekenWithBankSaldoInfo",
+    "query_parameters": [
+      "bankrekeningId"
+    ],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /KasBankBoeking/SearchInvoices": {
+    "method": "GET",
+    "path": "/KasBankBoeking/SearchInvoices",
+    "query_parameters": [
+      "searchTerm",
+      "isTransactionDebit",
+      "saldoFilterViewModel",
+      "minFactuurBedrag"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "isTransactionDebit"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /MemoriaalBoekingen/GetAttachments": {
+    "method": "GET",
+    "path": "/MemoriaalBoekingen/GetAttachments",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /MemoriaalBoekingen/GetDetails": {
+    "method": "GET",
+    "path": "/MemoriaalBoekingen/GetDetails",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /MemoriaalBoekingen/Search": {
+    "method": "GET",
+    "path": "/MemoriaalBoekingen/Search",
+    "query_parameters": [
+      "grootboekIdentifier",
+      "dateFrom",
+      "dateUntil",
+      "searchTerm",
+      "mustBeChecked",
+      "skip",
+      "top",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "grootboekIdentifier",
+      "dateFrom",
+      "dateUntil",
+      "searchTerm",
+      "mustBeChecked",
+      "skip",
+      "top"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/Get": {
+    "method": "GET",
+    "path": "/Purchases/Get",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetAttachmentsWithIdentifier": {
+    "method": "GET",
+    "path": "/Purchases/GetAttachmentsWithIdentifier",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetByFactuurNummerIdentifier": {
+    "method": "GET",
+    "path": "/Purchases/GetByFactuurNummerIdentifier",
+    "query_parameters": [
+      "factuurNummerIdentifier"
+    ],
+    "required_parameters": [
+      "factuurNummerIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetGemarkeerdeInkopenCount": {
+    "method": "GET",
+    "path": "/Purchases/GetGemarkeerdeInkopenCount",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetGemarkeerdeInkopenOfVraagpostenCount": {
+    "method": "GET",
+    "path": "/Purchases/GetGemarkeerdeInkopenOfVraagpostenCount",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetHealth": {
+    "method": "GET",
+    "path": "/Purchases/GetHealth",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetHerkomstData": {
+    "method": "GET",
+    "path": "/Purchases/GetHerkomstData",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetHerkomstDataByFactuurnummer": {
+    "method": "GET",
+    "path": "/Purchases/GetHerkomstDataByFactuurnummer",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetInkoopBetalingen": {
+    "method": "GET",
+    "path": "/Purchases/GetInkoopBetalingen",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetInkoopVoorBijlageStatus": {
+    "method": "GET",
+    "path": "/Purchases/GetInkoopVoorBijlageStatus",
+    "query_parameters": [
+      "instanceId"
+    ],
+    "required_parameters": [
+      "instanceId"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetInkoopregels": {
+    "method": "GET",
+    "path": "/Purchases/GetInkoopregels",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Purchases/GetInkopenSearchTermsSuggesties": {
+    "method": "GET",
+    "path": "/Purchases/GetInkopenSearchTermsSuggesties",
+    "query_parameters": [
+      "startDate",
+      "dateUntil"
+    ],
+    "required_parameters": [
+      "startDate",
+      "dateUntil"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetInkopenSuggesties": {
+    "method": "GET",
+    "path": "/Purchases/GetInkopenSuggesties",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetNextUnfinishedPurchase": {
+    "method": "GET",
+    "path": "/Purchases/GetNextUnfinishedPurchase",
+    "query_parameters": [
+      "identifier",
+      "vanaf"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetTeBewerkenInkoop": {
+    "method": "GET",
+    "path": "/Purchases/GetTeBewerkenInkoop",
+    "query_parameters": [
+      "identifier"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetTeControlerenInkoop": {
+    "method": "GET",
+    "path": "/Purchases/GetTeControlerenInkoop",
+    "query_parameters": [
+      "identifier"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/GetUnfinishedPurchasesTaskInfo": {
+    "method": "GET",
+    "path": "/Purchases/GetUnfinishedPurchasesTaskInfo",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/HasAny": {
+    "method": "GET",
+    "path": "/Purchases/HasAny",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/IsPurchaseInvoiceNumberInUse": {
+    "method": "GET",
+    "path": "/Purchases/IsPurchaseInvoiceNumberInUse",
+    "query_parameters": [
+      "supplierId",
+      "invoiceNumber"
+    ],
+    "required_parameters": [
+      "supplierId",
+      "invoiceNumber"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Purchases/SearchAllInkopen": {
+    "method": "GET",
+    "path": "/Purchases/SearchAllInkopen",
+    "query_parameters": [
+      "searchTerm",
+      "paymentStatus",
+      "onlyTeControlerenInkopen",
+      "skip",
+      "take",
+      "sortDataField",
+      "sortDescending",
+      "startDate",
+      "dateUntil"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "paymentStatus",
+      "onlyTeControlerenInkopen",
+      "skip",
+      "take",
+      "sortDataField",
+      "sortDescending",
+      "startDate",
+      "dateUntil"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Settings/Get": {
+    "method": "GET",
+    "path": "/Settings/Get",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Settings/GetAdministrationState": {
+    "method": "GET",
+    "path": "/Settings/GetAdministrationState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Settings/GetAdministrationWithoutAccountCodeState": {
+    "method": "GET",
+    "path": "/Settings/GetAdministrationWithoutAccountCodeState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Settings/GetUserState": {
+    "method": "GET",
+    "path": "/Settings/GetUserState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Suppliers/Get": {
+    "method": "GET",
+    "path": "/Suppliers/Get",
+    "query_parameters": [
+      "relationCode"
+    ],
+    "required_parameters": [
+      "relationCode"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Suppliers/GetSupplierWithUsageDetails": {
+    "method": "GET",
+    "path": "/Suppliers/GetSupplierWithUsageDetails",
+    "query_parameters": [
+      "relationCode"
+    ],
+    "required_parameters": [
+      "relationCode"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Suppliers/IsAvailableCode": {
+    "method": "GET",
+    "path": "/Suppliers/IsAvailableCode",
+    "query_parameters": [
+      "supplierCode"
+    ],
+    "required_parameters": [
+      "supplierCode"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "GET /Suppliers/Search": {
+    "method": "GET",
+    "path": "/Suppliers/Search",
+    "query_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Suppliers/SearchMinimal": {
+    "method": "GET",
+    "path": "/Suppliers/SearchMinimal",
+    "query_parameters": [
+      "searchTerm"
+    ],
+    "required_parameters": [
+      "searchTerm"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "PATCH /Settings/SetAdministrationState": {
+    "method": "PATCH",
+    "path": "/Settings/SetAdministrationState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PATCH /Settings/SetAdministrationWithoutAccountCodeState": {
+    "method": "PATCH",
+    "path": "/Settings/SetAdministrationWithoutAccountCodeState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PATCH /Settings/SetUserState": {
+    "method": "PATCH",
+    "path": "/Settings/SetUserState",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Administrations/AddAdministration": {
+    "method": "POST",
+    "path": "/Administrations/AddAdministration",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "GET /Reporting/FinancieelResultaat": {
+    "method": "GET",
+    "path": "/Reporting/FinancieelResultaat",
+    "query_parameters": ["startDate", "endDate"],
+    "required_parameters": ["startDate", "endDate"],
+    "json_body": false,
+    "read_only": true
+  },
+  "POST /Administrations/Open": {
+    "method": "POST",
+    "path": "/Administrations/Open",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Administrations/Rename": {
+    "method": "POST",
+    "path": "/Administrations/Rename",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Administrations/StartPointInTimeRestore": {
+    "method": "POST",
+    "path": "/Administrations/StartPointInTimeRestore",
+    "query_parameters": [
+      "administrationIdentifier",
+      "pointInTime"
+    ],
+    "required_parameters": [
+      "administrationIdentifier",
+      "pointInTime"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /Articles/Create": {
+    "method": "POST",
+    "path": "/Articles/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Articles/Update": {
+    "method": "POST",
+    "path": "/Articles/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Attachments/GetImageAttachmentUrlFromPdf": {
+    "method": "POST",
+    "path": "/Attachments/GetImageAttachmentUrlFromPdf",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Attachments/RequestBulkAttachment": {
+    "method": "POST",
+    "path": "/Attachments/RequestBulkAttachment",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Attachments/SaveAttachmentWithThumbnail": {
+    "method": "POST",
+    "path": "/Attachments/SaveAttachmentWithThumbnail",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Attachments/SaveGebruikersDocument": {
+    "method": "POST",
+    "path": "/Attachments/SaveGebruikersDocument",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Attachments/SaveSaleTemplateImage": {
+    "method": "POST",
+    "path": "/Attachments/SaveSaleTemplateImage",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BalansBoekingen/Create": {
+    "method": "POST",
+    "path": "/BalansBoekingen/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BalansBoekingen/Update": {
+    "method": "POST",
+    "path": "/BalansBoekingen/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BoekhoudingSettings/ToggleSetting": {
+    "method": "POST",
+    "path": "/BoekhoudingSettings/ToggleSetting",
+    "query_parameters": [
+      "on"
+    ],
+    "required_parameters": [
+      "on"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/CalculateAndSaveJaarSuppletie": {
+    "method": "POST",
+    "path": "/BtwAangiftes/CalculateAndSaveJaarSuppletie",
+    "query_parameters": [
+      "boekjaar"
+    ],
+    "required_parameters": [
+      "boekjaar"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/DienInBuitenSnelStartOm": {
+    "method": "POST",
+    "path": "/BtwAangiftes/DienInBuitenSnelStartOm",
+    "query_parameters": [
+      "toGeaccepteerd"
+    ],
+    "required_parameters": [
+      "toGeaccepteerd"
+    ],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/GetIsAangifteGeblokkeerdDoorGlobalisatie": {
+    "method": "POST",
+    "path": "/BtwAangiftes/GetIsAangifteGeblokkeerdDoorGlobalisatie",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/Herberekenen": {
+    "method": "POST",
+    "path": "/BtwAangiftes/Herberekenen",
+    "query_parameters": [
+      "identifier"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/Post": {
+    "method": "POST",
+    "path": "/BtwAangiftes/Post",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/SaveBtwAangiftePeriodeSoort": {
+    "method": "POST",
+    "path": "/BtwAangiftes/SaveBtwAangiftePeriodeSoort",
+    "query_parameters": [
+      "btwAangiftePeriodeSoort"
+    ],
+    "required_parameters": [
+      "btwAangiftePeriodeSoort"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/SaveBtwAangifteSettings": {
+    "method": "POST",
+    "path": "/BtwAangiftes/SaveBtwAangifteSettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/Send": {
+    "method": "POST",
+    "path": "/BtwAangiftes/Send",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /BtwAangiftes/UpdateToGeaccepteerdExtern": {
+    "method": "POST",
+    "path": "/BtwAangiftes/UpdateToGeaccepteerdExtern",
+    "query_parameters": [
+      "toGeaccepteerd"
+    ],
+    "required_parameters": [
+      "toGeaccepteerd"
+    ],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/Create": {
+    "method": "POST",
+    "path": "/Customers/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/Update": {
+    "method": "POST",
+    "path": "/Customers/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/UpdateInvoiceMailAddressCc": {
+    "method": "POST",
+    "path": "/Customers/UpdateInvoiceMailAddressCc",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/UpdateInvoiceMailAddressTo": {
+    "method": "POST",
+    "path": "/Customers/UpdateInvoiceMailAddressTo",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/UpdateQuotationMailAddress": {
+    "method": "POST",
+    "path": "/Customers/UpdateQuotationMailAddress",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Customers/UpdateQuotationMailAddressCc": {
+    "method": "POST",
+    "path": "/Customers/UpdateQuotationMailAddressCc",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Grootboek/Create": {
+    "method": "POST",
+    "path": "/Grootboek/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /IcpAangiftes/SaveIcpAangifteSettings": {
+    "method": "POST",
+    "path": "/IcpAangiftes/SaveIcpAangifteSettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /IcpAangiftes/Send": {
+    "method": "POST",
+    "path": "/IcpAangiftes/Send",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /IcpAangiftes/UpdateToGeaccepteerdExtern": {
+    "method": "POST",
+    "path": "/IcpAangiftes/UpdateToGeaccepteerdExtern",
+    "query_parameters": [
+      "toGeaccepteerd"
+    ],
+    "required_parameters": [
+      "toGeaccepteerd"
+    ],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/CalculateInvoice": {
+    "method": "POST",
+    "path": "/Invoices/CalculateInvoice",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/CreateVerkoopVoorBijlagen": {
+    "method": "POST",
+    "path": "/Invoices/CreateVerkoopVoorBijlagen",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/HtmlPreview": {
+    "method": "POST",
+    "path": "/Invoices/HtmlPreview",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/PdfPreview": {
+    "method": "POST",
+    "path": "/Invoices/PdfPreview",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/RedetermineVat": {
+    "method": "POST",
+    "path": "/Invoices/RedetermineVat",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/RegisterPaymentWithIdentifier": {
+    "method": "POST",
+    "path": "/Invoices/RegisterPaymentWithIdentifier",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/ResendInvoice": {
+    "method": "POST",
+    "path": "/Invoices/ResendInvoice",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SaveOnly": {
+    "method": "POST",
+    "path": "/Invoices/SaveOnly",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SaveOnlyWithPdfPaymentLink": {
+    "method": "POST",
+    "path": "/Invoices/SaveOnlyWithPdfPaymentLink",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/Search": {
+    "method": "POST",
+    "path": "/Invoices/Search",
+    "query_parameters": [
+      "statusFilter",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "statusFilter",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": true,
+    "read_only": true
+  },
+  "POST /Invoices/Send": {
+    "method": "POST",
+    "path": "/Invoices/Send",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SendInvoiceReminder": {
+    "method": "POST",
+    "path": "/Invoices/SendInvoiceReminder",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SendScheduled": {
+    "method": "POST",
+    "path": "/Invoices/SendScheduled",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SendToPeppol": {
+    "method": "POST",
+    "path": "/Invoices/SendToPeppol",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SendToPeppolWithPdfPaymentLink": {
+    "method": "POST",
+    "path": "/Invoices/SendToPeppolWithPdfPaymentLink",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/SendWithPdfPaymentLink": {
+    "method": "POST",
+    "path": "/Invoices/SendWithPdfPaymentLink",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/UnregisterPaymentByIdentifier": {
+    "method": "POST",
+    "path": "/Invoices/UnregisterPaymentByIdentifier",
+    "query_parameters": [
+      "identifier"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /Invoices/Update": {
+    "method": "POST",
+    "path": "/Invoices/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/UpdateAndSend": {
+    "method": "POST",
+    "path": "/Invoices/UpdateAndSend",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/UpdateAndSendWithPdfPaymentLink": {
+    "method": "POST",
+    "path": "/Invoices/UpdateAndSendWithPdfPaymentLink",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Invoices/UpdateWithPdfPaymentLink": {
+    "method": "POST",
+    "path": "/Invoices/UpdateWithPdfPaymentLink",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Jaarafsluiting/CreateJaarafsluiting": {
+    "method": "POST",
+    "path": "/Jaarafsluiting/CreateJaarafsluiting",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Jaarafsluiting/SetBoekjaarAfsluiten": {
+    "method": "POST",
+    "path": "/Jaarafsluiting/SetBoekjaarAfsluiten",
+    "query_parameters": [
+      "jaar"
+    ],
+    "required_parameters": [
+      "jaar"
+    ],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Jaarafsluiting/SetInstellingen": {
+    "method": "POST",
+    "path": "/Jaarafsluiting/SetInstellingen",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/AddAttachment": {
+    "method": "POST",
+    "path": "/KasBankBoeking/AddAttachment",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/AddMarking": {
+    "method": "POST",
+    "path": "/KasBankBoeking/AddMarking",
+    "query_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "required_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/CreateKasBankBoeking": {
+    "method": "POST",
+    "path": "/KasBankBoeking/CreateKasBankBoeking",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/RemoveMarking": {
+    "method": "POST",
+    "path": "/KasBankBoeking/RemoveMarking",
+    "query_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "required_parameters": [
+      "kasBankboekingIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/SaveBoekingRegels": {
+    "method": "POST",
+    "path": "/KasBankBoeking/SaveBoekingRegels",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/SearchInvoicesAndGrootboeken": {
+    "method": "POST",
+    "path": "/KasBankBoeking/SearchInvoicesAndGrootboeken",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/UpdateGrootboekByGrootboekViewModel": {
+    "method": "POST",
+    "path": "/KasBankBoeking/UpdateGrootboekByGrootboekViewModel",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/UpdateInvoiceByInvoiceMinimal": {
+    "method": "POST",
+    "path": "/KasBankBoeking/UpdateInvoiceByInvoiceMinimal",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /KasBankBoeking/UpdateKasBankBoeking": {
+    "method": "POST",
+    "path": "/KasBankBoeking/UpdateKasBankBoeking",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /MemoriaalBoekingen/AddAttachment": {
+    "method": "POST",
+    "path": "/MemoriaalBoekingen/AddAttachment",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /MemoriaalBoekingen/CopyMemoriaalBoeking": {
+    "method": "POST",
+    "path": "/MemoriaalBoekingen/CopyMemoriaalBoeking",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /MemoriaalBoekingen/Create": {
+    "method": "POST",
+    "path": "/MemoriaalBoekingen/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /MemoriaalBoekingen/RemoveMarking": {
+    "method": "POST",
+    "path": "/MemoriaalBoekingen/RemoveMarking",
+    "query_parameters": [
+      "publicIdentifier"
+    ],
+    "required_parameters": [
+      "publicIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /MemoriaalBoekingen/Update": {
+    "method": "POST",
+    "path": "/MemoriaalBoekingen/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/CreateInkoopVoorBijlage": {
+    "method": "POST",
+    "path": "/Purchases/CreateInkoopVoorBijlage",
+    "query_parameters": [
+      "pathUrl"
+    ],
+    "required_parameters": [
+      "pathUrl"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /Purchases/CreateInkoopVoorBijlagen": {
+    "method": "POST",
+    "path": "/Purchases/CreateInkoopVoorBijlagen",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/CreateInkoopboeking": {
+    "method": "POST",
+    "path": "/Purchases/CreateInkoopboeking",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/CreateInkoopboekingBasisGegevens": {
+    "method": "POST",
+    "path": "/Purchases/CreateInkoopboekingBasisGegevens",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/CreateUbl": {
+    "method": "POST",
+    "path": "/Purchases/CreateUbl",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/RegisterPaymentWithIdentifier": {
+    "method": "POST",
+    "path": "/Purchases/RegisterPaymentWithIdentifier",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/RemoveMarking": {
+    "method": "POST",
+    "path": "/Purchases/RemoveMarking",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /Purchases/UnregisterPaymentByIdentifier": {
+    "method": "POST",
+    "path": "/Purchases/UnregisterPaymentByIdentifier",
+    "query_parameters": [
+      "identifier"
+    ],
+    "required_parameters": [
+      "identifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "POST /Purchases/UpdateInkoopboekingBasisGegevens": {
+    "method": "POST",
+    "path": "/Purchases/UpdateInkoopboekingBasisGegevens",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/UpdateInkoopboekingVolledig": {
+    "method": "POST",
+    "path": "/Purchases/UpdateInkoopboekingVolledig",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/UpdateTeControlerenBasisGegevens": {
+    "method": "POST",
+    "path": "/Purchases/UpdateTeControlerenBasisGegevens",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Purchases/UpdateTeControlerenGegevens": {
+    "method": "POST",
+    "path": "/Purchases/UpdateTeControlerenGegevens",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Suppliers/Create": {
+    "method": "POST",
+    "path": "/Suppliers/Create",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Suppliers/Update": {
+    "method": "POST",
+    "path": "/Suppliers/Update",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PUT /CompanySettings/UpdateCompanySettings": {
+    "method": "PUT",
+    "path": "/CompanySettings/UpdateCompanySettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PUT /Purchases/AddMarking": {
+    "method": "PUT",
+    "path": "/Purchases/AddMarking",
+    "query_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "required_parameters": [
+      "journaalpostIdentifier"
+    ],
+    "json_body": false,
+    "read_only": false
+  },
+  "PUT /Settings/SaveArticlePricesExVat": {
+    "method": "PUT",
+    "path": "/Settings/SaveArticlePricesExVat",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PUT /Settings/SaveNextInvoiceNumber": {
+    "method": "PUT",
+    "path": "/Settings/SaveNextInvoiceNumber",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "PUT /Suppliers/UpdateFull": {
+    "method": "PUT",
+    "path": "/Suppliers/UpdateFull",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  }
+}

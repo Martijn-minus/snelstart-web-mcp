@@ -1,0 +1,247 @@
+import argparse
+import getpass
+import json
+import sys
+from pathlib import Path
+from uuid import UUID
+
+import httpx
+from rich.console import Console
+
+from .cli_output import show_har_import, show_install, show_status, show_writes
+from .client import Client, catalog
+from .config import SnelStartError, Store
+from .enums import LoginMethod, WriteMode
+from .har import import_har
+from .installer import CLIENTS, install
+from .models import Settings
+from .models.responses import ConnectionStatus, DoctorResponse, HarImportResponse
+
+
+def _grantable_operations() -> set[str]:
+    return {
+        name
+        for name, entry in catalog().items()
+        if not entry["read_only"] and not entry["path"].startswith("/Administrations/")
+    }
+
+
+def _write_permissions(settings: Settings) -> dict[str, list[str]]:
+    return {str(key): sorted(operations) for key, operations in settings.write_permissions.items()}
+
+
+def set_write_access(store: Store, args: argparse.Namespace) -> dict:
+    if args.mode == WriteMode.LIST:
+        if args.available:
+            return {"operations": sorted(_grantable_operations())}
+        settings = store.settings()
+        return {
+            "allow_writes": settings.allow_writes,
+            "write_permissions": _write_permissions(settings),
+        }
+    with store.locked():
+        settings = store.settings()
+        if args.mode in {WriteMode.ON, WriteMode.OFF}:
+            settings.allow_writes = args.mode == WriteMode.ON
+            if not settings.allow_writes:
+                settings.write_permissions.clear()
+            result = {"allow_writes": settings.allow_writes}
+        else:
+            if settings.allow_writes:
+                raise SnelStartError("Turn off global writing before managing scoped permissions.")
+            if args.operation not in _grantable_operations():
+                raise SnelStartError("Choose an allowlisted bookkeeping write operation.")
+            operations = settings.write_permissions.get(args.administration_id, set())
+            if args.mode == WriteMode.GRANT:
+                operations.add(args.operation)
+            else:
+                operations.discard(args.operation)
+            if operations:
+                settings.write_permissions[args.administration_id] = operations
+            else:
+                settings.write_permissions.pop(args.administration_id, None)
+            result = {
+                "administration_id": str(args.administration_id),
+                "approved_write_operations": sorted(operations),
+            }
+        config = settings.model_dump(mode="json", exclude_none=True)
+        config["write_permissions"] = _write_permissions(settings)
+        store.write("config.json", config)
+    return result
+
+
+def main():
+    output_options = argparse.ArgumentParser(add_help=False)
+    output = output_options.add_mutually_exclusive_group()
+    output.add_argument(
+        "--json",
+        dest="json_output",
+        action="store_true",
+        default=argparse.SUPPRESS,
+        help="Print JSON (default when output is piped or redirected)",
+    )
+    output.add_argument(
+        "--text",
+        dest="json_output",
+        action="store_false",
+        default=argparse.SUPPRESS,
+        help="Print a readable summary (default in an interactive terminal)",
+    )
+    parser = argparse.ArgumentParser(
+        description="Connect local MCP clients to your SnelStart Web administration",
+        parents=[output_options],
+    )
+    parser.add_argument("--config-dir", type=Path, help="Use a separate local profile")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("serve", help="Start the MCP server over stdio")
+    commands.add_parser("status", parents=[output_options], help="Show the local sign-in profile")
+    commands.add_parser(
+        "doctor", parents=[output_options], help="Check the connection and list administrations"
+    )
+    commands.add_parser(
+        "setup", parents=[output_options], help="Set up sign-in with saved credentials"
+    )
+    login = commands.add_parser(
+        "login", parents=[output_options], help="Sign in with saved credentials or a browser window"
+    )
+    login.add_argument(
+        "--method",
+        type=LoginMethod,
+        choices=list(LoginMethod),
+        default=LoginMethod.CREDENTIALS,
+        help="Choose browser OAuth or use saved credentials (default)",
+    )
+    har = commands.add_parser(
+        "import-har", parents=[output_options], help="Import a SnelStart session from a HAR file"
+    )
+    har.add_argument("path", type=Path)
+    har.add_argument(
+        "--save-password",
+        action="store_true",
+        help="Save the sign-in password from the HAR to private local storage",
+    )
+    installer = commands.add_parser(
+        "install", parents=[output_options], help="Register the MCP server with local clients"
+    )
+    installer.add_argument("clients", nargs="+", choices=[*CLIENTS, "all", "stdio"])
+    installer.add_argument("--apply", action="store_true", help="Apply the previewed registration")
+    installer.add_argument("--client-config", type=Path, help="Override one client config file")
+    writes = commands.add_parser(
+        "writes", parents=[output_options], help="Inspect or manage bookkeeping write permissions"
+    )
+    write_modes = writes.add_subparsers(dest="mode", required=True)
+    write_modes.add_parser(
+        "on",
+        parents=[output_options],
+        help="Enable global access to allowlisted bookkeeping writes",
+    )
+    write_modes.add_parser(
+        "off",
+        parents=[output_options],
+        help="Disable all bookkeeping writes and clear scoped permissions",
+    )
+    write_list = write_modes.add_parser(
+        "list", parents=[output_options], help="Show grants and the global switch"
+    )
+    write_list.add_argument(
+        "--available", action="store_true", help="Show every catalog operation eligible for a grant"
+    )
+    for mode in (WriteMode.GRANT, WriteMode.REVOKE):
+        scoped = write_modes.add_parser(
+            mode, parents=[output_options], help="Manage one operation for one administration"
+        )
+        scoped.add_argument("administration_id", type=UUID)
+        scoped.add_argument("operation", help="Exact catalog operation, including HTTP method")
+    args = parser.parse_args()
+    json_output = getattr(args, "json_output", not sys.stdout.isatty())
+    if args.command == "install":
+        try:
+            result = install(
+                args.clients,
+                apply=args.apply,
+                profile=args.config_dir,
+                config_path=args.client_config,
+            )
+        except SnelStartError as error:
+            parser.error(str(error))
+        if json_output:
+            print(json.dumps(result, indent=2))
+        else:
+            show_install(Console(), result, apply=args.apply)
+        if any(item["status"] == "error" for item in result):
+            sys.exit(1)
+        return
+    store = Store(args.config_dir)
+    if args.command == "serve":
+        from .server import create_server
+
+        create_server(Client(store)).run(transport="stdio")
+        return
+    client = Client(store)
+    try:
+        if args.command == "setup":
+            print("SnelStart email address: ", end="", file=sys.stderr, flush=True)
+            username = input("").strip()
+            password = getpass.getpass("SnelStart password (stored privately under ~/.config): ")
+            if not username or not password:
+                raise SnelStartError("Email address and password are required.")
+            with store.locked():
+                store.write("credentials.json", {"username": username, "password": password})
+            client.auth.login()
+            result = client.status()
+        elif args.command == "login":
+            if not json_output and args.method is LoginMethod.BROWSER:
+                Console(stderr=True).print("Opening Chrome for SnelStart sign-in…", style="cyan")
+            client.auth.login(args.method)
+            result = client.status()
+        elif args.command == "import-har":
+            result = import_har(args.path, store, client.auth, args.save_password)
+        elif args.command == "doctor":
+            administrations = [
+                {"identifier": row.get("identifier"), "name": row.get("administrationName")}
+                for row in client.administrations()
+            ]
+            result = client.status()
+            selected_id = result["administration_id"]
+            selected_name = next(
+                (
+                    row["name"]
+                    for row in administrations
+                    if selected_id is not None and row["identifier"] == selected_id
+                ),
+                None,
+            )
+            result.update(
+                connected=True,
+                administration_name=selected_name,
+                administration_count=len(administrations),
+                administrations=administrations,
+            )
+            result = DoctorResponse.model_validate(result).model_dump(mode="json")
+        elif args.command == "writes":
+            result = set_write_access(store, args)
+        else:
+            result = client.status()
+        if json_output:
+            print(json.dumps(result, indent=2))
+        elif args.command == "writes":
+            show_writes(Console(), WriteMode(args.mode), result)
+        elif args.command == "import-har":
+            show_har_import(Console(), HarImportResponse.model_validate(result))
+        elif args.command == "doctor":
+            show_status(Console(), "Doctor", DoctorResponse.model_validate(result))
+        else:
+            title = "Status" if args.command == "status" else "Signed in"
+            show_status(Console(), title, ConnectionStatus.model_validate(result))
+    except SnelStartError as error:
+        print(str(error), file=sys.stderr)
+        sys.exit(1)
+    except httpx.HTTPError:
+        print("SnelStart is unavailable. Try again later.", file=sys.stderr)
+        sys.exit(1)
+    finally:
+        client.close()
+
+
+if __name__ == "__main__":
+    main()

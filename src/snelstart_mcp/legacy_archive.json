@@ -1,0 +1,63 @@
+{
+  "version": "snelstart-jaararchief-v1",
+  "manifest_keys": {
+    "boekjaar": "year",
+    "tot_en_met": "through_date",
+    "gemaakt_op": "created_at",
+    "bestanden": "files",
+    "bronbestanden": "source_files",
+    "bacpac_meegeleverd": "bacpac_included",
+    "volledige_administratie_bacpac_meegeleverd": "bacpac_included",
+    "administratie_id_mcp_export": "mcp_administration_id",
+    "mcp_reikwijdte": "mcp_scope",
+    "mcp_aantallen": "mcp_counts",
+    "pad": "path",
+    "archief": "archive",
+    "geverifieerd": "verified",
+    "archief_sha256": "archive_sha256",
+    "map": "directory",
+    "snelstart_terugzetten": "restore_instructions"
+  },
+  "source_keys": {
+    "auditfile": "audit_file",
+    "bijlagen": "attachments",
+    "officiele_export": "official_export",
+    "administratie": "administration_backup"
+  },
+  "dataset_keys": {
+    "balans_en_resultaat": "balance_and_profit_loss",
+    "grootboeken": "chart_of_accounts",
+    "inkopen": "purchases",
+    "verkopen": "sales",
+    "bankdagboeken": "bank_journals",
+    "bankmutaties": "bank_entries",
+    "memoriaaldagboeken": "general_journals",
+    "memoriaal_en_beginbalans": "journal_and_opening_entries",
+    "btw_aangiften_alle_boekjaren": "vat_returns_all_years"
+  },
+  "detail_keys": {
+    "auditfile": "audit_file",
+    "overige_bestanden": "attachment_count"
+  },
+  "scope_keys": {
+    "inbegrepen": "included",
+    "niet_inbegrepen": "excluded",
+    "selectie": "selection"
+  },
+  "files": [
+    "balans_en_resultaat.json",
+    "grootboeken.json",
+    "inkopen.json",
+    "verkopen.json",
+    "bankdagboeken.json",
+    "bankmutaties.json",
+    "memoriaaldagboeken.json",
+    "memoriaal_en_beginbalans.json",
+    "btw_aangiften_alle_boekjaren.json",
+    "auditfile.xaf",
+    "bijlagen.zip",
+    "officiele_export.zip",
+    "administratie.bacpac"
+  ],
+  "native_backup_member": "administratie.bacpac"
+}

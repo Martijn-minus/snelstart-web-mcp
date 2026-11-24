@@ -1,0 +1,179 @@
+"""Validated inputs for the MCP's flat tool arguments."""
+
+from datetime import date
+from pathlib import Path
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, model_validator
+
+from ..enums import (
+    AttachmentKind,
+    EntryKind,
+    PaymentDirection,
+    RelationKind,
+    SalesStatus,
+    YearEndSection,
+)
+from . import JsonObject
+
+
+class ToolRequest(BaseModel):
+    model_config = ConfigDict(hide_input_in_errors=True)
+
+
+class AdministrationRequest(ToolRequest):
+    administration_id: UUID
+
+
+class LimitRequest(ToolRequest):
+    limit: int = 30
+
+    @model_validator(mode="after")
+    def limit_in_range(self):
+        if not 1 <= self.limit <= 100:
+            raise ValueError("The limit must be between 1 and 100.")
+        return self
+
+
+class OperationListRequest(LimitRequest):
+    query: str = ""
+    read_only: bool = True
+
+
+class ReadOperationRequest(ToolRequest):
+    operation: str
+    parameters: JsonObject | None = None
+    filters: JsonObject | None = None
+
+
+class WriteOperationRequest(ToolRequest):
+    operation: str
+    payload: JsonObject
+    parameters: JsonObject | None = None
+
+
+class ThroughDateRequest(ToolRequest):
+    through_date: date
+
+
+class DateRangeRequest(ThroughDateRequest):
+    start_date: date
+
+    @model_validator(mode="after")
+    def dates_in_order(self):
+        if self.start_date > self.through_date:
+            raise ValueError("The start date must be on or before the through date.")
+        return self
+
+
+class PageRequest(ToolRequest):
+    query: str = ""
+    skip: int = 0
+    take: int = 50
+
+    @model_validator(mode="after")
+    def page_in_range(self):
+        if self.skip < 0 or not 1 <= self.take <= 200:
+            raise ValueError("Skip must be nonnegative. Page size must be between 1 and 200.")
+        return self
+
+
+class LedgerRequest(ThroughDateRequest):
+    ledger_id: UUID
+    query: str = ""
+    skip: int = 0
+    top: int = 50
+
+    @model_validator(mode="after")
+    def page_in_range(self):
+        PageRequest(skip=self.skip, take=self.top)
+        return self
+
+
+class PurchaseSearchRequest(PageRequest, DateRangeRequest):
+    review_only: bool = False
+
+
+class RelationSearchRequest(PageRequest):
+    kind: RelationKind
+
+
+class SalesSearchRequest(PageRequest):
+    status: SalesStatus = SalesStatus.ALL
+
+
+class BankEntriesRequest(PageRequest, DateRangeRequest):
+    ledger_id: UUID
+    marked_only: bool = False
+
+
+class PaymentMatchRequest(ToolRequest):
+    query: str
+    direction: PaymentDirection
+    open_only: bool = True
+
+    @model_validator(mode="after")
+    def specific_query(self):
+        if not self.query.strip():
+            raise ValueError("Provide an invoice number, name or another specific search term.")
+        return self
+
+
+class EntryRequest(ToolRequest):
+    entry_id: UUID
+
+
+class EntryDetailRequest(EntryRequest):
+    kind: EntryKind
+
+
+class AttachmentListRequest(EntryRequest):
+    kind: AttachmentKind
+
+
+class DocumentRequest(ToolRequest):
+    attachment_id: UUID | None = None
+    invoice_number_id: int | None = None
+    invoice_number: str | None = None
+
+    @model_validator(mode="after")
+    def one_document(self):
+        if (self.attachment_id is None) == (self.invoice_number_id is None):
+            raise ValueError("Provide exactly one attachment ID or invoice number ID.")
+        if self.attachment_id is not None and self.invoice_number is not None:
+            raise ValueError("The invoice number applies only to a sales invoice.")
+        if self.invoice_number_id is not None and self.invoice_number_id <= 0:
+            raise ValueError("The invoice number ID must be positive.")
+        return self
+
+
+class YearEndRequest(ToolRequest):
+    year: int
+    section: YearEndSection
+
+
+class ArchiveCreateRequest(ThroughDateRequest):
+    year: int
+    live_export: bool = True
+    auditfile_path: str | None = None
+    attachments_zip_path: str | None = None
+    bacpac_path: str | None = None
+    official_zip_path: str | None = None
+
+
+class ArchiveRequest(ToolRequest):
+    archive: str
+
+
+class PurchaseUploadRequest(AdministrationRequest):
+    file_path: Path
+
+
+class UploadStatusRequest(AdministrationRequest):
+    instance_id: str
+
+    @model_validator(mode="after")
+    def nonempty_id(self):
+        if not self.instance_id.strip():
+            raise ValueError("Provide the purchase processing ID returned by the upload tool.")
+        return self

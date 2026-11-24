@@ -1,0 +1,29 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-json
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+  - repo: local
+    hooks:
+      - id: snelstart-ruff
+        name: SnelStart MCP Ruff lint
+        entry: uv run --frozen --extra browser ruff check src tests
+        language: system
+        pass_filenames: false
+      - id: snelstart-ruff-format
+        name: SnelStart MCP Ruff formatting
+        entry: uv run --frozen --extra browser ruff format --check src tests
+        language: system
+        pass_filenames: false
+      - id: snelstart-basedpyright
+        name: SnelStart MCP BasedPyright
+        entry: uv run --frozen --extra browser basedpyright
+        language: system
+        pass_filenames: false
