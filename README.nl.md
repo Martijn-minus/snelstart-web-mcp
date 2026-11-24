@@ -2,6 +2,8 @@
 
 [English](README.md) · **Nederlands**
 
+[Nieuwste release](https://github.com/Martijn-minus/snelstart-web-mcp/releases/latest) · [Releasetags, nieuwste eerst](https://github.com/Martijn-minus/snelstart-web-mcp/tags)
+
 **Deze onafhankelijke MCP maakt verbinding met SnelStart Web (`web.snelstart.nl`).** Je meldt aan met je SnelStart Web-account. De MCP gebruikt de backend van die webapp op `webapi.snelstart.nl`. SnelStart biedt voor partnerkoppelingen een aparte B2B-API. SnelStart Polaris is een afzonderlijke applicatie. [Applicaties van SnelStart](https://kennisplein.snelstart.nl/snelstartpolaris/de-verschillende-applicaties-van-snelstart) · [SnelStart B2B-API](https://www.snelstart.nl/api)
 
 Maak en controleer een back-up voordat je begint. Kies daarna [live alleen-lezen, een offline kopie of live toegang met schrijfrechten](#kies-hoe-je-gegevens-gebruikt). Lees ook de [tekst over gebruik en aansprakelijkheid](NOTICE.md#gebruik-en-aansprakelijkheid).
