@@ -155,7 +155,17 @@ Gebruik bij btw-aangiften de publieke UUID's uit `snelstart_vat_returns` als `re
 
 ## Schrijfrechten en audit
 
-Schrijfrechten staan standaard uit. `writes list` toont de globale schakelaar en eventuele rechten per administratie. `writes list --available` toont de exacte toegestane operatienamen. De MCP respecteert ook de rechten van het SnelStart-account.
+Schrijfrechten staan standaard uit. Open het keuzemenu in Terminal.
+
+```sh
+snelstart-mcp writes configure
+```
+
+Het menu begint bij de actieve administratie. Gebruik `--administration UUID` voor een andere administratie. Ga met de pijltjestoetsen naar een regel en gebruik **Spatie** om een groep, een losse handeling of alle handelingen voor deze administratie aan of uit te zetten. Met **Tab** open of sluit je de details van één groep. Op de regel voor alle handelingen toont Tab alle details tegelijk. `[-]` betekent dat een deel van de groep is geselecteerd. De groep **Purchase PDF upload** bevat de twee rechten voor een inkoop-pdf.
+
+De globale schakelaar geldt voor alle administraties. Het menu bewaart de specifieke rechten van andere administraties. Druk op **Enter** om de wijzigingen te bekijken en bevestig daarna het opslaan. Met **Esc** annuleer je.
+
+`writes list` toont de globale schakelaar en eventuele rechten per administratie. `writes list --available` toont de exacte toegestane operatienamen. De MCP respecteert ook de rechten van het SnelStart-account.
 
 ```sh
 snelstart-mcp writes list

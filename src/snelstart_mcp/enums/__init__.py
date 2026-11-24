@@ -35,6 +35,7 @@ class WriteMode(StrEnum):
     LIST = "list"
     GRANT = "grant"
     REVOKE = "revoke"
+    CONFIGURE = "configure"
 
 
 class RelationKind(StrEnum):

@@ -267,7 +267,17 @@ ICP returns are available through `snelstart_read` with `GET /IcpAangiftes/GetIc
 
 ## Write permissions
 
-Bookkeeping writes are disabled by default. Run these commands from the MCP directory.
+Bookkeeping writes are disabled by default. Open the permission editor in a terminal.
+
+```sh
+snelstart-mcp writes configure
+```
+
+The editor opens on the selected administration. Pass `--administration UUID` to edit another one. Move with the arrow keys and press Space to select or clear a group, an individual operation, or all eligible operations for that administration. Use Tab on a group to expand or collapse it, or on the all-operations row to toggle all details. `[-]` marks a partial selection. Use the **Purchase PDF upload** group to select the two operations for that workflow together.
+
+The global switch affects all administrations. The editor preserves scoped grants for other administrations. Press Enter to review the proposed changes and confirm saving, or Esc to cancel.
+
+The command-line alternatives work without an interactive terminal.
 
 ```sh
 uv run snelstart-mcp writes list

@@ -18,68 +18,16 @@ from .cli_output import (
     show_update_check,
     show_writes,
 )
-from .client import Client, catalog
+from .client import Client
 from .config import SnelStartError, Store
 from .enums import LoginMethod, WriteMode
 from .har import import_har
 from .installer import CLIENTS, install
-from .models import Settings
 from .models.audit import AuditSummary
 from .models.responses import ConnectionStatus, DoctorResponse, HarImportResponse
 from .updater import UpdateChecker, update_tool
 from .version import installed_version, version_label
-
-
-def _grantable_operations() -> set[str]:
-    return {
-        name
-        for name, entry in catalog().items()
-        if not entry["read_only"] and not entry["path"].startswith("/Administrations/")
-    }
-
-
-def _write_permissions(settings: Settings) -> dict[str, list[str]]:
-    return {str(key): sorted(operations) for key, operations in settings.write_permissions.items()}
-
-
-def set_write_access(store: Store, args: argparse.Namespace) -> dict:
-    if args.mode == WriteMode.LIST:
-        if args.available:
-            return {"operations": sorted(_grantable_operations())}
-        settings = store.settings()
-        return {
-            "allow_writes": settings.allow_writes,
-            "write_permissions": _write_permissions(settings),
-        }
-    with store.locked():
-        settings = store.settings()
-        if args.mode in {WriteMode.ON, WriteMode.OFF}:
-            settings.allow_writes = args.mode == WriteMode.ON
-            if not settings.allow_writes:
-                settings.write_permissions.clear()
-            result = {"allow_writes": settings.allow_writes}
-        else:
-            if settings.allow_writes:
-                raise SnelStartError("Turn off global writing before managing scoped permissions.")
-            if args.operation not in _grantable_operations():
-                raise SnelStartError("Choose an allowlisted bookkeeping write operation.")
-            operations = settings.write_permissions.get(args.administration_id, set())
-            if args.mode == WriteMode.GRANT:
-                operations.add(args.operation)
-            else:
-                operations.discard(args.operation)
-            if operations:
-                settings.write_permissions[args.administration_id] = operations
-            else:
-                settings.write_permissions.pop(args.administration_id, None)
-            result = {
-                "administration_id": str(args.administration_id),
-                "approved_write_operations": sorted(operations),
-            }
-        config = settings.model_dump(mode="json", exclude_none=True)
-        config["write_permissions"] = _write_permissions(settings)
-        store.write("config.json", config)
-    return result
+from .write_access import set_write_access
 
 
 def main():
@@ -206,6 +154,12 @@ def main():
     write_list.add_argument(
         "--available", action="store_true", help="Show every catalog operation eligible for a grant"
     )
+    configure = write_modes.add_parser(
+        WriteMode.CONFIGURE, help="Select write permissions interactively"
+    )
+    configure.add_argument(
+        "--administration", type=UUID, metavar="UUID", help="Edit a specific administration"
+    )
     for mode in (WriteMode.GRANT, WriteMode.REVOKE):
         scoped = write_modes.add_parser(
             mode, parents=[output_options], help="Manage one operation for one administration"
@@ -258,6 +212,28 @@ def main():
                 show_update(Console(), updated)
             return
         store = Store(args.config_dir)
+        if args.command == "writes":
+            if args.mode == WriteMode.CONFIGURE:
+                if json_output:
+                    raise SnelStartError(
+                        "Run writes configure in an interactive terminal without --json."
+                    )
+                try:
+                    from .permission_editor import configure_write_access
+                except ImportError as error:
+                    if error.name not in {"curses", "_curses"}:
+                        raise
+                    raise SnelStartError(
+                        "The interactive editor requires Python curses support."
+                    ) from None
+                configure_write_access(store, args.administration)
+            else:
+                permissions = set_write_access(store, args)
+                if json_output:
+                    print(json.dumps(permissions, indent=2))
+                else:
+                    show_writes(Console(), WriteMode(args.mode), permissions)
+            return
         if args.command == "audit":
             administration_id = args.administration
             if administration_id is None and not args.profile:
@@ -322,14 +298,10 @@ def main():
                 administrations=administrations,
             )
             result = DoctorResponse.model_validate(result).model_dump(mode="json")
-        elif args.command == "writes":
-            result = set_write_access(store, args)
         else:
             result = client.status()
         if json_output:
             print(json.dumps(result, indent=2))
-        elif args.command == "writes":
-            show_writes(Console(), WriteMode(args.mode), result)
         elif args.command == "import-har":
             show_har_import(Console(), HarImportResponse.model_validate(result))
         elif args.command == "doctor":
