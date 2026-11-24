@@ -8,8 +8,8 @@ Copy this prompt into Codex, Claude Code, or another assistant that can run loca
 
 ```text
 Install the SnelStart Web MCP on this machine from https://github.com/Martijn-minus/snelstart-web-mcp.
-Check that uv and Google Chrome are available. Run:
-uv tool install 'snelstart-web-mcp[browser]'
+On macOS or Linux, download and run the install.sh script from the repository root.
+Check that Google Chrome is available for browser sign-in.
 Find the installed snelstart-mcp executable with uv tool dir --bin if it is outside PATH.
 Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
 Register the MCP with this client using snelstart-mcp install <client> --apply. Ask me
@@ -19,17 +19,23 @@ update is available. Keep credentials private and leave write permissions and
 accounting records untouched. Tell me if the MCP client needs to reconnect.
 ```
 
-## One-line install
+## Install on macOS or Linux
 
-With `uv` installed, run this from any directory. The browser extra enables sign-in with an installed copy of Google Chrome.
+Paste this into Terminal. You can also download [install.sh](install.sh) and run `bash install.sh`.
 
 ```sh
-uv tool install 'snelstart-web-mcp[browser]'
+curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-minus/snelstart-web-mcp/main/install.sh && bash install-snelstart-mcp.sh
 ```
+
+The script checks for Python 3.11 or newer, including Homebrew and the Python supplied by macOS developer tools. It installs `uv` if needed and uses a user-local Python 3.13 if it can't find a compatible interpreter. It installs everything in your user account. Open a new terminal if the script updates your `PATH`. If you already have `uv`, you can install directly with `uv tool install 'snelstart-web-mcp[browser]'`.
+
+Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
 
 For GitHub main builds, use `uv tool install 'snelstart-web-mcp[browser] @ git+https://github.com/Martijn-minus/snelstart-web-mcp.git'`.
 
-Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
+## Windows
+
+The server uses Unix file locking, so native Windows and Git Bash are unsupported. On Windows, run the Linux installer and MCP server inside WSL. Browser OAuth needs Google Chrome running inside WSL. If that isn't available, use the [token-only HAR import](#token-only-har-recovery). [Microsoft WSL setup](https://learn.microsoft.com/en-us/windows/wsl/install)
 
 ## Check for updates
 

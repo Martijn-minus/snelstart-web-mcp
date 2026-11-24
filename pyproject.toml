@@ -34,7 +34,7 @@ build-backend = "hatchling.build"
 packages = ["src/snelstart_mcp"]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/snelstart_mcp", "tests", "README.md", "pyproject.toml"]
+only-include = ["src/snelstart_mcp", "tests", "README.md", "pyproject.toml", "install.sh"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
