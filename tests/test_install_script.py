@@ -47,7 +47,11 @@ esac
 """,
     )
     result = subprocess.run(
-        ["bash", str(INSTALLER), *(["--with-skills", "codex"] if platform == "Darwin" else [])],
+        [
+            "bash",
+            str(INSTALLER),
+            *(["--with-skills", "codex", "--with-hooks"] if platform == "Darwin" else []),
+        ],
         env={
             **os.environ,
             "PATH": f"{bin_dir}:{os.environ['PATH']}",
@@ -78,4 +82,5 @@ esac
     )
     assert "tool update-shell" not in commands
     assert ("install codex --skills-only --apply --text" in commands) == (platform == "Darwin")
+    assert ("install codex --hooks-only --apply --text" in commands) == (platform == "Darwin")
     assert "snelstart-mcp login --method browser" in result.stdout

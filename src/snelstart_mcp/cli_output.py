@@ -190,9 +190,14 @@ def show_writes(console: Console, mode: WriteMode, result: dict) -> None:
 
 
 def show_install(
-    console: Console, results: list[dict], *, apply: bool, skills_only: bool = False
+    console: Console,
+    results: list[dict],
+    *,
+    apply: bool,
+    skills_only: bool = False,
+    hooks_only: bool = False,
 ) -> None:
-    title = "Skill installation" if skills_only else "Client registration"
+    title = "Add-on installation" if skills_only or hooks_only else "Client registration"
     _heading(console, title if apply else title + " preview")
     labels = {
         "preview": ("Ready to register", "cyan"),
@@ -215,14 +220,22 @@ def show_install(
                 + Text(f"  · {label}", style=style)
             )
             console.print(Text("    ") + _literal(skill["path"], "dim"))
+        if (hooks := item.get("hooks")) is not None:
+            label, style = labels[hooks["status"]]
+            console.print(Text(f"  Codex hooks  · {label}", style=style))
+            console.print(Text("    ") + _literal(hooks["path"], "dim"))
+            if apply:
+                console.print("    Open /hooks in Codex to review and trust the definitions.")
+            else:
+                console.print_json(data={"hooks": hooks["entries"]}, indent=2)
         if len(results) == 1 and not apply:
             if "command" in item:
                 console.print(_literal(join(item["command"])))
             if "snippet" in item:
                 console.print_json(data=item["snippet"], indent=2)
     if not apply and any(item["status"] == "preview" for item in results):
-        if skills_only:
-            console.print("\nAdd --apply to install the selected skills.", style="dim")
+        if skills_only or hooks_only:
+            console.print("\nAdd --apply to install the selected add-ons.", style="dim")
         elif len(results) == 1 and results[0]["client"] == "stdio" and "config" not in results[0]:
             console.print("\nAdd --client-config PATH --apply to save the snippet.", style="dim")
         else:

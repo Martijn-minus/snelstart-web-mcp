@@ -176,6 +176,15 @@ def main():
         action="store_true",
         help="Install skills without changing the MCP registration",
     )
+    hook_options = installer.add_mutually_exclusive_group()
+    hook_options.add_argument(
+        "--with-hooks", action="store_true", help="Also install the optional Codex hooks"
+    )
+    hook_options.add_argument(
+        "--hooks-only",
+        action="store_true",
+        help="Install Codex hooks without changing MCP registration",
+    )
     installer.add_argument("--client-config", type=Path, help="Override one client config file")
     writes = commands.add_parser(
         "writes", parents=[output_options], help="Inspect or manage bookkeeping write permissions"
@@ -214,13 +223,21 @@ def main():
                 config_path=args.client_config,
                 with_skills=args.with_skills,
                 skills_only=args.skills_only,
+                with_hooks=args.with_hooks,
+                hooks_only=args.hooks_only,
             )
         except SnelStartError as error:
             parser.error(str(error))
         if json_output:
             print(json.dumps(result, indent=2))
         else:
-            show_install(Console(), result, apply=args.apply, skills_only=args.skills_only)
+            show_install(
+                Console(),
+                result,
+                apply=args.apply,
+                skills_only=args.skills_only,
+                hooks_only=args.hooks_only,
+            )
         if any(item["status"] == "error" for item in result):
             sys.exit(1)
         return

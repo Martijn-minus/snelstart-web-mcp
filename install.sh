@@ -32,16 +32,26 @@ add_homebrew_python_to_path() {
 
 main() {
     local skills_client=""
-    if [[ "${1:-}" == --help && $# == 1 ]]; then
-        printf 'Usage: bash install.sh [--with-skills codex|claude-code]\n'
-        printf 'Install SnelStart MCP on macOS or Linux.\n'
-        return
-    fi
-    if [[ $# == 2 && "$1" == --with-skills && ( "$2" == codex || "$2" == claude-code ) ]]; then
-        skills_client=$2
-    elif [[ $# != 0 ]]; then
-        fail 'Run bash install.sh --help for installer options.'
-    fi
+    local with_hooks=false
+    while [[ $# != 0 ]]; do
+        case "$1" in
+            --help)
+                printf 'Usage: bash install.sh [--with-skills codex|claude-code] [--with-hooks]\n'
+                printf 'Install SnelStart MCP on macOS or Linux.\n'
+                return
+                ;;
+            --with-skills)
+                case "${2:-}" in
+                    codex|claude-code) skills_client=$2 ;;
+                    *) fail 'Choose codex or claude-code after --with-skills.' ;;
+                esac
+                shift
+                ;;
+            --with-hooks) with_hooks=true ;;
+            *) fail 'Run bash install.sh --help for installer options.' ;;
+        esac
+        shift
+    done
 
     case "$(uname -s)" in
         Darwin) add_homebrew_python_to_path ;;
@@ -75,6 +85,9 @@ main() {
     "$bin_dir/snelstart-mcp" --version
     if [[ -n "$skills_client" ]]; then
         "$bin_dir/snelstart-mcp" install "$skills_client" --skills-only --apply --text
+    fi
+    if [[ "$with_hooks" == true ]]; then
+        "$bin_dir/snelstart-mcp" install codex --hooks-only --apply --text
     fi
 
     case ":$PATH:" in

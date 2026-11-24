@@ -1,5 +1,7 @@
 # SnelStart Web MCP
 
+**English** · [Nederlands](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/README.nl.md)
+
 A local stdio MCP server for SnelStart Web. It uses the Web API, refreshes its sign-in and opens the selected administration before requesting accounting data. This is an unofficial integration. SnelStart documents its partner API separately. [SnelStart API integration](https://www.snelstart.nl/api)
 
 ## Install with a coding assistant
@@ -14,7 +16,8 @@ Find the installed snelstart-mcp executable with uv tool dir --bin if it is outs
 Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
 Register the MCP with this client using snelstart-mcp install <client> --apply. Ask me
 which client to use if you cannot identify it. If I requested the bundled skills,
-add --with-skills for Codex or Claude Code. Then run snelstart-mcp doctor and tell
+add --with-skills for Codex or Claude Code. If I requested hooks for Codex, add
+--with-hooks. Then run snelstart-mcp doctor and tell
 me which administration is selected, what write access it has, and whether an
 update is available. Keep credentials private and leave write permissions and
 accounting records untouched. Tell me if the MCP client needs to reconnect.
@@ -46,6 +49,17 @@ snelstart-mcp install codex --with-skills --apply
 ```
 
 If the server is already registered, use `snelstart-mcp install codex --skills-only --apply`. Leave off `--apply` to preview the files. The installer preserves existing skills when their contents differ. Begin a fresh client session to load the new skills. [Codex skill locations](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills) · [Claude Code skills](https://code.claude.com/docs/en/skills)
+
+## Optional Codex hooks
+
+The hooks add a reminder to verify the administration and the requested change before a bookkeeping write, followed by a read-back reminder. They also surface an available package update after `snelstart_status` or `snelstart_check_update` reports one. The MCP profile's write permissions govern bookkeeping access.
+
+```sh
+snelstart-mcp install codex --hooks-only
+snelstart-mcp install codex --hooks-only --apply
+```
+
+Use `--with-hooks` when registering the server. The Bash installer also accepts `--with-hooks`, with or without `--with-skills codex`. The installer merges the definitions into `$CODEX_HOME/hooks.json` (default `~/.codex/hooks.json`). Open `/hooks` in the Codex CLI to review and trust the definitions. You can also disable them there. [Codex hook documentation](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks)
 
 ## Windows
 

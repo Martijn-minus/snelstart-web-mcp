@@ -91,3 +91,8 @@ class UpdateStatus(StrEnum):
     AVAILABLE = "available"
     CURRENT = "current"
     UNAVAILABLE = "unavailable"
+
+
+class CodexHookEvent(StrEnum):
+    PRE_TOOL_USE = "PreToolUse"
+    POST_TOOL_USE = "PostToolUse"

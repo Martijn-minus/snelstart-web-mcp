@@ -5,10 +5,11 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
+from .client_config import read_client_config, write_client_config
 from .config import SnelStartError
+from .hook_install import install_hooks
 from .skill_install import SKILL_CLIENTS, install_skills
 
 SERVER = "snelstart"
@@ -42,15 +43,7 @@ def _run(argv: list[str]) -> str:
 
 
 def _merge_file(path: Path, sections: tuple[str, ...], definition: dict) -> str:
-    if path.is_symlink() or (path.exists() and not path.is_file()):
-        raise SnelStartError("The client configuration must be a regular file.")
-    original = path.read_bytes() if path.exists() else None
-    try:
-        config = {} if original is None else json.loads(original)
-    except (UnicodeError, ValueError):
-        raise SnelStartError(
-            "The client configuration is not plain JSON. Merge the preview in the client editor."
-        ) from None
+    config, original = read_client_config(path)
     servers = config
     for key in sections:
         if not isinstance(servers, dict):
@@ -64,20 +57,7 @@ def _merge_file(path: Path, sections: tuple[str, ...], definition: dict) -> str:
             return "already_configured"
         raise SnelStartError("A different snelstart registration already exists.")
     servers[SERVER] = definition
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix=".snelstart-", dir=path.parent)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8") as stream:
-            json.dump(config, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        current = path.read_bytes() if path.exists() else None
-        if path.is_symlink() or current != original:
-            raise SnelStartError("The client configuration changed during registration. Try again.")
-        os.replace(temporary, path)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
+    write_client_config(path, config, original)
     return "installed"
 
 
@@ -179,17 +159,23 @@ def install(
     config_path: Path | None,
     with_skills: bool = False,
     skills_only: bool = False,
+    with_hooks: bool = False,
+    hooks_only: bool = False,
 ) -> list[dict]:
     selected = CLIENTS if "all" in clients else list(dict.fromkeys(clients))
     include_skills = with_skills or skills_only
+    include_hooks = with_hooks or hooks_only
+    addons_only = skills_only or hooks_only
     if include_skills and any(client not in SKILL_CLIENTS for client in selected):
         raise SnelStartError("Choose codex or claude-code when installing bundled skills.")
-    if skills_only and config_path is not None:
+    if include_hooks and selected != ["codex"]:
+        raise SnelStartError("Bundled hooks are available for Codex. Choose the codex target.")
+    if addons_only and config_path is not None:
         raise SnelStartError("The client config override applies to MCP registrations.")
     if config_path is not None and (len(selected) != 1 or selected[0] in {"codex", "claude-code"}):
         raise SnelStartError("The client config override requires one file-based client.")
     executable = Path(sys.executable).absolute().with_name("snelstart-mcp")
-    if not skills_only and (not executable.is_file() or not os.access(executable, os.X_OK)):
+    if not addons_only and (not executable.is_file() or not os.access(executable, os.X_OK)):
         raise SnelStartError("Install the SnelStart MCP package before registering clients.")
     invocation = [str(executable)]
     if profile is not None:
@@ -199,18 +185,25 @@ def install(
     for client in selected:
         try:
             skills = install_skills(client, apply=False) if include_skills else []
+            hooks = install_hooks(apply=False) if include_hooks else None
             registration: dict
-            if skills_only:
+            if addons_only:
                 registration = {"client": client, "status": "preview"}
             else:
                 registration = _register(client, invocation, apply=apply, config_path=config_path)
             if include_skills:
                 if apply:
                     skills = install_skills(client, apply=True)
-                    if skills_only:
-                        added = any(item.status == "installed" for item in skills)
-                        registration["status"] = "installed" if added else "already_configured"
                 registration["skills"] = [item.model_dump(mode="json") for item in skills]
+            if hooks is not None:
+                if apply:
+                    hooks = install_hooks(apply=True)
+                registration["hooks"] = hooks.model_dump(mode="json")
+            if addons_only and apply:
+                added = any(item.status == "installed" for item in skills) or (
+                    hooks is not None and hooks.status == "installed"
+                )
+                registration["status"] = "installed" if added else "already_configured"
             results.append(registration)
         except SnelStartError as error:
             results.append({"client": client, "status": "error", "message": str(error)})
@@ -219,7 +212,7 @@ def install(
                 {
                     "client": client,
                     "status": "error",
-                    "message": "Could not read or update the local client configuration or skills.",
+                    "message": "Could not read or update the local client configuration or add-ons.",
                 }
             )
     return results
