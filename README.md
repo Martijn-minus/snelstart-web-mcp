@@ -269,7 +269,7 @@ The profile keeps a local receipt keyed by administration and PDF checksum. Repe
 
 For 2025 and November 2026 balances, call `snelstart_balance_sheet` separately with `2025-12-31` and `2026-11-30`. For detailed VAT returns, start with `snelstart_vat_returns` and pass the public identifiers as `return_ids` to `snelstart_vat_return_details`.
 
-For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line contains `ledger_id` and the original `entry`. For a range of multiple days, the tool checks the administration's fiscal-year dates and fetches the part of each fiscal year in the range separately. It rejects ranges with unverified fiscal-year coverage. `fetched_rows` counts the rows fetched across all parts. `exported_rows` counts the rows in the requested range. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
+For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line contains `ledger_id` and the original `entry`. For a range of multiple days, the tool checks the administration's fiscal-year dates and fetches the part of each fiscal year in the range separately. If the final date is beyond the closing list, the tool verifies the active fiscal year against the administration settings. It rejects ranges with unverified fiscal-year coverage. `fetched_rows` counts the rows fetched across all parts. `exported_rows` counts the rows in the requested range. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
 
 ```json
 {"operation":"GET /BtwAangiftes/Get","parameters":{"id":123}}

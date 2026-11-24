@@ -183,6 +183,124 @@ def test_ledger_export_rejects_ambiguous_fiscal_year_coverage(session, next_star
     assert all(request.url.path != "/Grootboek/GetGrootboekMutaties" for request in requests)
 
 
+@pytest.mark.parametrize(
+    ("start", "settings_year", "expected_years", "total"),
+    [
+        ("2026-01-01", 2023, [2026], 51),
+        ("2026-01-01", 2026, [2026], 51),
+        ("2023-01-01", 2023, [2026, 2025, 2024, 2023], 90),
+    ],
+)
+def test_ledger_export_includes_an_unlisted_active_fiscal_year(
+    session, start, settings_year, expected_years, total
+):
+    client, requests, replies = session
+    settings_path = "/Settings/Get"
+    ledger_path = "/Grootboek/GetGrootboekMutaties"
+    counts = {2023: 24, 2024: 15, 2025: 0, 2026: 51}
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        *((f"{year}-01-01", f"{year}-12-31") for year in (2023, 2024, 2025))
+    )
+    replies[settings_path] = {
+        "currentFinancialYearStartDate": f"{settings_year}-01-01T00:00:00",
+        "currentFinancialYearEndDate": f"{settings_year}-12-31T00:00:00",
+    }
+
+    def ledger(request):
+        year = int(request.url.params["dateTo"][:4])
+        offset = int(request.url.params["skip"])
+        rows = [
+            {"publicIdentifier": f"{year}-{index}", "datum": f"{year}-01-01"}
+            for index in range(offset, min(offset + 25, counts[year]))
+        ]
+        return {"resultList": rows, "totalMatchCount": counts[year]}
+
+    replies[ledger_path] = ledger
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY], "start_date": start, "through_date": "2026-11-24"},
+    )
+    assert result["total_exported_rows"] == total
+    rows = [json.loads(line) for line in Path(result["path"]).read_text().splitlines()]
+    assert [row["entry"]["publicIdentifier"] for row in rows] == [
+        f"{year}-{index}" for year in expected_years for index in range(counts[year])
+    ]
+    (settings_request,) = [request for request in requests if request.url.path == settings_path]
+    assert settings_request.method == "GET"
+    assert not settings_request.url.params
+    assert [
+        int(request.url.params["dateTo"][:4])
+        for request in requests
+        if request.url.path == ledger_path and request.url.params["skip"] == "0"
+    ] == expected_years
+
+
+def test_ledger_export_continues_a_configured_non_calendar_fiscal_year(session):
+    client, requests, replies = session
+    ledger_path = "/Grootboek/GetGrootboekMutaties"
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-07-01", "2025-06-30"),
+    )
+    replies["/Settings/Get"] = {
+        "currentFinancialYearStartDate": "2023-07-01T00:00:00",
+        "currentFinancialYearEndDate": "2024-06-30T00:00:00",
+    }
+    replies[ledger_path] = {"resultList": [], "totalMatchCount": 0}
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY], "start_date": "2025-06-30", "through_date": "2026-02-01"},
+    )
+    assert result["total_exported_rows"] == 0
+    assert [
+        request.url.params["dateTo"][:10] for request in requests if request.url.path == ledger_path
+    ] == ["2026-02-01", "2025-06-30"]
+
+
+@pytest.mark.parametrize(
+    ("settings", "error"),
+    [
+        ({"currentFinancialYearStartDate": "2026-01-01"}, "from the administration settings"),
+        (
+            {
+                "currentFinancialYearStartDate": "2024-01-01",
+                "currentFinancialYearEndDate": "2026-12-31",
+            },
+            "settings do not establish",
+        ),
+        (
+            {
+                "currentFinancialYearStartDate": "2026-02-01",
+                "currentFinancialYearEndDate": "2026-12-31",
+            },
+            "could not verify fiscal-year coverage",
+        ),
+        (
+            {
+                "currentFinancialYearStartDate": "2023-07-01",
+                "currentFinancialYearEndDate": "2024-06-30",
+            },
+            "settings do not establish",
+        ),
+    ],
+)
+def test_ledger_export_rejects_unverified_coverage_with_an_active_year(session, settings, error):
+    client, requests, replies = session
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-01-01", "2024-12-31"), ("2025-01-01", "2025-12-31")
+    )
+    replies["/Settings/Get"] = settings
+    with pytest.raises(ToolError, match=error):
+        call(
+            client,
+            "snelstart_export_ledger_entries",
+            {"ledger_ids": [ENTRY], "start_date": "2025-01-01", "through_date": "2026-11-24"},
+        )
+    assert not (client.store.directory / "exports").exists()
+    assert all(request.url.path != "/Grootboek/GetGrootboekMutaties" for request in requests)
+
+
 def test_incomplete_ledger_export_does_not_leave_partial_file(session):
     client, _, replies = session
     replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(

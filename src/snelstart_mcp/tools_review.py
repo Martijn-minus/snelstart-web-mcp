@@ -11,6 +11,7 @@ from pathlib import Path
 from uuid import UUID
 
 from mcp.types import ToolAnnotations
+from pydantic import JsonValue
 
 from .archive_compare import compare_archives
 from .client import Client
@@ -47,6 +48,8 @@ from .tools_bookkeeping import (
 )
 from .year_data import booking_date, entries_in_period, pages
 
+ONE_DAY = timedelta(days=1)
+
 
 def _selected_administration(client: Client) -> UUID:
     administration = client.store.settings().administration_id
@@ -55,40 +58,81 @@ def _selected_administration(client: Client) -> UUID:
     return administration
 
 
+def _fiscal_year_bounds(record: JsonValue, start_field: str, end_field: str) -> tuple[date, date]:
+    year_start = record.get(start_field) if isinstance(record, dict) else None
+    year_end = record.get(end_field) if isinstance(record, dict) else None
+    if not isinstance(year_start, str) or not isinstance(year_end, str):
+        raise SnelStartError("SnelStart returned a fiscal year without both boundary dates.")
+    try:
+        first, last = booking_date(year_start), booking_date(year_end)
+    except SnelStartError:
+        raise SnelStartError("SnelStart returned an invalid fiscal-year date.") from None
+    if first > last:
+        raise SnelStartError("SnelStart returned reversed fiscal-year dates.")
+    return first, last
+
+
+def _unlisted_fiscal_year(
+    settings: JsonValue, cutoff: date, last_listed_end: date | None
+) -> tuple[date, date]:
+    first, last = _fiscal_year_bounds(
+        settings, "currentFinancialYearStartDate", "currentFinancialYearEndDate"
+    )
+    if first <= cutoff <= last and (last_listed_end is None or first > last_listed_end):
+        return first, last
+
+    if cutoff > last and first.day == 1:
+        try:
+            reference_end = first.replace(year=first.year + 1) - ONE_DAY
+            year = cutoff.year - (cutoff.month < first.month)
+            projected_start = date(year, first.month, 1)
+            projected_end = projected_start.replace(year=year + 1) - ONE_DAY
+        except ValueError:
+            raise SnelStartError("The configured fiscal-year dates cannot be extended.") from None
+        # Web uses the configured start month even if its reference year is old.
+        if last == reference_end and (
+            last_listed_end is None or projected_start - last_listed_end == ONE_DAY
+        ):
+            return projected_start, projected_end
+
+    raise SnelStartError("The settings do not establish the requested fiscal-year dates.")
+
+
 def _ledger_export_periods(read, start: date, end: date) -> list[tuple[date, date]]:
     if start == end:
         return [(start, end)]
 
-    fiscal_years = pages(
+    closing_rows = pages(
         read,
         "GET /Jaarafsluiting/GetAllJaarafsluiting",
         {"searchTerm": "", "sortDataFieldName": "jaar", "status": 0, "sortDescending": True},
         ("boekjaar",),
     )
-    periods = []
-    for row in fiscal_years:
-        fiscal_year = row["boekjaar"]
-        year_start = fiscal_year.get("startDate") if isinstance(fiscal_year, dict) else None
-        year_end = fiscal_year.get("endDate") if isinstance(fiscal_year, dict) else None
-        if not isinstance(year_start, str) or not isinstance(year_end, str):
-            raise SnelStartError("SnelStart returned a fiscal year without both boundary dates.")
+    fiscal_years = [
+        _fiscal_year_bounds(row["boekjaar"], "startDate", "endDate") for row in closing_rows
+    ]
+    last_listed_end = max((last for _, last in fiscal_years), default=None)
+    if last_listed_end is None or end > last_listed_end:
+        # The active fiscal year can be absent from the year-end closing list.
+        error = f"SnelStart could not verify the fiscal year for {end} from the administration settings."
         try:
-            first, last = booking_date(year_start), booking_date(year_end)
-        except SnelStartError:
-            raise SnelStartError("SnelStart returned an invalid fiscal-year date.") from None
-        if first > last:
-            raise SnelStartError("SnelStart returned reversed fiscal-year dates.")
-        first, last = max(first, start), min(last, end)
-        if first <= last:
-            periods.append((first, last))
+            fiscal_years.append(
+                _unlisted_fiscal_year(read("GET /Settings/Get"), end, last_listed_end)
+            )
+        except SnelStartError as failure:
+            raise SnelStartError(f"{error} {failure}") from None
 
-    periods.sort()
+    periods = sorted(
+        (max(first, start), min(last, end))
+        for first, last in fiscal_years
+        if first <= end and start <= last
+    )
     if (
         not periods
         or periods[0][0] != start
         or periods[-1][1] != end
         or any(
-            next_start - previous_end != timedelta(days=1)
+            next_start - previous_end != ONE_DAY
             for (_, previous_end), (next_start, _) in pairwise(periods)
         )
     ):
