@@ -2,7 +2,7 @@
 
 **English** · [Nederlands](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/README.nl.md)
 
-A local stdio MCP server for SnelStart Web. It uses the Web API, refreshes its sign-in and opens the selected administration before requesting accounting data. This is an unofficial integration. SnelStart documents its partner API separately. [SnelStart API integration](https://www.snelstart.nl/api)
+**This unofficial MCP connects to SnelStart Web (`web.snelstart.nl`).** It signs in with a SnelStart Web account and calls the web app’s backend at `webapi.snelstart.nl`. SnelStart provides a separate B2B API for partner integrations. SnelStart also lists Polaris as a separate application. [SnelStart applications](https://kennisplein.snelstart.nl/snelstartpolaris/de-verschillende-applicaties-van-snelstart) · [SnelStart B2B API](https://www.snelstart.nl/api)
 
 Before starting bookkeeping work, make and verify a backup. Choose [live read-only access, a local offline snapshot, or live access with write permissions](#choose-how-to-access-the-data). Read the [usage and liability notice](NOTICE.md).
 
