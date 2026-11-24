@@ -1,7 +1,7 @@
 import asyncio
 import json
 import stat
-from datetime import date
+from datetime import date, datetime
 from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
@@ -385,10 +385,61 @@ def test_archive_tools_package_verify_and_list_local_sources(session, tmp_path):
     )
     args = {"archive": created["archive"]}
     assert call(client, "snelstart_verify_archive", args)["files"] == created["files"]
-    assert call(client, "snelstart_list_archives", {})["data"] == [
-        {**args, "path": created["path"]}
-    ]
+    (listed,) = call(client, "snelstart_list_archives", {})["data"]
+    assert listed["archive"] == created["archive"] and listed["path"] == created["path"]
+    assert listed["year"] == 2020 and listed["through_date"] == "2020-12-31"
+    assert datetime.fromisoformat(listed["created_at"]) == datetime.fromisoformat(
+        created["created_at"]
+    )
+    assert listed["manifest_readable"] and not listed["bacpac_included"]
     assert not requests
+
+
+def test_archive_inventory_uses_manifest_dates_and_skips_payload_checks(tmp_path):
+    store = Store(tmp_path / "profile")
+    directory = store.directory / "backups"
+    assert backup.list_archives(store).archives == []
+    assert not directory.exists()
+    directory.mkdir()
+    newer = directory / ("snelstart-2021-" + "a" * 32 + ".zip")
+    older = directory / ("snelstart-2020-" + "b" * 32 + ".zip")
+    corrupt = directory / ("snelstart-2022-" + "c" * 32 + ".zip")
+    link = directory / ("snelstart-2023-" + "d" * 32 + ".zip")
+    legacy = {
+        "format": backup.LEGACY_ARCHIVE["version"],
+        "boekjaar": 2021,
+        "tot_en_met": "2021-10-31",
+        "gemaakt_op": "2026-06-01T12:00:00+00:00",
+        "administratie_id_mcp_export": ADMIN,
+        "bestanden": {"administratie.bacpac": {"bytes": 1, "sha256": "0" * 64}},
+    }
+    with ZipFile(newer, "w") as archive:
+        archive.writestr("manifest.json", json.dumps(legacy))
+        archive.writestr("administratie.bacpac", "wrong checksum")
+    with ZipFile(older, "w") as archive:
+        archive.writestr(
+            "manifest.json",
+            json.dumps(
+                {
+                    "format": backup.ARCHIVE_FORMAT,
+                    "year": 2020,
+                    "through_date": "2020-12-31",
+                    "created_at": "2026-05-01T12:00:00+00:00",
+                    "files": {"audit_file.xaf": {"bytes": 1, "sha256": "0" * 64}},
+                }
+            ),
+        )
+        archive.writestr("audit_file.xaf", "archive payload")
+    corrupt.write_text("incomplete archive")
+    link.symlink_to(newer)
+    entries = backup.list_archives(store).archives
+    assert [entry.path for entry in entries] == [newer, older, corrupt]
+    assert entries[0].bacpac_included and entries[0].mcp_administration_id == UUID(ADMIN)
+    assert entries[0].through_date == date(2021, 10, 31)
+    assert not entries[1].bacpac_included
+    assert not entries[2].manifest_readable and entries[2].created_at is None
+    with pytest.raises(SnelStartError, match="Checksum mismatch"):
+        backup.verify_archive(store, newer.name)
 
 
 @pytest.mark.parametrize(

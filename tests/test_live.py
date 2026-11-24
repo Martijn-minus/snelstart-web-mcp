@@ -31,6 +31,9 @@ def test_stdio_handshake_reports_the_running_package_version(tmp_path):
         async with stdio_client(command) as (reader, writer), ClientSession(reader, writer) as mcp:
             protocol = await mcp.initialize()
             assert protocol.serverInfo.version == installed_version()
+            assert "snelstart_list_archives" in protocol.instructions
+            assert "snelstart_create_year_archive" in protocol.instructions
+            assert "snelstart_verify_archive" in protocol.instructions
 
     asyncio.run(check())
 

@@ -9,6 +9,8 @@ import httpx
 from rich.console import Console
 
 from .audit import AuditLog
+from .backup import list_archives
+from .browser_login import check_browser
 from .cli_output import (
     show_audit,
     show_har_import,
@@ -28,6 +30,53 @@ from .models.responses import ConnectionStatus, DoctorResponse, HarImportRespons
 from .updater import UpdateChecker, update_tool
 from .version import installed_version, version_label
 from .write_access import set_write_access
+
+
+def _doctor(client: Client, *, launch_browser: bool) -> DoctorResponse:
+    connection_error = None
+    administrations = []
+    try:
+        administrations = [
+            {"identifier": row.get("identifier"), "name": row.get("administrationName")}
+            for row in client.administrations()
+        ]
+    except SnelStartError as error:
+        connection_error = str(error)
+    except httpx.HTTPError:
+        connection_error = "SnelStart is unavailable. Try again later."
+
+    status = client.status()
+    selected_id = status["administration_id"]
+    selected_name = next(
+        (
+            row["name"]
+            for row in administrations
+            if selected_id and row["identifier"] == selected_id
+        ),
+        None,
+    )
+    audit_id = UUID(selected_id) if selected_id else None
+    audit_log = AuditLog(client.store)
+    try:
+        summary = audit_log.report(audit_id, 1).summary
+    except SnelStartError as error:
+        path = audit_log.path(audit_id)
+        summary = AuditSummary(database=path, exists=path.is_file(), error=str(error))
+    return DoctorResponse.model_validate(
+        {
+            **status,
+            "server_version": installed_version() or "unknown",
+            "connected": connection_error is None,
+            "connection_error": connection_error,
+            "administration_name": selected_name,
+            "administration_count": len(administrations),
+            "administrations": administrations,
+            "audit": summary,
+            "browser": check_browser(launch=launch_browser),
+            "backups": list_archives(client.store),
+            "update": UpdateChecker().check(),
+        }
+    )
 
 
 def main():
@@ -58,8 +107,13 @@ def main():
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("serve", help="Start the MCP server over stdio")
     commands.add_parser("status", parents=[output_options], help="Show the local sign-in profile")
-    commands.add_parser(
-        "doctor", parents=[output_options], help="Check the connection and list administrations"
+    doctor = commands.add_parser(
+        "doctor", parents=[output_options], help="Check the connection, Chrome and local backups"
+    )
+    doctor.add_argument(
+        "--check-browser",
+        action="store_true",
+        help="Briefly open and close a blank Chrome window to test browser sign-in readiness",
     )
     audit = commands.add_parser(
         "audit", parents=[output_options], help="Show local MCP audit history without signing in"
@@ -268,45 +322,21 @@ def main():
         elif args.command == "import-har":
             result = import_har(args.path, store, client.auth, args.save_password)
         elif args.command == "doctor":
-            administrations = [
-                {"identifier": row.get("identifier"), "name": row.get("administrationName")}
-                for row in client.administrations()
-            ]
-            result = client.status()
-            selected_id = result["administration_id"]
-            selected_name = next(
-                (
-                    row["name"]
-                    for row in administrations
-                    if selected_id is not None and row["identifier"] == selected_id
-                ),
-                None,
-            )
-            audit_id = UUID(selected_id) if selected_id else None
-            audit_log = AuditLog(store)
-            try:
-                summary = audit_log.report(audit_id, 1).summary
-            except SnelStartError as error:
-                path = audit_log.path(audit_id)
-                summary = AuditSummary(database=path, exists=path.is_file(), error=str(error))
-            result.update(
-                connected=True,
-                audit=summary,
-                server_version=installed_version() or "unknown",
-                update=UpdateChecker().check(),
-                administration_name=selected_name,
-                administration_count=len(administrations),
-                administrations=administrations,
-            )
-            result = DoctorResponse.model_validate(result).model_dump(mode="json")
+            report = _doctor(client, launch_browser=args.check_browser)
+            if json_output:
+                print(report.model_dump_json(indent=2))
+            else:
+                show_status(Console(), "Doctor", report)
+            if report.connection_error is not None:
+                print(report.connection_error, file=sys.stderr)
+                sys.exit(1)
+            return
         else:
             result = client.status()
         if json_output:
             print(json.dumps(result, indent=2))
         elif args.command == "import-har":
             show_har_import(Console(), HarImportResponse.model_validate(result))
-        elif args.command == "doctor":
-            show_status(Console(), "Doctor", DoctorResponse.model_validate(result))
         else:
             title = "Status" if args.command == "status" else "Signed in"
             show_status(Console(), title, ConnectionStatus.model_validate(result))

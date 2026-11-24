@@ -1,11 +1,13 @@
 """MCP and CLI output contracts."""
 
+from datetime import date
 from pathlib import Path
 from typing import Generic, Literal, TypeVar
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr
 
+from ..enums import BrowserStatus
 from . import ArchiveManifest, Sha256
 from .api import OperationSpec
 from .audit import AuditSummary
@@ -62,9 +64,23 @@ class DownloadResponse(BaseModel):
 class ArchiveListEntry(BaseModel):
     archive: str
     path: Path
+    year: int
+    through_date: date | None = None
+    created_at: AwareDatetime | None = None
+    mcp_administration_id: UUID | None = None
+    bacpac_included: bool | None = None
+    manifest_readable: bool
 
 
-class VerifiedArchiveResponse(ArchiveManifest, ArchiveListEntry):
+class ArchiveInventory(BaseModel):
+    directory: Path
+    archives: list[ArchiveListEntry] = Field(default_factory=list)
+    error: str | None = None
+
+
+class VerifiedArchiveResponse(ArchiveManifest):
+    archive: str
+    path: Path
     verified: bool
 
 
@@ -94,12 +110,20 @@ class AdministrationSummary(BaseModel):
     name: str | None
 
 
+class BrowserCheck(BaseModel):
+    status: BrowserStatus
+    message: str
+
+
 class DoctorResponse(ConnectionStatus):
     connected: bool
+    connection_error: str | None = None
     administration_name: str | None
     administration_count: int
     administrations: list[AdministrationSummary]
     audit: AuditSummary
+    browser: BrowserCheck
+    backups: ArchiveInventory
 
 
 class ToolUpdateResponse(BaseModel):

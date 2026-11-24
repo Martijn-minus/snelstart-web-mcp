@@ -32,6 +32,11 @@ class AuditedMCP(FastMCP):
                 "Recorded balances do not prove payment. Write only on an explicit request "
                 "and verify the record before and after any change. Never request or display "
                 "credentials. The audit log records tool calls and their outcomes. "
+                "Local year backups are available. When the user mentions backups or year-end "
+                "work, point out snelstart_list_archives and snelstart_create_year_archive. "
+                "Offer a backup before significant bookkeeping changes. "
+                "Create an archive on request and use snelstart_verify_archive to check its files. "
+                "An MCP export covers its declared scope; restoring in SnelStart 12 requires a native BACPAC. "
                 "If snelstart_status reports an available update, tell the user. Updates are applied locally."
             ),
             log_level="WARNING",

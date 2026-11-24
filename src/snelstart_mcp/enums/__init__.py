@@ -8,6 +8,14 @@ class LoginMethod(StrEnum):
     BROWSER = "browser"
 
 
+class BrowserStatus(StrEnum):
+    MISSING_EXTRA = "missing_extra"
+    CHROME_NOT_FOUND = "chrome_not_found"
+    DETECTED = "detected"
+    READY = "ready"
+    LAUNCH_FAILED = "launch_failed"
+
+
 class OAuthGrant(StrEnum):
     AUTHORIZATION_CODE = "authorization_code"
     REFRESH_TOKEN = "refresh_token"

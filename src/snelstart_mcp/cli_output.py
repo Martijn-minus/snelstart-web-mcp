@@ -8,9 +8,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .enums import UpdateStatus, WriteMode
+from .enums import BrowserStatus, UpdateStatus, WriteMode
 from .models.audit import AuditReport, AuditSummary
 from .models.responses import (
+    ArchiveInventory,
     ConnectionStatus,
     DoctorResponse,
     HarImportResponse,
@@ -71,6 +72,39 @@ def _audit_summary(console: Console, summary: AuditSummary) -> None:
     console.print(fields)
 
 
+def _backup_summary(console: Console, backups: ArchiveInventory) -> None:
+    console.print(f"\nLocal backups ({len(backups.archives)})", style="bold")
+    console.print(_literal(backups.directory, "dim"))
+    if backups.error:
+        console.print(_literal(backups.error, "yellow"))
+        return
+    if not backups.archives:
+        console.print("No year backups in this profile.", style="dim")
+        return
+
+    table = Table(box=None, padding=(0, 1))
+    table.add_column("Year", no_wrap=True)
+    table.add_column("Through", no_wrap=True)
+    table.add_column("Created", no_wrap=True)
+    table.add_column("Contents")
+    for archive in backups.archives:
+        contents = (
+            "Unreadable manifest"
+            if not archive.manifest_readable
+            else "Native BACPAC included"
+            if archive.bacpac_included
+            else "Year archive"
+        )
+        table.add_row(
+            str(archive.year),
+            str(archive.through_date or "—"),
+            _audit_time(archive.created_at.isoformat()) if archive.created_at else "Unavailable",
+            contents,
+        )
+    console.print(table)
+    console.print("Use snelstart_verify_archive to check file integrity.", style="dim")
+
+
 def show_audit(console: Console, report: AuditReport) -> None:
     _heading(console, "Audit history")
     console.print(_literal(report.administration_id or "Profile · no administration selected"))
@@ -122,8 +156,11 @@ def _write_scope(global_access: bool, scoped_access: bool) -> Text:
 
 def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
     _heading(console, title)
-    if isinstance(status, DoctorResponse) and status.connected:
-        console.print("Connected to SnelStart", style="bold green")
+    if isinstance(status, DoctorResponse):
+        if status.connected:
+            console.print("Connected to SnelStart", style="bold green")
+        else:
+            console.print("Could not connect to SnelStart", style="bold yellow")
     elif not status.configured:
         console.print("Sign-in required", style="bold yellow")
     console.print()
@@ -143,6 +180,15 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
     if profile.is_relative_to(Path.home()):
         profile = Path("~") / profile.relative_to(Path.home())
     fields.add_row("Profile", _literal(profile))
+    if isinstance(status, DoctorResponse):
+        browser_style = (
+            "green"
+            if status.browser.status is BrowserStatus.READY
+            else ""
+            if status.browser.status is BrowserStatus.DETECTED
+            else "yellow"
+        )
+        fields.add_row("Chrome sign-in", _literal(status.browser.message, browser_style))
     if status.update is not None:
         update_style = "bold yellow" if status.update.status is UpdateStatus.AVAILABLE else ""
         fields.add_row("Updates", _literal(status.update.message, update_style))
@@ -163,6 +209,7 @@ def show_status(console: Console, title: str, status: ConnectionStatus) -> None:
         console.print("\nAudit log", style="bold")
         _audit_summary(console, status.audit)
         console.print("Recent calls: snelstart-mcp audit", style="dim")
+        _backup_summary(console, status.backups)
 
     if not status.configured:
         console.print("\nSign in with: snelstart-mcp login --method browser", style="dim")

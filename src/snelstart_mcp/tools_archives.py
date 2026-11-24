@@ -2,6 +2,7 @@ from mcp.types import ToolAnnotations
 
 from .backup import create_archive, list_archives, unpack_archive, verify_archive
 from .client import Client
+from .config import SnelStartError
 from .models.requests import ArchiveCreateRequest, ArchiveRequest
 from .models.responses import (
     ArchiveListEntry,
@@ -43,10 +44,11 @@ def register_archive_tools(tool: Register, client: Client) -> None:
         annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
     )
     def snelstart_list_archives() -> DataResponse[list[ArchiveListEntry]]:
-        """List the available local archives, most recent first."""
-        return DataResponse[list[ArchiveListEntry]].model_validate(
-            {"data": list_archives(client.store)}
-        )
+        """List local year backups with their creation date and scope. Use the verify tool to check file checksums."""
+        inventory = list_archives(client.store)
+        if inventory.error:
+            raise SnelStartError(inventory.error)
+        return DataResponse(data=inventory.archives)
 
     @tool(
         annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=False, openWorldHint=False)

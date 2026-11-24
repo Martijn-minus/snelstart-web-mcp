@@ -9,7 +9,8 @@ from snelstart_mcp.audit import AuditLog
 from snelstart_mcp.cli import main
 from snelstart_mcp.client import Client
 from snelstart_mcp.config import Store
-from snelstart_mcp.enums import AuditOutcome, LoginMethod
+from snelstart_mcp.enums import AuditOutcome, BrowserStatus, LoginMethod
+from snelstart_mcp.models.responses import BrowserCheck
 
 ADMIN = "11111111-1111-4111-8111-111111111111"
 OPERATION = "POST /MemoriaalBoekingen/Create"
@@ -105,16 +106,29 @@ def test_cli_requires_disabling_global_writes_before_granting_scope(command, cap
 
 
 def test_cli_doctor_hides_transport_error_details(command, monkeypatch, capsys):
-    _, run = command
+    profile, run = command
 
     def unavailable(self):
         raise httpx.ConnectError("private token")
 
     monkeypatch.setattr(Client, "administrations", unavailable)
+    launches = []
+
+    def browser_check(*, launch):
+        launches.append(launch)
+        return BrowserCheck(status=BrowserStatus.READY, message="Chrome opened and closed.")
+
+    monkeypatch.setattr("snelstart_mcp.cli.check_browser", browser_check)
     with pytest.raises(SystemExit) as error:
-        run("doctor")
+        run("doctor", "--check-browser")
     assert error.value.code == 1
-    assert capsys.readouterr().err == "SnelStart is unavailable. Try again later.\n"
+    captured = capsys.readouterr()
+    assert captured.err == "SnelStart is unavailable. Try again later.\n"
+    report = json.loads(captured.out)
+    assert not report["connected"] and "private token" not in captured.out
+    assert report["browser"]["status"] == "ready" and launches == [True]
+    assert report["backups"]["archives"] == []
+    assert not (profile / "backups").exists()
 
 
 def test_cli_serve_starts_the_stdio_transport(command, monkeypatch):
@@ -181,6 +195,8 @@ def test_cli_doctor_prefers_text_in_the_terminal_and_accepts_json_override(
     output = capsys.readouterr().out
     assert "Connected to SnelStart" in output
     assert "Audit log" in output
+    assert "Chrome sign-in" in output
+    assert "Local backups (0)" in output
     assert "Global · all eligible operations" in output
     assert "Selected [bold] fixture  · Selected" in output
     assert OTHER in output and "Administrations (2)" in output

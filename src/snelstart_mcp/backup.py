@@ -13,12 +13,14 @@ from pathlib import Path
 from uuid import uuid4
 from xml.etree import ElementTree
 from zipfile import ZIP_DEFLATED, BadZipFile, ZipFile
+from zlib import error as DecompressionError
 
 from .client import Client
 from .config import SnelStartError, Store
 from .dates import AMSTERDAM
 from .enums import ArchiveFormat
 from .models import ArchiveManifest
+from .models.responses import ArchiveInventory, ArchiveListEntry
 from .year_data import DATASETS, collect
 
 ARCHIVE_NAME = re.compile(r"snelstart-(\d{4})-[a-f0-9]{32}\.zip")
@@ -35,6 +37,16 @@ ARCHIVE_MEMBERS = {f"{kind}{suffix}" for kind, suffix in OFFICIAL_FORMATS.items(
 }
 ARCHIVE_FORMAT = ArchiveFormat.YEAR_ARCHIVE_V2
 LEGACY_ARCHIVE = json.loads(files("snelstart_mcp").joinpath("legacy_archive.json").read_text())
+NATIVE_BACKUP_MEMBERS = {"administration_backup.bacpac", LEGACY_ARCHIVE["native_backup_member"]}
+INVALID_ARCHIVE = (
+    BadZipFile,
+    ValueError,
+    KeyError,
+    TypeError,
+    RuntimeError,
+    AttributeError,
+    DecompressionError,
+)
 
 
 def _legacy_manifest(raw: dict) -> dict:
@@ -258,31 +270,35 @@ def _verified(store: Store, name: str, destination: Path | None = None) -> dict:
     return {**manifest, "path": str(path), "archive": name, "verified": True}
 
 
+def _read_manifest(archive: ZipFile, year: int) -> tuple[dict, ArchiveManifest]:
+    entries = archive.namelist()
+    if (
+        len(entries) != len(set(entries))
+        or archive.getinfo("manifest.json").file_size > 65536
+        or sum(info.file_size for info in archive.infolist()) > MAX_ARCHIVE
+    ):
+        raise SnelStartError("Invalid archive manifest.")
+    manifest = json.loads(archive.read("manifest.json"))
+    allowed_members = ARCHIVE_MEMBERS
+    if isinstance(manifest, dict) and manifest.get("format") == LEGACY_ARCHIVE["version"]:
+        manifest = _legacy_manifest(manifest)
+        allowed_members = set(LEGACY_ARCHIVE["files"])
+    parsed = ArchiveManifest.model_validate(manifest)
+    if (
+        parsed.year != year
+        or parsed.through_date.year != year
+        or not parsed.files.keys() <= allowed_members
+        or set(entries) != {*parsed.files, "manifest.json"}
+    ):
+        raise SnelStartError("The archive contents do not match its manifest.")
+    return manifest, parsed
+
+
 def _read_verified(path: Path, year: int, destination: Path | None = None) -> dict:
     try:
         with ZipFile(path) as archive:
-            entries = archive.namelist()
-            if (
-                len(entries) != len(set(entries))
-                or archive.getinfo("manifest.json").file_size > 65536
-                or sum(info.file_size for info in archive.infolist()) > MAX_ARCHIVE
-            ):
-                raise SnelStartError("Invalid archive manifest.")
-            manifest = json.loads(archive.read("manifest.json"))
-            allowed_members = ARCHIVE_MEMBERS
-            if isinstance(manifest, dict) and manifest.get("format") == LEGACY_ARCHIVE["version"]:
-                manifest = _legacy_manifest(manifest)
-                allowed_members = set(LEGACY_ARCHIVE["files"])
-            parsed = ArchiveManifest.model_validate(manifest)
-            files = parsed.files
-            if (
-                parsed.year != year
-                or parsed.through_date.year != year
-                or not files.keys() <= allowed_members
-                or set(entries) != {*files, "manifest.json"}
-            ):
-                raise SnelStartError("The archive contents do not match its manifest.")
-            for member, expected in files.items():
+            manifest, parsed = _read_manifest(archive, year)
+            for member, expected in parsed.files.items():
                 with archive.open(member) as stream:
                     if destination:
                         fd = os.open(
@@ -295,15 +311,7 @@ def _read_verified(path: Path, year: int, destination: Path | None = None) -> di
                 if observed != expected.model_dump():
                     raise SnelStartError(f"Checksum mismatch for {member}.")
         return manifest
-    except (
-        BadZipFile,
-        ValueError,
-        KeyError,
-        TypeError,
-        RuntimeError,
-        AttributeError,
-        NotImplementedError,
-    ):
+    except INVALID_ARCHIVE:
         raise SnelStartError("The year archive is corrupt or has an unknown format.") from None
 
 
@@ -311,14 +319,48 @@ def verify_archive(store: Store, name: str) -> dict:
     return _verified(store, name)
 
 
-def list_archives(store: Store) -> list[dict]:
-    directory = Store(store.directory / "backups").directory
-    archives = [
-        (path.stat().st_mtime, {"archive": path.name, "path": str(path)})
-        for path in directory.iterdir()
-        if ARCHIVE_NAME.fullmatch(path.name) and path.is_file() and not path.is_symlink()
-    ]
-    return [item for _, item in sorted(archives, key=lambda entry: entry[0], reverse=True)]
+def list_archives(store: Store) -> ArchiveInventory:
+    directory = store.directory / "backups"
+    if directory.is_symlink():
+        return ArchiveInventory(directory=directory, error="The backups folder is a symbolic link.")
+    try:
+        candidates = list(directory.iterdir())
+    except FileNotFoundError:
+        candidates = []
+    except OSError:
+        return ArchiveInventory(
+            directory=directory, error="Could not read the local backups folder."
+        )
+
+    entries = []
+    for path in candidates:
+        match = ARCHIVE_NAME.fullmatch(path.name)
+        if match is None or path.is_symlink() or not path.is_file():
+            continue
+        year = int(match[1])
+        try:
+            with ZipFile(path) as archive:
+                manifest, parsed = _read_manifest(archive, year)
+            entry = ArchiveListEntry.model_validate(
+                {
+                    "archive": path.name,
+                    "path": path,
+                    "year": year,
+                    "through_date": parsed.through_date,
+                    "created_at": manifest.get("created_at"),
+                    "mcp_administration_id": manifest.get("mcp_administration_id"),
+                    "bacpac_included": bool(NATIVE_BACKUP_MEMBERS & parsed.files.keys()),
+                    "manifest_readable": True,
+                }
+            )
+        except (SnelStartError, OSError, *INVALID_ARCHIVE):
+            entry = ArchiveListEntry(
+                archive=path.name, path=path, year=year, manifest_readable=False
+            )
+        entries.append(entry)
+    oldest = datetime.min.replace(tzinfo=UTC)
+    entries.sort(key=lambda item: (item.created_at or oldest, item.archive), reverse=True)
+    return ArchiveInventory(directory=directory, archives=entries)
 
 
 def unpack_archive(store: Store, name: str) -> dict:
@@ -334,8 +376,7 @@ def unpack_archive(store: Store, name: str) -> dict:
         "directory": str(target),
         "restore_instructions": (
             "Use the BACPAC file with the restore backup option in SnelStart 12."
-            if "administration_backup.bacpac" in manifest["files"]
-            or LEGACY_ARCHIVE["native_backup_member"] in manifest["files"]
+            if NATIVE_BACKUP_MEMBERS & manifest["files"].keys()
             else "This year archive does not contain a native administration backup."
         ),
     }

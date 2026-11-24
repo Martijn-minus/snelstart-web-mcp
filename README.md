@@ -35,6 +35,8 @@ The script checks for Python 3.11 or newer, including Homebrew and the Python su
 
 Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
 
+`snelstart-mcp doctor` checks the browser extra and detects Chrome. Run `snelstart-mcp doctor --check-browser` to briefly open and close a blank Chrome window with the same settings as browser sign-in. The Chrome check and local backup overview also appear if the SnelStart connection fails.
+
 For GitHub main builds, use `uv tool install 'snelstart-web-mcp[browser] @ git+https://github.com/Martijn-minus/snelstart-web-mcp.git'`.
 
 ## Optional bookkeeping skills
@@ -263,7 +265,7 @@ ICP returns are available through `snelstart_read` with `GET /IcpAangiftes/GetIc
 | Tool | What it does |
 | --- | --- |
 | `snelstart_create_year_archive` | Creates a local, checksummed archive of a year's supported data and any supplied official files. |
-| `snelstart_list_archives` | Lists local archive names and paths. |
+| `snelstart_list_archives` | Lists local year archives with their creation date, through date and whether a native BACPAC is included. |
 | `snelstart_verify_archive` | Validates the manifest, allowed archive members, sizes and SHA-256 checksums. |
 | `snelstart_extract_archive` | Verifies and extracts an archive into a new private local folder. |
 
@@ -301,6 +303,8 @@ uv run snelstart-mcp writes off
 A grant stays active until revoked. It applies to every record covered by the operation in that administration, across MCP clients sharing the profile. `writes off` disables global writing and clears all grants. The legacy `writes on` switch enables all eligible operations across the profile, subject to the SnelStart account's permissions. The server sends a failed write only once. Client-side confirmations are managed separately.
 
 ## Year archives
+
+The MCP mentions local backups when you ask about backups or year-end work and can create and verify them on request. `snelstart-mcp doctor` lists the local backups for the current profile, with their creation time, through date and whether a native BACPAC is included. Use `doctor --json` or `snelstart_list_archives` for archive filenames and paths. The inventory reads manifests. Use `snelstart_verify_archive` to check file integrity.
 
 Call `snelstart_create_year_archive` with `year` and `through_date`. Supply `official_zip_path` to include the original audit file and attachments downloaded from SnelStart Web. Separate source files can be supplied as `auditfile_path`, `attachments_zip_path` and `bacpac_path`. Set `live_export: false` to package files without reading the administration.
 
