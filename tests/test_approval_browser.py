@@ -78,6 +78,7 @@ def test_mcp_opens_exact_batch_and_local_browser_approves_only_selected_requests
             rendered = browser.get(url)
             assert rendered.status_code == 200
             assert rendered.headers["cache-control"] == "no-store"
+            assert rendered.headers["referrer-policy"] == "same-origin"
             assert "frame-ancestors 'none'" in rendered.headers["content-security-policy"]
             assert "Amount &lt; review threshold" in rendered.text
             assert str(first) in rendered.text and str(second) in rendered.text
