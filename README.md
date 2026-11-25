@@ -228,7 +228,9 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
 | `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
 
-For an exact purchase invoice search, pass `invoice_number` as a string and keep any leading zeros. If an all-digit `query` returns zero native matches, the MCP also tries the exact search. Exact searches read checked pages for the selected dates and apply `skip` and `take` after filtering. Narrow the date range if it exceeds the exact-search limit.
+Purchase searches check the upstream total and row IDs, then sort by invoice date (newest first) and row ID before applying `skip` and `take`. If SnelStart repeats a row, the MCP tries retrieving shorter date ranges and checks their combined count and IDs. It returns an error if it cannot verify complete results. Each scan is limited to 5,000 rows and 64 upstream requests. Narrow the date range or search term if coverage fails.
+
+For an exact purchase invoice search, pass `invoice_number` as a string and keep any leading zeros. If an all-digit `query` returns zero native matches, the MCP also tries the exact search. The exact reference and `review_only` filters are applied before `skip` and `take`.
 
 With `review_only: true`, the MCP reads checked pages and includes rows with `isTeControlerenInkoop: true`. It reports the filtered total and applies `skip` and `take` to the marked rows. Narrow the date range if it exceeds the checked-search limit.
 

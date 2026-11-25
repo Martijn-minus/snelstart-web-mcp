@@ -16,7 +16,21 @@ DATASETS = frozenset(item.value for item in ArchiveDataset)
 BANK_JOURNALS = "GET /KasBankBoeking/GetKasEnBankDagboeken"
 BANK_ENTRIES = "GET /KasBankBoeking/GetKasBankBoekingenWithTimespan"
 PURCHASE_SEARCH = "GET /Purchases/SearchAllInkopen"
+PURCHASE_ROW_KEYS = ("publicIdentifier", "factuurnummeridentifier")
 MAX_EXPORT_ROWS = 100_000
+
+
+class DuplicatePageRow(SnelStartError):
+    def __init__(self, operation: str, total: int):
+        super().__init__(f"Missing or duplicate row ID while exporting {operation}.")
+        self.total = total
+
+
+def _row_key(row: JsonObject, key_fields: tuple[str, ...]) -> tuple[str, str] | None:
+    return next(
+        ((field, str(row[field])) for field in key_fields if row.get(field) not in (None, "", 0)),
+        None,
+    )
 
 
 def pages(
@@ -28,17 +42,12 @@ def pages(
     *,
     size_param="take",
     max_rows: int = MAX_EXPORT_ROWS,
-    max_pages: int | None = None,
 ):
     rows, keys = [], set()
     expected = None
-    page_count = 0
     while len(rows) <= max_rows:
-        if max_pages is not None and page_count >= max_pages:
-            raise SnelStartError(f"Too many pages for {operation}. Narrow the date range.")
         query = {**params, "skip": len(rows), size_param: 100}
         result = request(operation, query, body)
-        page_count += 1
         try:
             page = ApiPage.model_validate(result)
         except ValidationError:
@@ -52,11 +61,11 @@ def pages(
             )
         expected = total
         for row in chunk:
-            key = next(
-                ((k, str(row[k])) for k in key_fields if row.get(k) not in (None, "", 0)), None
-            )
-            if key is None or key in keys:
+            key = _row_key(row, key_fields)
+            if key is None:
                 raise SnelStartError(f"Missing or duplicate row ID while exporting {operation}.")
+            if key in keys:
+                raise DuplicatePageRow(operation, total)
             keys.add(key)
             rows.append(row)
         if len(rows) == total:
@@ -127,16 +136,55 @@ def purchases_between(
     max_rows: int = MAX_EXPORT_ROWS,
     max_pages: int | None = None,
 ) -> list[JsonObject]:
-    first, last = _server_window(start, end)
-    purchases = pages(
-        request,
-        PURCHASE_SEARCH,
-        purchase_search_parameters(first, last, query=query),
-        ("publicIdentifier", "factuurnummeridentifier"),
-        max_rows=max_rows,
-        max_pages=max_pages,
+    page_count = 0
+
+    def read(operation: str, params: JsonObject, body):
+        nonlocal page_count
+        if max_pages is not None and page_count >= max_pages:
+            raise SnelStartError("Too many pages for the purchase search. Narrow the date range.")
+        page_count += 1
+        return request(operation, params, body)
+
+    def collect_period(first: date, last: date) -> list[JsonObject]:
+        try:
+            return pages(
+                read,
+                PURCHASE_SEARCH,
+                purchase_search_parameters(*window(first, last), query=query),
+                PURCHASE_ROW_KEYS,
+                max_rows=max_rows,
+            )
+        except DuplicatePageRow as error:
+            if first == last:
+                raise SnelStartError(
+                    f"SnelStart returned duplicate purchases on {first}. "
+                    "Narrow the search with a supplier or search term."
+                ) from None
+            expected = error.total
+
+        # A date tie at an offset boundary can move a row between responses.
+        middle = first + (last - first) // 2
+        rows = collect_period(first, middle) + collect_period(middle + timedelta(days=1), last)
+        if (
+            len(rows) != expected
+            or len({_row_key(row, PURCHASE_ROW_KEYS) for row in rows}) != expected
+        ):
+            raise SnelStartError(
+                "SnelStart could not verify complete purchase pagination across date ranges. "
+                "Narrow the date range."
+            )
+        return rows
+
+    purchases = collect_period(start - timedelta(days=1), end + timedelta(days=1))
+    result = entries_in_period(purchases, start, end, "factuurdatum")
+    # Use the same order even when SnelStart returns equal-date rows differently.
+    return sorted(
+        result,
+        key=lambda row: (
+            -booking_date(str(row["factuurdatum"])).toordinal(),
+            _row_key(row, PURCHASE_ROW_KEYS) or ("", ""),
+        ),
     )
-    return entries_in_period(purchases, start, end, "factuurdatum")
 
 
 def bank_entries_between(

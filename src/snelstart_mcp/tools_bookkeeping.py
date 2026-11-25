@@ -34,7 +34,7 @@ from .models.requests import (
 )
 from .models.responses import DataResponse, DownloadResponse, JsonResponse
 from .tooling import READ, Register
-from .year_data import PURCHASE_SEARCH, purchase_search_parameters, purchases_between
+from .year_data import purchases_between
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
@@ -116,16 +116,6 @@ def read_purchase_page(read, request: PurchaseSearchRequest) -> ApiPage:
     invoice_number = request.invoice_number
     query = request.query.strip()
     numeric_query = query.isascii() and query.isdecimal()
-    if invoice_number is None and not request.review_only:
-        start, end = window(request.start_date, request.through_date)
-        parameters = purchase_search_parameters(start, end, query=request.query)
-        page = ApiPage.model_validate(
-            read(PURCHASE_SEARCH, parameters | {"skip": request.skip, "take": request.take})
-        )
-        if page.totalMatchCount or not numeric_query:
-            return page
-        invoice_number = query
-
     if request.start_date.year < 1900 or request.through_date.year > 9998:
         raise SnelStartError("Choose dates from 1900 through 9998 for checked purchase searches.")
     scan = partial(
@@ -240,7 +230,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_search_purchases(request: PurchaseSearchRequest) -> DataResponse[ApiPage]:
-        """Search purchases in an inclusive date range. Use invoice_number for an exact reference and review_only to list marked entries."""
+        """Search purchases with checked pagination in an inclusive date range. Use invoice_number for an exact reference and review_only to list marked entries. Narrow the date range if coverage cannot be verified."""
         return DataResponse(data=read_purchase_page(client.request, request))
 
     @tool(annotations=READ)

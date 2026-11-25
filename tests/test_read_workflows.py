@@ -1,7 +1,7 @@
 import asyncio
 import json
 import stat
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from hashlib import sha256
 from pathlib import Path
 from uuid import UUID
@@ -416,14 +416,23 @@ def test_generic_read_rejects_missing_sales_booking_identifiers_before_contactin
 @pytest.mark.parametrize(
     ("day", "start", "end"),
     [
-        ("2025-12-31", "2025-12-30T23:00:00.000+00:00", "2025-12-31T22:59:59.999+00:00"),
-        ("2026-03-29", "2026-03-28T23:00:00.000+00:00", "2026-03-29T21:59:59.999+00:00"),
+        ("2025-12-31", "2025-12-29T23:00:00.000+00:00", "2026-01-01T22:59:59.999+00:00"),
+        ("2026-03-29", "2026-03-27T23:00:00.000+00:00", "2026-03-30T21:59:59.999+00:00"),
     ],
 )
 def test_purchase_query_preserves_local_boundaries_across_dst(session, day, start, end):
     client, requests, replies = session
     path = "/Purchases/SearchAllInkopen"
-    replies[path] = {"resultList": [{"factuurdatum": day}], "totalMatchCount": 1}
+    replies[path] = {
+        "totalMatchCount": 2,
+        "resultList": [
+            {"publicIdentifier": "wanted", "factuurdatum": day},
+            {
+                "publicIdentifier": "outside",
+                "factuurdatum": (date.fromisoformat(day) - timedelta(days=1)).isoformat(),
+            },
+        ],
+    }
     result = call(
         client,
         "snelstart_search_purchases",
@@ -574,19 +583,84 @@ def test_exact_purchase_search_accepts_formatted_reference_and_rejects_dual_filt
 
 
 @pytest.mark.parametrize(("query", "count"), [("Supplier", 0), ("1234", 1)])
-def test_purchase_text_search_keeps_native_results_without_an_extra_scan(session, query, count):
+def test_purchase_text_search_keeps_native_matches_without_a_local_fallback(session, query, count):
     client, requests, replies = session
     route = "/Purchases/SearchAllInkopen"
-    replies[route] = {"resultList": [], "totalMatchCount": count}
+    rows = [{"publicIdentifier": "purchase", "factuurdatum": "2024-01-02"}] if count else []
+    replies[route] = {"resultList": rows, "totalMatchCount": count}
     result = call(
         client,
         "snelstart_search_purchases",
         {"query": query, "start_date": "2024-01-01", "through_date": "2024-02-01", "skip": 1},
     )["data"]
     assert result["totalMatchCount"] == count
+    assert result["resultList"] == []
     assert [
         request.url.params["searchTerm"] for request in requests if request.url.path == route
     ] == [query]
+
+
+def test_purchase_search_recovers_missing_row_and_stabilizes_ties_across_calls(session):
+    client, _, replies = session
+    route = "/Purchases/SearchAllInkopen"
+    dates = ["2023-10-01"] * 99 + ["2023-08-15"] * 2 + ["2023-02-01"] * 163
+    rows = [
+        {"publicIdentifier": f"purchase-{i:03}", "factuurdatum": day} for i, day in enumerate(dates)
+    ]
+    full_reads = 0
+
+    def search(request):
+        nonlocal full_reads
+        params = request.url.params
+        first = year_data.booking_date(params["startDate"])
+        last = year_data.booking_date(params["dateUntil"])
+        skip = int(params["skip"])
+        take = int(params["take"])
+        matches = [row for row in rows if first <= date.fromisoformat(row["factuurdatum"]) <= last]
+        if len(matches) == len(rows):
+            if not skip:
+                full_reads += 1
+            if full_reads % 2 == 0 or skip:
+                # Two invoices dated August 15 swap places between upstream pages.
+                matches[99], matches[100] = matches[100], matches[99]
+        elif len(matches) == 101:
+            matches[-2], matches[-1] = matches[-1], matches[-2]
+        return {"totalMatchCount": len(matches), "resultList": matches[skip : skip + take]}
+
+    replies[route] = search
+    params = {"start_date": "2023-01-01", "through_date": "2023-12-31", "take": 100}
+    pages = [
+        call(client, "snelstart_search_purchases", params | {"skip": skip})["data"]
+        for skip in (0, 100, 200)
+    ]
+    assert full_reads == 3
+    assert [page["totalMatchCount"] for page in pages] == [264, 264, 264]
+    assert [row for page in pages for row in page["resultList"]] == rows
+
+
+def test_purchase_search_fails_when_a_single_day_remains_incomplete(session):
+    client, _, replies = session
+    route = "/Purchases/SearchAllInkopen"
+    day = date(2024, 2, 29)
+    row = {"publicIdentifier": "duplicated", "factuurdatum": day.isoformat()}
+
+    def search(request):
+        params = request.url.params
+        if (
+            year_data.booking_date(params["startDate"])
+            <= day
+            <= year_data.booking_date(params["dateUntil"])
+        ):
+            return {"totalMatchCount": 2, "resultList": [row]}
+        return {"totalMatchCount": 0, "resultList": []}
+
+    replies[route] = search
+    with pytest.raises(ToolError, match="returned duplicate purchases on 2024-02-29"):
+        call(
+            client,
+            "snelstart_search_purchases",
+            {"start_date": day.isoformat(), "through_date": day.isoformat()},
+        )
 
 
 def test_exact_purchase_search_fails_when_complete_coverage_exceeds_the_bound(session):
