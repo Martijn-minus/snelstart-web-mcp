@@ -41,6 +41,12 @@ class EntryDetailResponse(DataResponse[JsonValue]):
     reason: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
+class AttachmentListResponse(DataResponse[list[JsonValue] | None]):
+    attachment_lookup_error: str | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+
+
 class ConnectionStatus(BaseModel):
     configured: bool
     automatic_login: bool

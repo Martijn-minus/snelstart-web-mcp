@@ -23,7 +23,6 @@ from .enums import (
     BookingLookupFailure,
     BookingLookupStatus,
     DocumentStatus,
-    EntryKind,
     InvoiceKind,
     ReconciliationStatus,
 )
@@ -115,11 +114,7 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
             status, reason = BookingLookupStatus.FAILED, str(error)
         except httpx.HTTPError:
             status, reason = BookingLookupStatus.FAILED, "SnelStart is unavailable."
-        if (
-            request.include_attachments
-            and status is BookingLookupStatus.FOUND
-            and ref.kind is not EntryKind.OPENING_BALANCE
-        ):
+        if request.include_attachments and status is BookingLookupStatus.FOUND:
             try:
                 linked = read_booking_attachments(read, AttachmentKind(ref.kind), ref.entry_id)
                 size = len(json.dumps(linked, ensure_ascii=False).encode())

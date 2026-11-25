@@ -44,6 +44,7 @@ from .models.requests import (
     YearEndRequest,
 )
 from .models.responses import (
+    AttachmentListResponse,
     BankEntryListEvidence,
     DataResponse,
     DownloadResponse,
@@ -78,6 +79,9 @@ ATTACHMENT_ROUTES = {
     AttachmentKind.JOURNAL: ("GET /MemoriaalBoekingen/GetAttachments", "publicIdentifier"),
 }
 ATTACHMENT_OPERATIONS = frozenset(operation for operation, _ in ATTACHMENT_ROUTES.values())
+OPENING_BALANCE_ATTACHMENTS_UNAVAILABLE = (
+    "Attachment lookup is unavailable for opening balance bookings through this MCP."
+)
 
 
 class PurchaseDetailRejected(SnelStartError):
@@ -252,6 +256,8 @@ def attachment_metadata(data: JsonValue) -> list[JsonValue]:
 
 
 def read_booking_attachments(read, kind: AttachmentKind, entry_id: UUID) -> list[JsonValue]:
+    if kind is AttachmentKind.OPENING_BALANCE:
+        raise SnelStartError(OPENING_BALANCE_ATTACHMENTS_UNAVAILABLE)
     operation, parameter = ATTACHMENT_ROUTES[kind]
     return attachment_metadata(read(operation, {parameter: str(entry_id)}))
 
@@ -508,11 +514,22 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         )
 
     @tool(annotations=READ)
-    def snelstart_list_attachments(request: AttachmentListRequest) -> JsonResponse:
-        """List linked files for a purchase, bank transaction or journal entry. Size and creation date can be placeholders. Download the file for its actual byte count and checksum."""
-        return JsonResponse(
-            data=read_booking_attachments(client.request, request.kind, request.entry_id)
-        )
+    def snelstart_list_attachments(request: AttachmentListRequest) -> AttachmentListResponse:
+        """List linked files for a purchase, bank transaction or journal entry. Opening balances report attachment lookup as unavailable. Download listed files for their actual byte count and checksum."""
+        if request.kind is AttachmentKind.OPENING_BALANCE:
+            return AttachmentListResponse(
+                data=None, attachment_lookup_error=OPENING_BALANCE_ATTACHMENTS_UNAVAILABLE
+            )
+        try:
+            data = read_booking_attachments(client.request, request.kind, request.entry_id)
+        except SnelStartHTTPError as error:
+            if request.kind is AttachmentKind.JOURNAL and error.status_code == 404:
+                raise SnelStartError(
+                    "The journal attachment lookup returned HTTP 404. Verify the booking ID and "
+                    "use kind opening_balance for an opening balance booking."
+                ) from None
+            raise
+        return AttachmentListResponse(data=data)
 
     @tool(annotations=READ)
     def snelstart_download_document(request: DocumentRequest) -> DownloadResponse:

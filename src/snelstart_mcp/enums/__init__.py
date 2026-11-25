@@ -145,6 +145,7 @@ class AttachmentKind(StrEnum):
     PURCHASE = "purchase"
     BANK = "bank"
     JOURNAL = "journal"
+    OPENING_BALANCE = "opening_balance"
 
 
 class SalesStatus(StrEnum):

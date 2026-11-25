@@ -266,7 +266,7 @@ def test_batch_checks_journal_attachments_even_when_detail_flag_is_false(app):
     assert all("attachments" not in row for row in default["entries"])
 
     checked = call("snelstart_get_entries", request | {"include_attachments": True})
-    assert checked["complete"] is True
+    assert checked["complete"] is False
     journal, purchase, bank, opening = checked["entries"]
     assert journal["details"] == detail
     assert journal["attachments"] == [
@@ -278,6 +278,9 @@ def test_batch_checks_journal_attachments_even_when_detail_flag_is_false(app):
         }
     ]
     assert purchase["attachments"] == bank["attachments"] == []
+    assert opening["status"] == "found"
+    assert opening["details"] == {"publicIdentifier": BOOKING}
+    assert "unavailable for opening balance" in opening["attachment_lookup_error"]
     assert "attachments" not in opening
     assert [
         (request.url.path, dict(request.url.params))
@@ -288,6 +291,24 @@ def test_batch_checks_journal_attachments_even_when_detail_flag_is_false(app):
         (purchase_attachments, {"journaalpostIdentifier": BOOKING}),
         (bank_attachments, {"journaalpostIdentifier": BOOKING}),
     ]
+
+
+def test_opening_balance_attachment_lookup_reports_unavailable_without_a_web_request(app):
+    call, _, _, seen = app
+    result = call("snelstart_list_attachments", {"kind": "opening_balance", "entry_id": BOOKING})
+    assert result["data"] is None
+    assert "unavailable for opening balance" in result["attachment_lookup_error"]
+    assert not seen
+
+
+def test_journal_attachment_404_keeps_failure_and_explains_opening_balance_kind(app):
+    call, _, handlers, _ = app
+    handlers["/MemoriaalBoekingen/GetAttachments"] = httpx.Response(404)
+    args = {"kind": "journal", "entry_id": BOOKING}
+    with pytest.raises(ToolError, match="HTTP 404.*kind opening_balance"):
+        call("snelstart_list_attachments", args)
+    handlers["/MemoriaalBoekingen/GetAttachments"] = []
+    assert call("snelstart_list_attachments", args) == {"data": []}
 
 
 @pytest.mark.parametrize("response", [httpx.Response(404), [{"publicIdentifier": INVOICE}]])
