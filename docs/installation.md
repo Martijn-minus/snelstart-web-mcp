@@ -133,7 +133,7 @@ The repository's [`.agents/skills`](../.agents/skills/) contains the source skil
 | `snelstart-tax` | VAT and ICP records, tax monitor inputs and filing boundaries. |
 | `snelstart-year-end` | Ledger exports, opening and closing balances and year-end evidence. |
 
-The [knowledge base coverage audit](knowledge-base-coverage.md) maps each indexed SnelStart Web article to the MCP and the relevant skills.
+The [coverage matrix](knowledge-base-coverage.md) maps relevant SnelStart Web bookkeeping workflows to MCP capabilities and skills.
 
 To install the package and skills together, pass `--with-skills codex` or `--with-skills claude-code` to the downloaded Bash installer. To register the MCP and install the skills in one command, use the CLI.
 

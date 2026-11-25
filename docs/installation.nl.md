@@ -106,7 +106,7 @@ De bronbestanden staan in [`.agents/skills`](../.agents/skills/). Codex kan ze v
 | `snelstart-tax` | Btw, ICP, belastingmonitor en aangiftecontroles. |
 | `snelstart-year-end` | Grootboekexports, begin- en eindbalansen en jaarafsluiting. |
 
-Het [dekkingsoverzicht van het Kennisplein](knowledge-base-coverage.md) koppelt elk geïndexeerd artikel aan de MCP en de relevante skills.
+Het [dekkingsoverzicht](knowledge-base-coverage.md) koppelt relevante boekhoudprocessen uit SnelStart Web aan de MCP en de skills.
 
 Kies `codex` of `claude-code`. De optie `--with-skills` registreert de MCP en installeert de skills. Gebruik `--skills-only` als de MCP al geregistreerd is. Laat `--apply` weg om de voorgestelde bestanden te bekijken. Een bestaande skill met afwijkende inhoud blijft behouden.
 
