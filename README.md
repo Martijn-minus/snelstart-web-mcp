@@ -230,6 +230,8 @@ The catalog records known Web API operations. Availability depends on the admini
 
 For an exact purchase invoice search, pass `invoice_number` as a string and keep any leading zeros. If an all-digit `query` returns zero native matches, the MCP also tries the exact search. Exact searches read checked pages for the selected dates and apply `skip` and `take` after filtering. Narrow the date range if it exceeds the exact-search limit.
 
+With `review_only: true`, the MCP reads checked pages and includes rows with `isTeControlerenInkoop: true`. It reports the filtered total and applies `skip` and `take` to the marked rows. Narrow the date range if it exceeds the checked-search limit.
+
 For an invoice review, search the period and open each purchase with `kind: "purchase"`. Pass the search row's `publicIdentifier` as `entry_id` and, when present, its `factuurnummeridentifier` as `purchase_invoice_id` to the single or batch booking tool. When the usual detail lookup returns HTTP 400, the MCP can use the invoice ID to retrieve and verify the same booking. A remaining `purchase_detail_rejected` failure leaves the batch incomplete. Use the search row as list-level evidence and report the missing detail. Read the attached invoice and recorded settlements where available. For lists with `skip` and `take`, advance through all pages before reporting a period total.
 
 Example purchase filter for entries flagged during November 2026.

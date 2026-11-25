@@ -93,7 +93,9 @@ class LedgerRequest(ThroughDateRequest):
 
 
 class PurchaseSearchRequest(PageRequest, DateRangeRequest):
-    review_only: bool = False
+    review_only: bool = Field(
+        default=False, description="Return only purchases marked for review in SnelStart."
+    )
     invoice_number: (
         Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=128)]
         | None

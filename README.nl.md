@@ -225,6 +225,8 @@ Vanuit de MCP geeft `snelstart_audit_log` de recente aanroepen voor de gekozen a
 
 Geef `invoice_number` als tekst op en behoud eventuele voorloopnullen. Levert een `query` met alleen cijfers via SnelStart nul resultaten op, dan probeert de MCP ook een exacte zoekactie. De MCP controleert alle pagina's binnen de gevraagde periode en past `skip` en `take` toe op de exacte treffers. Verklein de periode als de zoeklimiet wordt bereikt.
 
+Bij `review_only: true` leest de MCP gecontroleerde pagina's en neemt alleen rijen met `isTeControlerenInkoop: true` mee. De totaaltelling, `skip` en `take` hebben dan betrekking op de gemarkeerde inkopen. Verklein de periode als de zoeklimiet wordt bereikt.
+
 Gebruik bij inkopen `publicIdentifier` uit de zoekrij als `entry_id` en, als het aanwezig is, `factuurnummeridentifier` uit diezelfde rij als `purchase_invoice_id`. Dit werkt ook met `snelstart_get_entry`. Bij HTTP 400 op de gewone detailroute kan de MCP via het factuur-ID dezelfde boeking ophalen en beide ID's controleren. Als `purchase_detail_rejected` terugkomt, blijft de detailbatch onvolledig. De zoekrij kan nog als bewijs voor de lijstvelden dienen.
 
 `snelstart_mutation_receipts` en `snelstart-mcp audit` tonen de uitgevoerde schrijfoperatie, een beschikbaar boekings- of verwerkings-ID, controlesommen en de uitkomst. Een time-out blijft onopgelost. Met `snelstart_verify_mutation` kun je op basis van het `receipt_id` ondersteunde acties teruglezen, waaronder nieuw aangemaakte boekingen, geregistreerde verwijderingen en verwerkte inkoop-PDF’s. Andere acties controleer je aan de hand van de brongegevens. Een controle herhaalt de schrijfopdracht nooit.

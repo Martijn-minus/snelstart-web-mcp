@@ -415,7 +415,7 @@ def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_t
 
     def search(request):
         params = request.url.params
-        assert params["onlyTeControlerenInkopen"] == "true"
+        assert params["onlyTeControlerenInkopen"] == "false"
         if params["searchTerm"] == "001234":
             return {"resultList": [], "totalMatchCount": 0, "searchTerm": ""}
         assert params["searchTerm"] == ""
@@ -425,11 +425,13 @@ def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_t
                     "publicIdentifier": "first",
                     "factuurnummer": "001234",
                     "factuurdatum": "2024-02-29",
+                    "isTeControlerenInkoop": True,
                 },
                 {
                     "publicIdentifier": "different",
                     "factuurnummer": 1234,
                     "factuurdatum": "2024-02-15",
+                    "isTeControlerenInkoop": True,
                 },
             ],
             "2": [
@@ -437,11 +439,13 @@ def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_t
                     "publicIdentifier": "second",
                     "factuurnummer": "001234",
                     "factuurdatum": "2024-02-01",
+                    "isTeControlerenInkoop": True,
                 },
                 {
                     "publicIdentifier": "outside",
                     "factuurnummer": "001234",
                     "factuurdatum": "2024-01-31",
+                    "isTeControlerenInkoop": True,
                 },
             ],
         }
@@ -463,7 +467,12 @@ def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_t
     assert result == {
         "totalMatchCount": 2,
         "resultList": [
-            {"publicIdentifier": "second", "factuurnummer": "001234", "factuurdatum": "2024-02-01"}
+            {
+                "publicIdentifier": "second",
+                "factuurnummer": "001234",
+                "factuurdatum": "2024-02-01",
+                "isTeControlerenInkoop": True,
+            }
         ],
         "searchTerm": "001234",
     }
@@ -471,7 +480,47 @@ def test_numeric_purchase_query_filters_checked_pages_before_applying_skip_and_t
         (request.url.params["searchTerm"], request.url.params["skip"])
         for request in requests
         if request.url.path == route
-    ] == [("001234", "1"), ("", "0"), ("", "2")]
+    ] == [("001234", "0"), ("", "0"), ("", "2")]
+
+
+@pytest.mark.parametrize("query", ["", "Supplier"])
+def test_purchase_review_filter_counts_only_marked_rows_across_checked_pages(session, query):
+    client, requests, replies = session
+    route = "/Purchases/SearchAllInkopen"
+    drafts = [
+        {"publicIdentifier": "other-signal", "isBasisControleNodig": True},
+        {"publicIdentifier": "unmarked", "isTeControlerenInkoop": False},
+        {"publicIdentifier": "first-marked", "isTeControlerenInkoop": True},
+        {"publicIdentifier": "second-marked", "isTeControlerenInkoop": True},
+        {"publicIdentifier": "no-marker"},
+    ]
+    rows = [draft | {"factuurdatum": "2024-02-28"} for draft in drafts]
+
+    def search(request):
+        params = request.url.params
+        assert params["onlyTeControlerenInkopen"] == "false" and params["searchTerm"] == query
+        skip = int(params["skip"])
+        return {"resultList": rows[skip : skip + 2], "totalMatchCount": len(rows)}
+
+    replies[route] = search
+    result = call(
+        client,
+        "snelstart_search_purchases",
+        {
+            "query": query,
+            "start_date": "2024-02-01",
+            "through_date": "2024-02-29",
+            "review_only": True,
+            "skip": 1,
+            "take": 1,
+        },
+    )["data"]
+    assert result["totalMatchCount"] == 2 and result["resultList"] == [rows[3]]
+    assert [request.url.params["skip"] for request in requests if request.url.path == route] == [
+        "0",
+        "2",
+        "4",
+    ]
 
 
 def test_exact_purchase_search_accepts_formatted_reference_and_rejects_dual_filters(session):
@@ -957,7 +1006,7 @@ def test_purchase_review_filter_and_vat_details_use_read_routes(session):
     )
     assert reviews["data"]["resultList"] == []
     assert requests[-1].method == "GET"
-    assert requests[-1].url.params["onlyTeControlerenInkopen"] == "true"
+    assert requests[-1].url.params["onlyTeControlerenInkopen"] == "false"
 
     replies["/BtwAangiftes/GetAll"] = [{"id": 42}]
     replies["/BtwAangiftes/Get"] = {"id": 42, "fixture": True}

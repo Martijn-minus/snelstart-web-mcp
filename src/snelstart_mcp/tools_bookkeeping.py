@@ -1,4 +1,5 @@
 from datetime import date
+from functools import partial
 from uuid import UUID
 
 from pydantic import JsonValue, ValidationError
@@ -40,8 +41,8 @@ PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_DETAILS_BY_INVOICE = "GET /Purchases/GetByFactuurNummerIdentifier"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
 PURCHASE_ATTACHMENTS = "GET /Purchases/GetAttachmentsWithIdentifier"
-MAX_EXACT_PURCHASE_ROWS = 5_000
-MAX_EXACT_PURCHASE_PAGES = 64
+MAX_CHECKED_PURCHASE_ROWS = 5_000
+MAX_CHECKED_PURCHASE_PAGES = 64
 ENTRY_DETAILS = {
     EntryKind.PURCHASE: (PURCHASE_DETAILS, "journaalpostIdentifier"),
     EntryKind.JOURNAL: ("GET /MemoriaalBoekingen/GetDetails", "publicIdentifier"),
@@ -113,39 +114,47 @@ def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonOb
 
 def read_purchase_page(read, request: PurchaseSearchRequest) -> ApiPage:
     invoice_number = request.invoice_number
-    if invoice_number is None:
+    query = request.query.strip()
+    numeric_query = query.isascii() and query.isdecimal()
+    if invoice_number is None and not request.review_only:
         start, end = window(request.start_date, request.through_date)
-        parameters = purchase_search_parameters(
-            start, end, query=request.query, review_only=request.review_only
-        )
+        parameters = purchase_search_parameters(start, end, query=request.query)
         page = ApiPage.model_validate(
             read(PURCHASE_SEARCH, parameters | {"skip": request.skip, "take": request.take})
         )
-        query = request.query.strip()
-        if page.totalMatchCount or not (query.isascii() and query.isdecimal()):
+        if page.totalMatchCount or not numeric_query:
             return page
         invoice_number = query
 
     if request.start_date.year < 1900 or request.through_date.year > 9998:
-        raise SnelStartError("Choose dates from 1900 through 9998 for exact invoice searches.")
-    purchases = purchases_between(
+        raise SnelStartError("Choose dates from 1900 through 9998 for checked purchase searches.")
+    scan = partial(
+        purchases_between,
         read,
         request.start_date,
         request.through_date,
-        review_only=request.review_only,
-        max_rows=MAX_EXACT_PURCHASE_ROWS,
-        max_pages=MAX_EXACT_PURCHASE_PAGES,
+        max_rows=MAX_CHECKED_PURCHASE_ROWS,
+        max_pages=MAX_CHECKED_PURCHASE_PAGES,
     )
+    purchases = scan(query=request.query if invoice_number is None else "")
+    if not purchases and invoice_number is None and numeric_query:
+        invoice_number = query
+        purchases = scan()
+
     matches = []
     for row in purchases:
-        number = row.get("factuurnummer")
-        if type(number) in (int, str) and str(number).strip() == invoice_number:
-            matches.append(row)
+        if request.review_only and row.get("isTeControlerenInkoop") is not True:
+            continue
+        if invoice_number is not None:
+            number = row.get("factuurnummer")
+            if type(number) not in (int, str) or str(number).strip() != invoice_number:
+                continue
+        matches.append(row)
     return ApiPage.model_validate(
         {
             "totalMatchCount": len(matches),
             "resultList": matches[request.skip : request.skip + request.take],
-            "searchTerm": invoice_number,
+            "searchTerm": invoice_number if invoice_number is not None else request.query,
         }
     )
 
@@ -231,7 +240,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_search_purchases(request: PurchaseSearchRequest) -> DataResponse[ApiPage]:
-        """Search purchases in an inclusive date range. Use invoice_number for an exact invoice reference."""
+        """Search purchases in an inclusive date range. Use invoice_number for an exact reference and review_only to list marked entries."""
         return DataResponse(data=read_purchase_page(client.request, request))
 
     @tool(annotations=READ)

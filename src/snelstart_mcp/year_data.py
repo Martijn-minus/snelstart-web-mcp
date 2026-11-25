@@ -106,13 +106,11 @@ def sales_between(request, start: date, end: date) -> list[JsonObject]:
     return entries_in_period(sales, start, end, "invoiceDate", "date")
 
 
-def purchase_search_parameters(
-    first: str, last: str, *, query: str = "", review_only: bool = False
-) -> JsonObject:
+def purchase_search_parameters(first: str, last: str, *, query: str = "") -> JsonObject:
     return {
         "searchTerm": query,
         "paymentStatus": 0,
-        "onlyTeControlerenInkopen": review_only,
+        "onlyTeControlerenInkopen": False,
         "sortDataField": 0,
         "sortDescending": True,
         "startDate": first,
@@ -125,7 +123,7 @@ def purchases_between(
     start: date,
     end: date,
     *,
-    review_only: bool = False,
+    query: str = "",
     max_rows: int = MAX_EXPORT_ROWS,
     max_pages: int | None = None,
 ) -> list[JsonObject]:
@@ -133,7 +131,7 @@ def purchases_between(
     purchases = pages(
         request,
         PURCHASE_SEARCH,
-        purchase_search_parameters(first, last, review_only=review_only),
+        purchase_search_parameters(first, last, query=query),
         ("publicIdentifier", "factuurnummeridentifier"),
         max_rows=max_rows,
         max_pages=max_pages,
