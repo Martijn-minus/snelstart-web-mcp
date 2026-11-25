@@ -1,0 +1,123 @@
+# MCP tool reference
+
+[Back to the quick start](../README.md) · [Nederlands](tools.nl.md)
+
+See [year archives and offline access](backups.md) for archive and snapshot tools.
+
+## Language and input
+
+The MCP interface uses English tool names, argument names, option values, help and errors. It works the same way in a Dutch or English conversation. Set dates in ISO `YYYY-MM-DD` format. The API routes and raw data fields owned by SnelStart retain their original spelling. The user's language does not change a request or translate accounting data.
+
+## Tools
+
+### Administration and access
+
+| Tool | What it does |
+| --- | --- |
+| `snelstart_status` | Shows the running MCP version, selected administration, sign-in and refresh status, effective write settings, and update availability. |
+| `snelstart_check_update` | Checks whether the MCP client needs to reconnect or the installed package has a public update. |
+| `snelstart_list_administrations` | Lists the administrations accessible to the signed-in account. |
+| `snelstart_select_administration` | Opens an administration by UUID and saves that selection locally. |
+| `snelstart_list_operations` | Searches the API catalog and returns exact operation names and parameters. Set `read_only: false` to include write operations. |
+| `snelstart_read` | Runs an allowlisted read. Pass query values as `parameters` and search-body fields as `filters`. |
+| `snelstart_write` | Sends a permitted catalog mutation for the required `administration_id`, with `operation`, `payload`, optional `parameters` and a one-use `approval_id`. |
+| `snelstart_open_write_review` | Opens pending `approval_ids` together in a private local browser window for the user to review and select. |
+| `snelstart_write_approval_status` | Returns the local status and expiry per supplied approval ID. |
+| `snelstart_audit_log` | Lists recent calls for the selected administration with their outcome and elapsed time. |
+
+The catalog records known Web API operations. Availability depends on the administration, the account's permissions and the SnelStart package.
+
+### Purchases, sales and payments
+
+| Tool | What it does |
+| --- | --- |
+| `snelstart_search_purchases` | Lists purchases for an inclusive date range. Use `query` for supplier or text search, or `invoice_number` for an exact reference. Set `review_only: true` to restrict either search to entries flagged for review. |
+| `snelstart_get_entry` | Reads details for a purchase, general journal entry, opening balance entry or bank entry by UUID. |
+| `snelstart_purchase_payments` | Reads payments and settlements recorded against a purchase. |
+| `snelstart_purchase_evidence` | Reads purchase records, recorded settlements, and optional attachment metadata for up to 20 purchase UUIDs. |
+| `snelstart_list_attachments` | Lists files linked to a purchase, bank entry or journal entry and returns their download identifiers. |
+| `snelstart_download_document` | Downloads an attachment by UUID or a sales invoice PDF by invoice-number ID. Returns a private local path and checksum. |
+| `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
+| `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
+| `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
+| `snelstart_sales_booking_details` | Reads up to 20 posted sales using each row’s nonzero `verkoopboekingPublicIdentifier`. For drafts, use the rows from `snelstart_search_sales`. |
+| `snelstart_search_relations` | Searches customers or suppliers by name or number. |
+| `snelstart_bank_journals` | Lists bank and cash journals, including their ledger UUIDs. |
+| `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
+| `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
+
+Purchase searches check the upstream total and row IDs, then sort by invoice date (newest first) and row ID before applying `skip` and `take`. If SnelStart repeats a row, the MCP tries retrieving shorter date ranges and checks their combined count and IDs. It returns an error if it cannot verify complete results. Each scan is limited to 5,000 rows and 64 upstream requests. Narrow the date range or search term if coverage fails.
+
+For an exact purchase invoice search, pass `invoice_number` as a string and keep any leading zeros. If an all-digit `query` returns zero native matches, the MCP also tries the exact search. The exact reference and `review_only` filters are applied before `skip` and `take`.
+
+With `review_only: true`, the MCP reads checked pages and includes rows with `isTeControlerenInkoop: true`. It reports the filtered total and applies `skip` and `take` to the marked rows. Narrow the date range if it exceeds the checked-search limit.
+
+For an invoice review, search the period and open each purchase with `kind: "purchase"`. Pass the search row's `publicIdentifier` as `entry_id` and, when present, its `factuurnummeridentifier` as `purchase_invoice_id` to the single or batch booking tool. When the usual detail lookup returns HTTP 400, the MCP can use the invoice ID to retrieve and verify the same booking. A remaining `purchase_detail_rejected` failure leaves the batch incomplete. Use the search row as list-level evidence and report the missing detail. Read the attached invoice and recorded settlements where available. For lists with `skip` and `take`, advance through all pages before reporting a period total.
+
+Example purchase filter for entries flagged during November 2026.
+
+```json
+{"start_date":"2026-11-01","through_date":"2026-11-30","review_only":true,"take":50}
+```
+
+#### Download a purchase PDF
+
+1. Find the invoice with `snelstart_search_purchases` using a date range and, if available, the exact `invoice_number`.
+2. Pass the purchase entry UUID as `entry_id` to `snelstart_list_attachments` with `kind: "purchase"`.
+3. Pass the PDF's `attachmentIdentifier` as `attachment_id` to `snelstart_download_document`. The tool returns the path to the private local file.
+
+#### Submit a new purchase PDF
+
+1. Check that the selected administration is the one intended for the upload. For scoped write access, grant both upload operations listed below.
+2. Call `snelstart_upload_purchase_pdf` with the selected administration UUID as `administration_id` and an absolute local PDF path as `file_path`. Review the path and file checksum in the local approval window, then retry with its `approval_id`. The tool accepts one PDF of up to 25 MiB and returns an `instance_id`.
+3. Call `snelstart_purchase_upload_status` with that ID and the same administration UUID. Once processing completes, review the recognized invoice under **Inkopen → Te controleren**. [SnelStart purchase recognition](https://kennispleinweb.snelstart.nl/nl/inkoopfacturen-of-bonnetjes-automatisch-inlezen-in-snelstart-web)
+
+With scoped permissions, grant both operations for the same administration.
+
+```sh
+uv run snelstart-mcp writes grant ADMINISTRATION_UUID 'GET /Attachments/GetAttachmentUploadUriNew'
+uv run snelstart-mcp writes grant ADMINISTRATION_UUID 'POST /Purchases/CreateInkoopVoorBijlage'
+```
+
+The profile keeps a local receipt keyed by administration and PDF checksum. Repeating a confirmed submission returns its existing processing ID. After an unconfirmed submission, check the purchase overview before attempting to send the document again.
+
+### Financial reports and tax
+
+| Tool | What it does |
+| --- | --- |
+| `snelstart_chart_of_accounts` | Lists ledger accounts and their identifiers. |
+| `snelstart_balance_sheet` | Reads the balance sheet, profit and loss, and reporting categories for a `through_date`. |
+| `snelstart_financial_result` | Reads the financial result for `start_date` through `through_date` using the report called by the Tax Monitor. |
+| `snelstart_ledger_entries` | Reads one page of postings for an account through a given date. |
+| `snelstart_export_ledger_entries` | Reads and checks all pages for up to 20 account UUIDs, then exports the requested date range to a private JSONL file. Returns a path, SHA-256, and per-account counts. |
+| `snelstart_vat_returns` | Lists existing VAT returns in their recorded states. |
+| `snelstart_vat_return_details` | Reads the details of up to 20 VAT returns by public UUID. |
+| `snelstart_supplemental_vat_years` | Lists years eligible for a supplemental VAT return. |
+| `snelstart_year_end_review` | Reads open entries, open purchases, open sales or year-end bookings for a year, when available. |
+
+For 2025 and November 2026 balances, call `snelstart_balance_sheet` separately with `2025-12-31` and `2026-11-30`. For detailed VAT returns, start with `snelstart_vat_returns` and pass the public identifiers as `return_ids` to `snelstart_vat_return_details`.
+
+For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` to `snelstart_export_ledger_entries`. Each line contains `ledger_id` and the original `entry`. For a range of multiple days, the tool checks the administration's fiscal-year dates and fetches the part of each fiscal year in the range separately. If the final date is beyond the closing list, the tool verifies the active fiscal year against the administration settings. It rejects ranges with unverified fiscal-year coverage. `fetched_rows` counts the rows fetched across all parts. `exported_rows` counts the rows in the requested range. A pagination or connection failure discards the incomplete export. Treat the file as private accounting data.
+
+```json
+{"operation":"GET /BtwAangiftes/Get","parameters":{"id":123}}
+```
+
+ICP returns are available through `snelstart_read` with `GET /IcpAangiftes/GetIcpAangiftes` and numeric `skip` and `top` query parameters. The Tax Monitor's final reservation for income or corporate tax remains in SnelStart Web. Its financial-result input is available in the MCP. [SnelStart Tax Monitor documentation](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
+
+## Evidence and reconciliation
+
+| Tool | Use |
+| --- | --- |
+| `snelstart_get_entries` | Read up to 20 mixed purchase, bank, journal and opening-balance bookings. Pass `entries` as objects with `kind` and `entry_id`. Each result keeps its ID and reports whether it was found, missing, failed or too large for the batch. |
+| `snelstart_export_bank_entries` | Pass `journal_ids`, `start_date` and `through_date`. All checked pages are exported to a private JSONL file. The result includes the administration, row counts per journal and SHA-256. The file preserves journal metadata and original bank rows, including markings and invoice links when present. A failed page discards the export. |
+| `snelstart_reconcile_bank` | Review recorded links and suggested matches for the same journal and date inputs. Use `invoice_start_date` to adjust the default 90-day invoice lookback and `skip` and `take` to page the report. |
+| `snelstart_compare_archives` | Pass `before`, `after` and one of `purchases`, `sales`, `bank_entries` or `journal_and_opening_entries`. The tool compares checksummed dataset files locally. Both archives must identify the same administration, year and cutoff. Journal datasets must cover the same journals. Read an individual archived balance and profit-and-loss report with `snelstart_snapshot_read` in an offline session. |
+
+For journal attachments, use `snelstart_list_attachments` with `kind: "journal"` even if the booking detail says `hasBijlagen: false`. Both that flag and the ledger's `hasAttachments` are hints. To check linked files for several purchases, bank transactions or journal entries, pass `include_attachments: true` to `snelstart_get_entries`. An empty `attachments` list means the lookup found no linked files. A failed lookup returns `attachment_lookup_error` and sets `complete: false` while preserving the booking details. Opening balances have no attachment lookup in the batch. A listed file can have placeholder metadata such as size zero or a default creation date. Use `snelstart_download_document` for the actual byte count and SHA-256.
+
+Reconciliation reports recorded SnelStart links separately from suggestions. Suggestions use the bank entry’s signed amount, an invoice date on or before the payment date, and reference or counterparty evidence. Competing and amount-only matches remain ambiguous. Duplicate flags and missing-document indicators are review signals. Document indicators come from SnelStart’s attachment flags. Suggested matches require human review before making any bookkeeping changes.
+
+If a bank detail returns HTTP 500, pass `bank_list_context` to `snelstart_get_entry` or to that entry in `snelstart_get_entries`. Set `journal_id` to the journal UUID and `booking_date` to the local date from the bank list or export. The MCP checks the selected day's pagination and requires the exact `identifier`. It returns a match in `bank_list_evidence` with `failure_code: "bank_detail_unavailable"`. The detail stays empty, and a batch containing that result has `complete: false`. If the list cannot be verified, the tool reports that failure.
+
+Archive comparisons report additions, removals, and changed field names between the selected snapshots. These describe differences in the saved datasets.

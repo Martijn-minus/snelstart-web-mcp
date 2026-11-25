@@ -1,6 +1,6 @@
 # Using the SnelStart MCP
 
-Read the [README](README.md) for setup, tool arguments and examples. Run package commands from this directory. Keep code, identifiers and tool documentation in English. Use the user's language when discussing accounting results.
+Read the [README](README.md) for setup and the [tool reference](docs/tools.md) for arguments and examples. Run package commands from this directory. Keep code, identifiers and tool documentation in English. Use the user's language when discussing accounting results.
 
 Use the workflows in [`.agents/skills`](.agents/skills/) for bookkeeping tasks. The [knowledge base coverage audit](docs/knowledge-base-coverage.md) shows which SnelStart Web workflows have dedicated tools, generic operations, or need the official interface.
 
