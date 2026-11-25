@@ -18,7 +18,16 @@ from .auth import AUDIENCE, Auth
 from .config import SnelStartError, SnelStartHTTPError, Store
 from .enums import HttpMethod
 from .models import JsonObject
-from .models.api import JSON_ROWS, JSON_VALUE, OperationSpec, WebApiRequest
+from .models.api import (
+    JSON_ROWS,
+    JSON_VALUE,
+    SALES_BOOKING_DETAILS,
+    SALES_BOOKING_ID,
+    SALES_BOOKING_ID_ERROR,
+    SALES_BOOKING_ID_PARAMETER,
+    OperationSpec,
+    WebApiRequest,
+)
 from .models.responses import ConnectionStatus
 from .mutation import send_with_receipt
 from .write_policy import needs_scoped_grant
@@ -274,6 +283,13 @@ class Client:
             missing = set(entry.required_parameters) - set(command.parameters or {})
             if missing:
                 raise SnelStartError("Missing query parameters: " + ", ".join(sorted(missing)))
+            if command.operation == SALES_BOOKING_DETAILS:
+                try:
+                    SALES_BOOKING_ID.validate_python(
+                        (command.parameters or {}).get(SALES_BOOKING_ID_PARAMETER)
+                    )
+                except ValidationError:
+                    raise SnelStartError(SALES_BOOKING_ID_ERROR) from None
             if entry.method is HttpMethod.GET and command.body is not None:
                 raise SnelStartError("A GET operation does not accept a JSON body.")
             identifier = str(settings.administration_id) if settings.administration_id else None

@@ -1,6 +1,6 @@
 [project]
 name = "snelstart-web-mcp"
-version = "2026.11.25.2"
+version = "2026.11.25.3"
 description = "Local MCP for SnelStart Web with automatic sign-in and token renewal"
 readme = "README.md"
 requires-python = ">=3.11"

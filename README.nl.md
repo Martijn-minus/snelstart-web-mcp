@@ -137,7 +137,7 @@ Controleer na registratie met `snelstart_status` de actieve administratie en de 
 | `snelstart_upload_purchase_pdf` | Bied één lokale pdf tot 25 MiB aan als nieuwe inkoop ter herkenning en controle. |
 | `snelstart_purchase_upload_status` | Controleer de verwerking met het ontvangen `instance_id` en dezelfde administratie-UUID. |
 | `snelstart_search_sales` | Zoek verkoopfacturen op klant, factuurnummer of status. |
-| `snelstart_sales_booking_details` | Lees maximaal 20 verkoopboekingen op boekings-UUID. |
+| `snelstart_sales_booking_details` | Lees maximaal 20 geboekte verkopen via hun niet-nulwaarde in `verkoopboekingPublicIdentifier`. Voor concepten gebruik je de zoekrijen van `snelstart_search_sales`. |
 | `snelstart_search_relations` | Zoek klanten of leveranciers op naam of nummer. |
 | `snelstart_bank_journals` | Lees bank- en kasdagboeken met hun grootboek-UUID's. |
 | `snelstart_bank_entries` | Lees regels uit een dagboek voor een inclusieve periode, eventueel met een zoekterm of markeringsfilter. |

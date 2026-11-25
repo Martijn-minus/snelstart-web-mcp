@@ -18,6 +18,7 @@ from .client import Client
 from .config import SnelStartError, Store
 from .financial_review import booking_batch, export_bank_entries, reconcile_bank
 from .models import JsonObject
+from .models.api import SALES_BOOKING_DETAILS, SALES_BOOKING_ID_PARAMETER
 from .models.responses import DataResponse
 from .models.review import (
     ArchiveComparison,
@@ -263,7 +264,7 @@ def register_review_tools(tool: Register, client: Client) -> None:
     def snelstart_sales_booking_details(
         request: SalesBookingDetailsRequest,
     ) -> DataResponse[list[RecordDetails]]:
-        """Read the details of up to 20 sales bookings by booking UUID, as shown when expanding a sales row."""
+        """Read up to 20 posted sales by nonzero verkoopboekingPublicIdentifier. Read draft rows with snelstart_search_sales."""
         read = partial(
             client.request, expected_administration=str(_selected_administration(client))
         )
@@ -272,8 +273,8 @@ def register_review_tools(tool: Register, client: Client) -> None:
                 RecordDetails(
                     identifier=identifier,
                     details=read(
-                        "GET /Invoices/GetVerkoopBoekingDetailsForExpandRow",
-                        {"verkoopboekingIdentifier": str(identifier)},
+                        SALES_BOOKING_DETAILS,
+                        {SALES_BOOKING_ID_PARAMETER: str(identifier)},
                     ),
                 )
                 for identifier in request.booking_ids

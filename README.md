@@ -222,7 +222,7 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
 | `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
 | `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
-| `snelstart_sales_booking_details` | Reads sales booking details for up to 20 booking UUIDs. |
+| `snelstart_sales_booking_details` | Reads up to 20 posted sales using each row’s nonzero `verkoopboekingPublicIdentifier`. For drafts, use the rows from `snelstart_search_sales`. |
 | `snelstart_search_relations` | Searches customers or suppliers by name or number. |
 | `snelstart_bank_journals` | Lists bank and cash journals, including their ledger UUIDs. |
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |

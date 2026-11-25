@@ -17,6 +17,7 @@ from ..enums import (
     ReconciliationStatus,
 )
 from . import Sha256
+from .api import PostedSalesBookingId
 from .requests import DateRangeRequest, EntryDetailRequest, ToolRequest
 
 
@@ -39,7 +40,9 @@ class PurchaseEvidenceRequest(ToolRequest):
 
 
 class SalesBookingDetailsRequest(ToolRequest):
-    booking_ids: Identifiers
+    booking_ids: Annotated[
+        list[PostedSalesBookingId], Field(min_length=1, max_length=20), AfterValidator(_unique)
+    ]
 
 
 class VatReturnDetailsRequest(ToolRequest):

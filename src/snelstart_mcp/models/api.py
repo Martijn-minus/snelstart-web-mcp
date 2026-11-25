@@ -1,11 +1,31 @@
 """Validated parts of the SnelStart Web API contract."""
 
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue, TypeAdapter
 
 from ..enums import HttpMethod
 from . import JsonObject
+
+SALES_BOOKING_DETAILS = "GET /Invoices/GetVerkoopBoekingDetailsForExpandRow"
+SALES_BOOKING_ID_PARAMETER = "verkoopboekingIdentifier"
+SALES_BOOKING_ID_ERROR = (
+    "Provide a posted sale's nonzero verkoopboekingPublicIdentifier. "
+    "Draft sales invoices have no booking UUID."
+)
+
+
+def _posted_sales_booking_id(identifier: UUID) -> UUID:
+    if identifier.int == 0:
+        raise ValueError(SALES_BOOKING_ID_ERROR)
+    return identifier
+
+
+PostedSalesBookingId = Annotated[
+    UUID, AfterValidator(_posted_sales_booking_id), Field(description=SALES_BOOKING_ID_ERROR)
+]
+SALES_BOOKING_ID = TypeAdapter(PostedSalesBookingId)
 
 
 class OperationSpec(BaseModel):

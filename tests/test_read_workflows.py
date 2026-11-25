@@ -385,6 +385,34 @@ def test_batch_detail_tools_keep_order_and_validate_duplicate_ids(session, tool,
     assert [request.url.params[key] for request in requests if request.url.path == path] == expected
 
 
+def test_sales_draft_uuid_rejects_a_mixed_batch_before_reading_any_record(session):
+    client, requests, _ = session
+    with pytest.raises(ToolError, match="Draft sales invoices have no booking UUID"):
+        call(
+            client,
+            "snelstart_sales_booking_details",
+            {"booking_ids": [ENTRY, "00000000-0000-0000-0000-000000000000"]},
+        )
+    assert requests == []
+
+
+@pytest.mark.parametrize("value", ["00000000-0000-0000-0000-000000000000", "", None])
+def test_generic_read_rejects_missing_sales_booking_identifiers_before_contacting_snelstart(
+    session, value
+):
+    client, requests, _ = session
+    with pytest.raises(ToolError, match="nonzero verkoopboekingPublicIdentifier"):
+        call(
+            client,
+            "snelstart_read",
+            {
+                "operation": "GET /Invoices/GetVerkoopBoekingDetailsForExpandRow",
+                "parameters": {"verkoopboekingIdentifier": value},
+            },
+        )
+    assert requests == []
+
+
 @pytest.mark.parametrize(
     ("day", "start", "end"),
     [
