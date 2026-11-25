@@ -19,7 +19,7 @@ Recommend making and verifying a backup before bookkeeping work. Let the user ch
 | Find and review a purchase | `snelstart_search_purchases`, then `snelstart_get_entry` with `kind: "purchase"`. Read recorded settlements with `snelstart_purchase_payments`. |
 | Download the purchase PDF | Call `snelstart_list_attachments` with the purchase UUID, then `snelstart_download_document` with the PDF's attachment identifier. |
 | Check bank transactions | Get journal UUIDs with `snelstart_bank_journals`, then use `snelstart_export_bank_entries` for checked coverage across journals or `snelstart_get_entries` for a mixed batch of booking details. `snelstart_reconcile_bank` provides evidence and candidates for human review. |
-| Check figures or tax returns | Use `snelstart_balance_sheet`, `snelstart_financial_result`, or `snelstart_vat_returns` as appropriate. |
+| Check figures or tax returns | Use `snelstart_balance_sheet`, `snelstart_financial_result`, `snelstart_vat_returns`, or `snelstart_icp_returns` as appropriate. |
 | Submit a new purchase PDF | On an explicit request, call `snelstart_upload_purchase_pdf` for the named administration and file. Use the returned ID with `snelstart_purchase_upload_status`. |
 | Archive a year | Call `snelstart_create_year_archive`, then verify the returned archive with `snelstart_verify_archive`. Report the scope recorded in the manifest. |
 

@@ -385,6 +385,88 @@ def test_batch_detail_tools_keep_order_and_validate_duplicate_ids(session, tool,
     assert [request.url.params[key] for request in requests if request.url.path == path] == expected
 
 
+def test_icp_listing_pages_and_preserves_source_validation_messages(session):
+    client, requests, replies = session
+    path = "/IcpAangiftes/GetIcpAangiftes"
+    row = {"publicIdentifier": ENTRY, "aangifteJaar": 2026, "isPersisted": True}
+    messages = [{"type": 1, "message": "fixture"}]
+
+    def list_returns(request):
+        assert request.method == "GET" and request.url.params["top"] == "1"
+        return {
+            "icpAangiftes": [row] if request.url.params["skip"] == "0" else [],
+            "validationMessages": messages,
+        }
+
+    replies[path] = list_returns
+    assert call(client, "snelstart_icp_returns", {"take": 1}) == {
+        "data": [row],
+        "validation_messages": messages,
+        "next_skip": 1,
+    }
+    assert call(client, "snelstart_icp_returns", {"skip": 1, "take": 1}) == {
+        "data": [],
+        "validation_messages": messages,
+        "next_skip": None,
+    }
+    replies[path] = {"icpAangiftes": [row, row], "validationMessages": []}
+    with pytest.raises(ToolError, match="more ICP returns than requested"):
+        call(client, "snelstart_icp_returns", {"take": 1})
+    assert all(request.method == "GET" for request in requests if request.url.path == path)
+
+
+def test_icp_details_validate_persisted_ids_and_match_the_response(session):
+    client, requests, replies = session
+    path = "/IcpAangiftes/GetByPublicIdentifier"
+    ids = [ENTRY, "22222222-2222-4222-8222-222222222222"]
+
+    def detail(request):
+        assert request.method == "GET"
+        return {"publicIdentifier": request.url.params["publicIdentifier"], "totaal": 10}
+
+    replies[path] = detail
+    with pytest.raises(ToolError, match="nonzero public identifiers"):
+        call(client, "snelstart_icp_return_details", {"return_ids": [str(UUID(int=0))]})
+    assert not requests
+    records = call(client, "snelstart_icp_return_details", {"return_ids": ids})["data"]
+    assert [record["identifier"] for record in records] == ids
+    assert [record["details"]["totaal"] for record in records] == [10, 10]
+    replies[path] = {"publicIdentifier": ids[1]}
+    with pytest.raises(ToolError, match="requested ICP return ID"):
+        call(client, "snelstart_icp_return_details", {"return_ids": [ids[0]]})
+
+
+def test_article_search_uses_source_code_order_and_links_to_details(session):
+    client, requests, replies = session
+    article = {"articleId": 17, "code": "ABC", "sellingPriceExcludingVat": 20}
+    replies["/Articles/Search"] = {"totalMatchCount": 5, "resultList": [article]}
+    replies["/Articles/Get"] = article
+    result = call(client, "snelstart_search_articles", {"query": "ABC", "skip": 2, "take": 1})
+    assert result["data"]["resultList"] == [article]
+    assert dict(requests[-1].url.params) == {
+        "searchTerm": "ABC",
+        "skip": "2",
+        "take": "1",
+        "sortDataFieldName": "code",
+        "sortDescending": "false",
+    }
+    assert call(client, "snelstart_article_details", {"article_id": 17}) == {"data": article}
+    assert dict(requests[-1].url.params) == {"id": "17"}
+    with pytest.raises(ToolError, match="requested article ID"):
+        call(client, "snelstart_article_details", {"article_id": 18})
+
+
+def test_ledger_account_details_verify_the_number_and_return_source_settings(session):
+    client, requests, replies = session
+    account = {"grootboekNumber": 1200, "btw": [], "kostenplaatsInstelling": 1}
+    replies["/Grootboek/GetGrootboekByNumber"] = account
+    result = call(client, "snelstart_ledger_account_details", {"account_number": 1200})
+    assert result == {"data": account}
+    assert dict(requests[-1].url.params) == {"number": "1200"}
+    with pytest.raises(ToolError, match="requested ledger account number"):
+        call(client, "snelstart_ledger_account_details", {"account_number": 1201})
+
+
 def test_sales_draft_uuid_rejects_a_mixed_batch_before_reading_any_record(session):
     client, requests, _ = session
     with pytest.raises(ToolError, match="Draft sales invoices have no booking UUID"):

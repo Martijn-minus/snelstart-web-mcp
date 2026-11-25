@@ -21,6 +21,12 @@ class DataResponse(BaseModel, Generic[T]):
     data: T
 
 
+class IcpReturnPage(BaseModel):
+    data: list[JsonObject]
+    validation_messages: list[JsonObject]
+    next_skip: int | None
+
+
 class BankEntryListEvidence(BankEntryListContext):
     entry: JsonObject
 

@@ -928,7 +928,7 @@
       "publicIdentifier"
     ],
     "json_body": false,
-    "read_only": false
+    "read_only": true
   },
   "GET /IcpAangiftes/GetIcpAangifteSettings": {
     "method": "GET",

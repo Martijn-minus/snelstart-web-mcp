@@ -80,6 +80,19 @@ class PageRequest(ToolRequest):
         return self
 
 
+class IcpReturnsRequest(ToolRequest):
+    skip: int = Field(default=0, ge=0)
+    take: int = Field(default=50, ge=1, le=200)
+
+
+class ArticleDetailsRequest(ToolRequest):
+    article_id: int = Field(gt=0)
+
+
+class LedgerAccountDetailsRequest(ToolRequest):
+    account_number: int = Field(ge=0)
+
+
 class LedgerRequest(ThroughDateRequest):
     ledger_id: UUID
     query: str = ""

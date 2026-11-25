@@ -19,6 +19,8 @@ Zie [jaararchieven en offline toegang](backups.nl.md) voor archief- en snapshott
 | `snelstart_search_sales` | Zoek verkoopfacturen op klant, factuurnummer of status. |
 | `snelstart_sales_booking_details` | Lees maximaal 20 geboekte verkopen via hun niet-nulwaarde in `verkoopboekingPublicIdentifier`. Voor concepten gebruik je de zoekrijen van `snelstart_search_sales`. |
 | `snelstart_search_relations` | Zoek klanten of leveranciers op naam of nummer. |
+| `snelstart_search_articles` | Zoek verkoopartikelen op code of naam. Gebruik `skip` en `take` voor meerdere pagina’s. |
+| `snelstart_article_details` | Lees prijzen, btw en omzetinstellingen met het numerieke `article_id` uit de zoekresultaten. |
 | `snelstart_bank_journals` | Lees bank- en kasdagboeken met hun grootboek-UUID's. |
 | `snelstart_bank_entries` | Lees regels uit een dagboek voor een inclusieve periode, eventueel met een zoekterm of markeringsfilter. |
 | `snelstart_find_payment_matches` | Zoek mogelijke factuurmatches voor een inkomende of uitgaande betaling. |
@@ -40,19 +42,22 @@ Een bevestigde herhaling levert het bestaande verwerkings-ID op. Controleer het 
 
 | Tool | Gebruik |
 | --- | --- |
-| `snelstart_chart_of_accounts` | Lees het rekeningschema en de grootboek-UUID's. |
+| `snelstart_chart_of_accounts` | Lees het rekeningschema en de beschikbare rekening-ID’s. |
+| `snelstart_ledger_account_details` | Lees een rekening op `account_number`, inclusief beschikbare btw- en kostenplaatsinstellingen. |
 | `snelstart_balance_sheet` | Lees de balans, winst-en-verliesrekening en rubrieken tot en met `through_date`. |
 | `snelstart_financial_result` | Lees het financiële resultaat voor de periode dat als invoer dient voor de Belastingmonitor. |
 | `snelstart_ledger_entries` | Lees één pagina grootboekmutaties voor een rekening. |
 | `snelstart_export_ledger_entries` | Controleer de paginering en exporteer mutaties voor maximaal 20 rekeningen naar een privé-JSONL-bestand. |
 | `snelstart_vat_returns` | Lees de geregistreerde btw-aangiften en hun status. |
 | `snelstart_vat_return_details` | Lees de details van maximaal 20 aangiften op publieke UUID. |
+| `snelstart_icp_returns` | Lees ICP-opgaven en validatiemeldingen van SnelStart. Gebruik `next_skip` voor de volgende pagina. |
+| `snelstart_icp_return_details` | Lees maximaal 20 opgeslagen ICP-opgaven op hun publieke UUID’s met een niet-nulwaarde. |
 | `snelstart_supplemental_vat_years` | Lees de jaren die in SnelStart voor een btw-suppletie beschikbaar zijn. |
 | `snelstart_year_end_review` | Lees openstaande inkoop-, verkoop- of andere boekingen en eindejaarsboekingen, indien beschikbaar. |
 
 Voor een grootboekexport geef je `ledger_ids`, `start_date` en `through_date` mee. Bij een periode van meerdere dagen controleert de tool de boekjaargrenzen en leest hij elk geraakt boekjaar apart. Valt de einddatum na de laatste jaarafsluiting, dan controleert de tool het lopende boekjaar via de administratie-instellingen. Als de boekjaargrenzen de gevraagde periode niet aantoonbaar dekken, geeft de tool een foutmelding. De uitvoer geeft het bestandspad, de SHA-256 en aantallen per rekening. Elke regel bevat `ledger_id` en de oorspronkelijke `entry` binnen de periode. Behandel de export als privéboekhoudgegevens.
 
-Gebruik bij btw-aangiften de publieke UUID's uit `snelstart_vat_returns` als `return_ids`. Voor ICP kun je `snelstart_read` met `GET /IcpAangiftes/GetIcpAangiftes` en de numerieke parameters `skip` en `top` gebruiken. De uiteindelijke belastingreservering bekijk je in de Belastingmonitor van SnelStart Web. [Belastingmonitor](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
+Gebruik bij btw-aangiften de publieke UUID's uit `snelstart_vat_returns` als `return_ids`. Geef voor ICP de `publicIdentifier` uit een opgeslagen rij van `snelstart_icp_returns` mee aan `snelstart_icp_return_details`. Gebruik de zoekrij voor een berekening die nog niet is opgeslagen. De uiteindelijke belastingreservering bekijk je in de Belastingmonitor van SnelStart Web. [Belastingmonitor](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
 
 ## Boekingscontrole en afstemming
 

@@ -50,6 +50,14 @@ class VatReturnDetailsRequest(ToolRequest):
     return_ids: Identifiers
 
 
+class IcpReturnDetailsRequest(VatReturnDetailsRequest):
+    @model_validator(mode="after")
+    def persisted_return_ids(self):
+        if any(identifier.int == 0 for identifier in self.return_ids):
+            raise ValueError("Provide nonzero public identifiers for persisted ICP returns.")
+        return self
+
+
 class PurchaseEvidence(BaseModel):
     purchase_id: UUID
     purchase: JsonValue

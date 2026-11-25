@@ -75,5 +75,12 @@ class PurchaseDetailIdentity(BaseModel):
     factuurNummerIdentifier: UUID
 
 
+class IcpReturnListing(BaseModel):
+    model_config = ConfigDict(strict=True)
+
+    icpAangiftes: list[JsonObject]
+    validationMessages: list[JsonObject]
+
+
 JSON_VALUE = TypeAdapter(JsonValue)
 JSON_ROWS = TypeAdapter(list[JsonObject])

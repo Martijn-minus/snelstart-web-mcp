@@ -7,6 +7,7 @@ import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from uuid import UUID
 
 import pytest
 from mcp import ClientSession, StdioServerParameters
@@ -135,6 +136,10 @@ async def run_live_contract(path: Path):
         assert (await call("snelstart_list_operations", {"query": "Invoices/Search"}))["total"] == 1
         accounts = (await call("snelstart_chart_of_accounts"))["data"]
         assert isinstance(accounts, list)
+        if accounts:
+            number = accounts[0]["grootboekNumber"]
+            account = await call("snelstart_ledger_account_details", {"account_number": number})
+            assert account["data"]["grootboekNumber"] == number
         assert (
             "balans"
             in (await call("snelstart_balance_sheet", {"through_date": today.isoformat()}))["data"]
@@ -150,6 +155,20 @@ async def run_live_contract(path: Path):
         ]:
             assert isinstance((await call(tool, args))["data"]["resultList"], list)
         assert isinstance((await call("snelstart_vat_returns"))["data"], list)
+        icp = await call("snelstart_icp_returns", {"take": 10})
+        assert isinstance(icp["data"], list) and isinstance(icp["validation_messages"], list)
+        for row in icp["data"]:
+            if row.get("isPersisted") and row.get("publicIdentifier"):
+                ref = str(UUID(row["publicIdentifier"]))
+                detail = await call("snelstart_icp_return_details", {"return_ids": [ref]})
+                assert detail["data"][0]["identifier"] == ref
+                break
+        articles = await call("snelstart_search_articles", {"take": 1})
+        assert isinstance(articles["data"]["resultList"], list)
+        if articles["data"]["resultList"]:
+            article_id = articles["data"]["resultList"][0]["articleId"]
+            article = await call("snelstart_article_details", {"article_id": article_id})
+            assert article["data"]["articleId"] == article_id
         assert isinstance((await call("snelstart_supplemental_vat_years"))["data"], list)
         banks = (await call("snelstart_bank_journals"))["data"]
         assert isinstance(banks, list)

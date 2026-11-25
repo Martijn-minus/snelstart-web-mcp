@@ -27,6 +27,7 @@ from .models.review import (
     BookingBatchRequest,
     BookingBatchResponse,
     CompareArchivesRequest,
+    IcpReturnDetailsRequest,
     LedgerExportAccount,
     LedgerExportRequest,
     LedgerExportResponse,
@@ -40,6 +41,7 @@ from .models.review import (
 )
 from .tooling import READ, Register
 from .tools_bookkeeping import (
+    ICP_RETURN_DETAILS,
     LEDGER_ENTRIES,
     PURCHASE_ATTACHMENTS,
     PURCHASE_DETAILS,
@@ -301,3 +303,20 @@ def register_review_tools(tool: Register, client: Client) -> None:
                 for identifier in request.return_ids
             ]
         )
+
+    @tool(annotations=READ)
+    def snelstart_icp_return_details(
+        request: IcpReturnDetailsRequest,
+    ) -> DataResponse[list[RecordDetails]]:
+        """Read up to 20 persisted ICP returns by publicIdentifier from snelstart_icp_returns."""
+        read = partial(
+            client.request, expected_administration=str(_selected_administration(client))
+        )
+        results = []
+        for identifier in request.return_ids:
+            details = read(ICP_RETURN_DETAILS, {"publicIdentifier": str(identifier)})
+            actual = details.get("publicIdentifier") if isinstance(details, dict) else None
+            if not isinstance(actual, str) or actual.lower() != str(identifier):
+                raise SnelStartError("SnelStart did not return the requested ICP return ID.")
+            results.append(RecordDetails(identifier=identifier, details=details))
+        return DataResponse(data=results)

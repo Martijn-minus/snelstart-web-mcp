@@ -42,6 +42,8 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
 | `snelstart_sales_booking_details` | Reads up to 20 posted sales using each row’s nonzero `verkoopboekingPublicIdentifier`. For drafts, use the rows from `snelstart_search_sales`. |
 | `snelstart_search_relations` | Searches customers or suppliers by name or number. |
+| `snelstart_search_articles` | Searches sales articles by code or name. Page with `skip` and `take`. |
+| `snelstart_article_details` | Reads prices, VAT and revenue settings for the numeric `article_id` from search. |
 | `snelstart_bank_journals` | Lists bank and cash journals, including their ledger UUIDs. |
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
 | `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
@@ -86,12 +88,15 @@ The profile keeps a local receipt keyed by administration and PDF checksum. Repe
 | Tool | What it does |
 | --- | --- |
 | `snelstart_chart_of_accounts` | Lists ledger accounts and their identifiers. |
+| `snelstart_ledger_account_details` | Reads a ledger account by `account_number`, including VAT and cost-centre settings when supplied. |
 | `snelstart_balance_sheet` | Reads the balance sheet, profit and loss, and reporting categories for a `through_date`. |
 | `snelstart_financial_result` | Reads the financial result for `start_date` through `through_date` using the report called by the Tax Monitor. |
 | `snelstart_ledger_entries` | Reads one page of postings for an account through a given date. |
 | `snelstart_export_ledger_entries` | Reads and checks all pages for up to 20 account UUIDs, then exports the requested date range to a private JSONL file. Returns a path, SHA-256, and per-account counts. |
 | `snelstart_vat_returns` | Lists existing VAT returns in their recorded states. |
 | `snelstart_vat_return_details` | Reads the details of up to 20 VAT returns by public UUID. |
+| `snelstart_icp_returns` | Lists ICP returns with source validation messages. Pass the returned `next_skip` to read the next page. |
+| `snelstart_icp_return_details` | Reads up to 20 persisted ICP returns by their nonzero public UUIDs. |
 | `snelstart_supplemental_vat_years` | Lists years eligible for a supplemental VAT return. |
 | `snelstart_year_end_review` | Reads open entries, open purchases, open sales or year-end bookings for a year, when available. |
 
@@ -103,7 +108,7 @@ For a multi-account review, pass `ledger_ids`, `start_date`, and `through_date` 
 {"operation":"GET /BtwAangiftes/Get","parameters":{"id":123}}
 ```
 
-ICP returns are available through `snelstart_read` with `GET /IcpAangiftes/GetIcpAangiftes` and numeric `skip` and `top` query parameters. The Tax Monitor's final reservation for income or corporate tax remains in SnelStart Web. Its financial-result input is available in the MCP. [SnelStart Tax Monitor documentation](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
+For ICP, use `snelstart_icp_returns` and pass `publicIdentifier` from a persisted row to `snelstart_icp_return_details` as part of `return_ids`. Use the list row for a calculation that has yet to be saved. The Tax Monitor's final reservation for income or corporate tax remains in SnelStart Web. Its financial-result input is available in the MCP. [SnelStart Tax Monitor documentation](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
 
 ## Evidence and reconciliation
 

@@ -7,8 +7,8 @@ This matrix covers bookkeeping workflows the MCP supports and gaps relevant to w
 | Coverage | Meaning | Pages |
 | --- | --- | --- |
 | Dedicated | Dedicated MCP workflow for the article’s principal action. | 3 |
-| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 24 |
-| Catalog | Related generic operations exist. The MCP lacks a validated workflow for this task. | 15 |
+| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 26 |
+| Catalog | Related generic operations exist. The MCP lacks a validated workflow for this task. | 13 |
 | Gap | The main action has no supported MCP workflow. | 12 |
 
 Generic operation availability depends on the MCP allowlist and SnelStart account permissions. See the [tool reference](tools.md) and [write permissions](writes-and-audit.md).
@@ -18,7 +18,7 @@ Generic operation availability depends on the MCP allowlist and SnelStart accoun
 1. Add a typed sales invoice workflow with totals, a draft or save step, file attachments for outbound email, and a separate explicit send step. Validate the flows in a test administration before advertising them.
 2. Add bank file imports and reconcile Adyen, Mollie and Stripe provider reports against SnelStart bank, ledger and invoice data.
 3. Add typed review and posting support for recognized purchases, cost centres and specialised VAT handling. Preserve the original source document and verify the posted result.
-4. Expand read coverage for ICP detail, Tax Monitor and RGS.
+4. Expand read coverage for Tax Monitor and RGS.
 
 ## Skills
 
@@ -50,7 +50,7 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 | [Een factuur kopiëren in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-kopi%C3%ABren-in-snelstart-web) | Catalog | Sales | Copy and invoice write entries exist. No verified clone workflow. |
 | [Een factuur maken zonder btw in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-maken-zonder-btw) | Catalog | Sales, Tax | Generic invoice writes. Zero VAT or exemption needs correct source and account treatment. |
 | [Een factuur maken voor een klant in het buitenland](https://kennispleinweb.snelstart.nl/nl/een-factuur) | Catalog | Sales, Tax | Generic invoice write routes. No guided international invoice workflow. |
-| [Een artikel aanmaken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-artikel-toevoegen-in-snelstart-web) | Catalog | Sales | Generic article read, search, create and update routes. |
+| [Een artikel aanmaken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-artikel-toevoegen-in-snelstart-web) | Partial | Sales | Dedicated article search and detail reads. Creation and update use generic routes. |
 | [Een creditfactuur maken of een credit inkoopfactuur boeken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-creditfactuur-maken-in-snelstart-web) | Catalog | Sales, Purchases | Sale credit preparation and booking routes exist. No dedicated credit workflow. |
 | [Het volgende factuurnummer instellen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/volgend-factuurnummer-instellen-in-snelstart-web) | Catalog | Sales | Next-number setting requires an explicit scoped grant. |
 
@@ -88,10 +88,10 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 | --- | --- | --- | --- |
 | [Een saldoverschil op de balans](https://kennispleinweb.snelstart.nl/nl/een-saldoverschil-op-de-balans) | Dedicated | Year-end | Compare the prior close, opening balance and ledger entries. |
 | [Een memoriaalboeking in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/memoriaalboeking-in-snelstart-web) | Partial | Year-end | Journal details, ledger exports and attachment reads exist. Create and edit through generic routes. |
-| [De ICP-aangifte in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/de-icp-aangifte-in-snelstart-web) | Catalog | Tax | ICP listing and generic write routes exist. No verified calculate-and-file workflow. |
+| [De ICP-aangifte in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/de-icp-aangifte-in-snelstart-web) | Partial | Tax | Dedicated listing, source validation messages, and detail reads for persisted ICP returns. Filing is a separate workflow. |
 | [Werken met marge en globalisatie in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/marge-en-globalisatie-in-snelstart-web) | Gap | Tax | No margin or globalisation workflow. |
 | [De btw-aangifte in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/de-btw-aangifte-in-snelstart-web) | Partial | Tax | VAT results and detail are dedicated. No verified filing or acknowledgement workflow. Treat an empty carry-forward breakdown on a historical return as unconfirmed. Compare the saved filing or native source when relevant. |
-| [Grootboekrekeningen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/grootboekrekeningen-beheren-in-snelstart-web) | Partial | Year-end | Chart of accounts and ledger reads are dedicated. Account creation is generic. |
+| [Grootboekrekeningen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/grootboekrekeningen-beheren-in-snelstart-web) | Partial | Year-end | Dedicated chart, account details by number, VAT and cost-centre settings, and ledger reads. Account creation is generic. |
 | [Afschrijving bedrijfsmiddelen (activa) automatisch invoeren in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/afschrijving-bedrijfsmiddelen-automatisch) | Gap | Year-end | No fixed asset register or automatic depreciation workflow. |
 | [Wat is de Belastingmonitor in SnelStart?](https://kennispleinweb.snelstart.nl/nl/wat-is-de-belastingmonitor-in-snelstart) | Partial | Tax | Financial-result input is dedicated. Tax Monitor settings and final calculation are unavailable. |
 | [Je grootboekrekeningen koppelen aan het RGS (Referentie Grootboekschema)](https://kennispleinweb.snelstart.nl/nl/het-grootboekrekeningschema-koppelen-aan-rgs) | Gap | Year-end | No verified RGS mapping workflow. |

@@ -18,15 +18,24 @@ from .enums import (
     YearEndSection,
 )
 from .models import ApiPage, JsonObject
-from .models.api import InvoiceSearchBody, InvoiceSearchTerm, PurchaseDetailIdentity
+from .models.api import (
+    IcpReturnListing,
+    InvoiceSearchBody,
+    InvoiceSearchTerm,
+    PurchaseDetailIdentity,
+)
 from .models.requests import (
+    ArticleDetailsRequest,
     AttachmentListRequest,
     BankEntriesRequest,
     DateRangeRequest,
     DocumentRequest,
     EntryDetailRequest,
     EntryRequest,
+    IcpReturnsRequest,
+    LedgerAccountDetailsRequest,
     LedgerRequest,
+    PageRequest,
     PaymentMatchRequest,
     PurchaseSearchRequest,
     RelationSearchRequest,
@@ -39,12 +48,14 @@ from .models.responses import (
     DataResponse,
     DownloadResponse,
     EntryDetailResponse,
+    IcpReturnPage,
     JsonResponse,
 )
 from .tooling import READ, Register
 from .year_data import bank_entries_between, purchases_between
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
+ICP_RETURN_DETAILS = "GET /IcpAangiftes/GetByPublicIdentifier"
 PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_DETAILS_BY_INVOICE = "GET /Purchases/GetByFactuurNummerIdentifier"
 PURCHASE_PAYMENTS = "GET /Purchases/GetInkoopBetalingen"
@@ -251,6 +262,22 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         return JsonResponse(data=client.request("GET /Grootboek/GetAllMinimal"))
 
     @tool(annotations=READ)
+    def snelstart_ledger_account_details(
+        request: LedgerAccountDetailsRequest,
+    ) -> DataResponse[JsonObject]:
+        """Read a ledger account by its account number, including published VAT and cost-centre settings."""
+        account = client.request(
+            "GET /Grootboek/GetGrootboekByNumber", {"number": request.account_number}
+        )
+        if (
+            not isinstance(account, dict)
+            or type(number := account.get("grootboekNumber")) is not int
+            or number != request.account_number
+        ):
+            raise SnelStartError("SnelStart did not return the requested ledger account number.")
+        return DataResponse(data=account)
+
+    @tool(annotations=READ)
     def snelstart_balance_sheet(request: ThroughDateRequest) -> JsonResponse:
         """Read the balance sheet and profit and loss through the given date."""
         return JsonResponse(
@@ -314,6 +341,36 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         )
 
     @tool(annotations=READ)
+    def snelstart_search_articles(request: PageRequest) -> DataResponse[ApiPage]:
+        """Search sales articles by code or name. Use skip and take to page results."""
+        return DataResponse(
+            data=ApiPage.model_validate(
+                client.request(
+                    "GET /Articles/Search",
+                    {
+                        "searchTerm": request.query,
+                        "skip": request.skip,
+                        "take": request.take,
+                        "sortDataFieldName": "code",
+                        "sortDescending": False,
+                    },
+                )
+            )
+        )
+
+    @tool(annotations=READ)
+    def snelstart_article_details(request: ArticleDetailsRequest) -> DataResponse[JsonObject]:
+        """Read an article's prices, VAT and revenue settings by articleId from the article search."""
+        article = client.request("GET /Articles/Get", {"id": request.article_id})
+        if (
+            not isinstance(article, dict)
+            or type(identifier := article.get("articleId")) is not int
+            or identifier != request.article_id
+        ):
+            raise SnelStartError("SnelStart did not return the requested article ID.")
+        return DataResponse(data=article)
+
+    @tool(annotations=READ)
     def snelstart_get_entry(request: EntryDetailRequest) -> EntryDetailResponse:
         """Read a booking by UUID. Use the purchase invoice ID from the search row when available. Bank list context can recover list evidence after HTTP 500. Verify journal attachments with snelstart_list_attachments even if hasBijlagen is false."""
         return read_booking_entry(client.request, request)
@@ -322,6 +379,23 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
     def snelstart_vat_returns() -> JsonResponse:
         """Read existing VAT returns."""
         return JsonResponse(data=client.request("GET /BtwAangiftes/GetAll"))
+
+    @tool(annotations=READ)
+    def snelstart_icp_returns(request: IcpReturnsRequest) -> IcpReturnPage:
+        """Read a page of SnelStart ICP returns and source validation messages."""
+        page = IcpReturnListing.model_validate(
+            client.request(
+                "GET /IcpAangiftes/GetIcpAangiftes", {"skip": request.skip, "top": request.take}
+            )
+        )
+        size = len(page.icpAangiftes)
+        if size > request.take:
+            raise SnelStartError("SnelStart returned more ICP returns than requested.")
+        return IcpReturnPage(
+            data=page.icpAangiftes,
+            validation_messages=page.validationMessages,
+            next_skip=request.skip + size if size == request.take else None,
+        )
 
     @tool(annotations=READ)
     def snelstart_search_sales(request: SalesSearchRequest) -> DataResponse[ApiPage]:
