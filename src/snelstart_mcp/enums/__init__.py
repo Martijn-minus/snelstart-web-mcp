@@ -36,6 +36,7 @@ class BookingLookupStatus(StrEnum):
 
 class BookingLookupFailure(StrEnum):
     PURCHASE_DETAIL_REJECTED = "purchase_detail_rejected"
+    BANK_DETAIL_UNAVAILABLE = "bank_detail_unavailable"
 
 
 class ArchiveChange(StrEnum):

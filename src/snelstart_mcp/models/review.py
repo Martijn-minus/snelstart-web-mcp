@@ -19,6 +19,7 @@ from ..enums import (
 from . import Sha256
 from .api import PostedSalesBookingId
 from .requests import DateRangeRequest, EntryDetailRequest, ToolRequest
+from .responses import BankEntryListEvidence
 
 
 def _unique(values: list[UUID]) -> list[UUID]:
@@ -108,6 +109,9 @@ class BookingLookup(BookingReference):
     details: JsonValue = None
     reason: str | None = None
     failure_code: BookingLookupFailure | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    bank_list_evidence: BankEntryListEvidence | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
     attachments: list[JsonValue] | None = Field(

@@ -42,12 +42,17 @@ def pages(
     *,
     size_param="take",
     max_rows: int = MAX_EXPORT_ROWS,
+    max_pages: int | None = None,
 ):
     rows, keys = [], set()
     expected = None
+    page_count = 0
     while len(rows) <= max_rows:
+        if max_pages is not None and page_count >= max_pages:
+            raise SnelStartError(f"Too many pages for {operation}. Narrow the date range.")
         query = {**params, "skip": len(rows), size_param: 100}
         result = request(operation, query, body)
+        page_count += 1
         try:
             page = ApiPage.model_validate(result)
         except ValidationError:
@@ -188,7 +193,13 @@ def purchases_between(
 
 
 def bank_entries_between(
-    request, journal_id: str, start: date, end: date
+    request,
+    journal_id: str,
+    start: date,
+    end: date,
+    *,
+    max_rows: int = MAX_EXPORT_ROWS,
+    max_pages: int | None = None,
 ) -> tuple[int, list[JsonObject]]:
     first, last = _server_window(start, end)
     rows = pages(
@@ -202,6 +213,8 @@ def bank_entries_between(
             "totEnMet": last,
         },
         ("identifier", "publicIdentifier"),
+        max_rows=max_rows,
+        max_pages=max_pages,
     )
     return len(rows), entries_in_period(rows, start, end, "date")
 

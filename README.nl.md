@@ -231,6 +231,8 @@ Geef `invoice_number` als tekst op en behoud eventuele voorloopnullen. Levert ee
 
 Gebruik bij inkopen `publicIdentifier` uit de zoekrij als `entry_id` en, als het aanwezig is, `factuurnummeridentifier` uit diezelfde rij als `purchase_invoice_id`. Dit werkt ook met `snelstart_get_entry`. Bij HTTP 400 op de gewone detailroute kan de MCP via het factuur-ID dezelfde boeking ophalen en beide ID's controleren. Als `purchase_detail_rejected` terugkomt, blijft de detailbatch onvolledig. De zoekrij kan nog als bewijs voor de lijstvelden dienen.
 
+Geeft een bankdetail HTTP 500, geef dan `bank_list_context` mee aan `snelstart_get_entry` of aan de betreffende boeking in `snelstart_get_entries`. Neem `journal_id` en de lokale `booking_date` uit de banklijst of export. De MCP controleert de paginering voor die dag en zoekt exact op `identifier`. Een gevonden rij staat in `bank_list_evidence` met `failure_code: "bank_detail_unavailable"`. Het detailveld blijft leeg en de batch meldt `complete: false`. Als de banklijst niet te verifiëren is, meldt de tool dat.
+
 `snelstart_mutation_receipts` en `snelstart-mcp audit` tonen de uitgevoerde schrijfoperatie, een beschikbaar boekings- of verwerkings-ID, controlesommen en de uitkomst. Een time-out blijft onopgelost. Met `snelstart_verify_mutation` kun je op basis van het `receipt_id` ondersteunde acties teruglezen, waaronder nieuw aangemaakte boekingen, geregistreerde verwijderingen en verwerkte inkoop-PDF’s. Andere acties controleer je aan de hand van de brongegevens. Een controle herhaalt de schrijfopdracht nooit.
 
 ## Jaararchieven en herstel

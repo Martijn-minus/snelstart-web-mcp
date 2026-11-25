@@ -40,7 +40,12 @@ from .models.review import (
     ReconciliationReport,
     ReconciliationRequest,
 )
-from .tools_bookkeeping import PurchaseDetailRejected, read_booking_attachments, read_booking_entry
+from .tools_bookkeeping import (
+    BankDetailUnavailable,
+    PurchaseDetailRejected,
+    read_booking_attachments,
+    read_booking_entry,
+)
 from .year_data import (
     BANK_JOURNALS,
     bank_entries_between,
@@ -65,11 +70,25 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
         details = None
         reason = None
         failure_code = None
+        bank_list_evidence = None
         attachments = None
         attachment_lookup_error = None
         try:
-            details = read_booking_entry(read, ref)
-            if details is None:
+            lookup = read_booking_entry(read, ref)
+            details = lookup.data
+            if lookup.bank_list_evidence is not None:
+                status, reason, failure_code = (
+                    BookingLookupStatus.FAILED,
+                    lookup.reason,
+                    lookup.failure_code,
+                )
+                size = len(lookup.bank_list_evidence.model_dump_json().encode())
+                if size <= remaining:
+                    bank_list_evidence = lookup.bank_list_evidence
+                    remaining -= size
+                else:
+                    reason = "Bank detail unavailable and list evidence exceeds the remaining batch size. Read the booking separately."
+            elif details is None:
                 status = BookingLookupStatus.MISSING
             else:
                 size = len(json.dumps(details, ensure_ascii=False).encode())
@@ -82,6 +101,9 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
         except PurchaseDetailRejected as error:
             status, reason = BookingLookupStatus.FAILED, str(error)
             failure_code = BookingLookupFailure.PURCHASE_DETAIL_REJECTED
+        except BankDetailUnavailable as error:
+            status, reason = BookingLookupStatus.FAILED, str(error)
+            failure_code = BookingLookupFailure.BANK_DETAIL_UNAVAILABLE
         except SnelStartHTTPError as error:
             status = (
                 BookingLookupStatus.MISSING
@@ -123,6 +145,7 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
                 details=details,
                 reason=reason,
                 failure_code=failure_code,
+                bank_list_evidence=bank_list_evidence,
                 attachments=attachments,
                 attachment_lookup_error=attachment_lookup_error,
             )

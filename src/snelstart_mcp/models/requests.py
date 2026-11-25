@@ -141,6 +141,17 @@ class EntryRequest(ToolRequest):
     entry_id: UUID
 
 
+class BankEntryListContext(ToolRequest):
+    journal_id: UUID
+    booking_date: date
+
+    @model_validator(mode="after")
+    def supported_date(self):
+        if not 1900 <= self.booking_date.year <= 9998:
+            raise ValueError("Choose a booking date from 1900 through 9998.")
+        return self
+
+
 class EntryDetailRequest(EntryRequest):
     kind: EntryKind
     purchase_invoice_id: UUID | None = Field(
@@ -148,11 +159,18 @@ class EntryDetailRequest(EntryRequest):
         description="For purchases, the factuurnummeridentifier from the same purchase search row.",
         exclude_if=lambda value: value is None,
     )
+    bank_list_context: BankEntryListContext | None = Field(
+        default=None,
+        description="For bank bookings, the journal UUID and local booking date from the bank list or export. Used if the detail endpoint returns HTTP 500.",
+        exclude_if=lambda value: value is None,
+    )
 
     @model_validator(mode="after")
-    def invoice_id_only_for_purchases(self):
+    def context_matches_kind(self):
         if self.purchase_invoice_id is not None and self.kind is not EntryKind.PURCHASE:
             raise ValueError("An invoice identifier can only be used for a purchase booking.")
+        if self.bank_list_context is not None and self.kind is not EntryKind.BANK:
+            raise ValueError("Bank list context can only be used for a bank booking.")
         return self
 
 

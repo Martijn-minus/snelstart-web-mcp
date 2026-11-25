@@ -7,10 +7,11 @@ from uuid import UUID
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, JsonValue, StrictInt, StrictStr
 
-from ..enums import BrowserStatus
-from . import ArchiveManifest, Sha256
+from ..enums import BookingLookupFailure, BrowserStatus
+from . import ArchiveManifest, JsonObject, Sha256
 from .api import OperationSpec
 from .audit import AuditSummary
+from .requests import BankEntryListContext
 from .update import UpdateCheckResponse
 
 T = TypeVar("T")
@@ -18,6 +19,20 @@ T = TypeVar("T")
 
 class DataResponse(BaseModel, Generic[T]):
     data: T
+
+
+class BankEntryListEvidence(BankEntryListContext):
+    entry: JsonObject
+
+
+class EntryDetailResponse(DataResponse[JsonValue]):
+    bank_list_evidence: BankEntryListEvidence | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    failure_code: BookingLookupFailure | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    reason: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class ConnectionStatus(BaseModel):

@@ -350,6 +350,8 @@ For journal attachments, use `snelstart_list_attachments` with `kind: "journal"`
 
 Reconciliation reports recorded SnelStart links separately from suggestions. Suggestions use the bank entry’s signed amount, an invoice date on or before the payment date, and reference or counterparty evidence. Competing and amount-only matches remain ambiguous. Duplicate flags and missing-document indicators are review signals. Document indicators come from SnelStart’s attachment flags. Suggested matches require human review before making any bookkeeping changes.
 
+If a bank detail returns HTTP 500, pass `bank_list_context` to `snelstart_get_entry` or to that entry in `snelstart_get_entries`. Set `journal_id` to the journal UUID and `booking_date` to the local date from the bank list or export. The MCP checks the selected day's pagination and requires the exact `identifier`. It returns a match in `bank_list_evidence` with `failure_code: "bank_detail_unavailable"`. The detail stays empty, and a batch containing that result has `complete: false`. If the list cannot be verified, the tool reports that failure.
+
 Archive comparisons report additions, removals, and changed field names between the selected snapshots. These describe differences in the saved datasets.
 
 ## Year archives

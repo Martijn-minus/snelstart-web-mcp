@@ -2,6 +2,7 @@ from datetime import date
 from functools import partial
 from uuid import UUID
 
+import httpx
 from pydantic import JsonValue, ValidationError
 
 from .client import Client
@@ -9,6 +10,7 @@ from .config import SnelStartError, SnelStartHTTPError
 from .dates import window
 from .enums import (
     AttachmentKind,
+    BookingLookupFailure,
     EntryKind,
     PaymentDirection,
     RelationKind,
@@ -32,9 +34,15 @@ from .models.requests import (
     ThroughDateRequest,
     YearEndRequest,
 )
-from .models.responses import DataResponse, DownloadResponse, JsonResponse
+from .models.responses import (
+    BankEntryListEvidence,
+    DataResponse,
+    DownloadResponse,
+    EntryDetailResponse,
+    JsonResponse,
+)
 from .tooling import READ, Register
-from .year_data import purchases_between
+from .year_data import bank_entries_between, purchases_between
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
 PURCHASE_DETAILS = "GET /Purchases/Get"
@@ -64,11 +72,60 @@ class PurchaseDetailRejected(SnelStartError):
     """The purchase detail endpoint rejected a booking which may appear in search."""
 
 
-def read_booking_entry(read, request: EntryDetailRequest) -> JsonValue:
+class BankDetailUnavailable(SnelStartError):
+    """The source bank detail could not be retrieved."""
+
+
+def _read_bank_list_evidence(read, request: EntryDetailRequest) -> EntryDetailResponse:
+    failure = "SnelStart returned HTTP 500 for the bank detail."
+    context = request.bank_list_context
+    if context is None:
+        raise BankDetailUnavailable(
+            f"{failure} Provide bank_list_context with the journal ID and booking date "
+            "from the bank list or export to check list-level evidence."
+        ) from None
+
+    try:
+        _, rows = bank_entries_between(
+            read,
+            str(context.journal_id),
+            context.booking_date,
+            context.booking_date,
+            max_rows=1_000,
+            max_pages=12,
+        )
+    except (SnelStartError, httpx.HTTPError):
+        raise BankDetailUnavailable(
+            f"{failure} SnelStart could not verify the bank list for the supplied journal and date."
+        ) from None
+
+    identifier = str(request.entry_id)
+    matches = [
+        row
+        for row in rows
+        if isinstance(value := row.get("identifier"), str) and value.lower() == identifier
+    ]
+    if len(matches) != 1:
+        raise BankDetailUnavailable(
+            f"{failure} No unique matching booking ID was verified in the supplied journal and date."
+        ) from None
+    return EntryDetailResponse(
+        data=None,
+        failure_code=BookingLookupFailure.BANK_DETAIL_UNAVAILABLE,
+        reason=failure,
+        bank_list_evidence=BankEntryListEvidence(
+            journal_id=context.journal_id, booking_date=context.booking_date, entry=matches[0]
+        ),
+    )
+
+
+def read_booking_entry(read, request: EntryDetailRequest) -> EntryDetailResponse:
     operation, parameter = ENTRY_DETAILS[request.kind]
     try:
-        return read(operation, {parameter: str(request.entry_id)})
+        return EntryDetailResponse(data=read(operation, {parameter: str(request.entry_id)}))
     except SnelStartHTTPError as error:
+        if request.kind is EntryKind.BANK and error.status_code == 500:
+            return _read_bank_list_evidence(read, request)
         if request.kind is not EntryKind.PURCHASE or error.status_code != 400:
             raise
 
@@ -99,7 +156,7 @@ def read_booking_entry(read, request: EntryDetailRequest) -> JsonValue:
         raise PurchaseDetailRejected(
             f"{rejected} The invoice lookup did not verify both identifiers. {guidance}"
         )
-    return details
+    return EntryDetailResponse(data=details)
 
 
 def ledger_query(ledger_id: UUID, through_date: date, query: str = "") -> JsonObject:
@@ -257,9 +314,9 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
         )
 
     @tool(annotations=READ)
-    def snelstart_get_entry(request: EntryDetailRequest) -> JsonResponse:
-        """Read a booking by UUID. For purchases, include the invoice identifier from the same search row when available. Verify journal attachments with snelstart_list_attachments even if hasBijlagen is false."""
-        return JsonResponse(data=read_booking_entry(client.request, request))
+    def snelstart_get_entry(request: EntryDetailRequest) -> EntryDetailResponse:
+        """Read a booking by UUID. Use the purchase invoice ID from the search row when available. Bank list context can recover list evidence after HTTP 500. Verify journal attachments with snelstart_list_attachments even if hasBijlagen is false."""
+        return read_booking_entry(client.request, request)
 
     @tool(annotations=READ)
     def snelstart_vat_returns() -> JsonResponse:

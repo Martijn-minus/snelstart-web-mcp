@@ -82,6 +82,81 @@ def test_bulk_entry_outcomes_keep_identity_and_distinguish_incomplete_reads(app,
     assert result["entries"][3]["details"] is None
 
 
+@pytest.mark.parametrize("bulk", [False, True])
+def test_bank_detail_http_500_exposes_verified_list_evidence_separately(app, bulk):
+    call, _, handlers, seen = app
+    details = "/KasBankBoeking/GetKasBankboekingDetails"
+    listing = "/KasBankBoeking/GetKasBankBoekingenWithTimespan"
+    context = {"journal_id": BANK, "booking_date": "2026-01-02"}
+    matched = {
+        "identifier": BOOKING,
+        "date": "2026-01-01T23:15:00Z",
+        "invoiceKoppelingen": [{"invoiceIdentifier": INVOICE}],
+    }
+    handlers[details] = httpx.Response(500, json={"private": "fixture"})
+
+    def list_entries(request):
+        params = request.url.params
+        assert params["grootboekIdentifier"] == BANK
+        assert params["vanaf"].startswith("2025-12-31T23:00")
+        assert params["totEnMet"].startswith("2026-01-03T22:59")
+        if params["skip"] == "0":
+            return page({"identifier": OTHER, "date": "2026-01-02"}, total=2)
+        assert params["skip"] == "1"
+        return page(matched, total=2)
+
+    handlers[listing] = list_entries
+    ref = {"kind": "bank", "entry_id": BOOKING, "bank_list_context": context}
+    if bulk:
+        result = call("snelstart_get_entries", {"entries": [ref]})
+        assert result["complete"] is False
+        (entry,) = result["entries"]
+        assert entry["status"] == "failed" and entry["details"] is None
+    else:
+        entry = call("snelstart_get_entry", ref)
+        assert entry["data"] is None
+    assert entry["failure_code"] == "bank_detail_unavailable"
+    assert entry["bank_list_evidence"] == context | {"entry": matched}
+    assert "HTTP 500" in entry["reason"] and "private" not in entry["reason"]
+    assert [request.url.path for request in seen if request.method == "GET"][-3:] == [
+        details,
+        listing,
+        listing,
+    ]
+
+
+def test_bank_detail_http_500_never_returns_another_booking(app):
+    call, _, handlers, _ = app
+    handlers["/KasBankBoeking/GetKasBankboekingDetails"] = httpx.Response(500)
+    handlers["/KasBankBoeking/GetKasBankBoekingenWithTimespan"] = page(
+        {"identifier": OTHER, "date": "2026-01-02"},
+        {"identifier": BOOKING, "date": "2026-01-03"},
+    )
+    ref = {"kind": "bank", "entry_id": BOOKING}
+    with pytest.raises(ToolError, match="Provide bank_list_context"):
+        call("snelstart_get_entry", ref)
+    ref["bank_list_context"] = {"journal_id": BANK, "booking_date": "2026-01-02"}
+    result = call("snelstart_get_entries", {"entries": [ref]})
+    assert result["complete"] is False
+    (entry,) = result["entries"]
+    assert entry["status"] == "failed" and entry["details"] is None
+    assert entry["failure_code"] == "bank_detail_unavailable"
+    assert "No unique matching booking ID" in entry["reason"]
+    assert "bank_list_evidence" not in entry
+
+
+def test_successful_bank_detail_does_not_query_the_list(app):
+    call, _, handlers, _ = app
+    detail = {"identifier": BOOKING}
+    handlers["/KasBankBoeking/GetKasBankboekingDetails"] = detail
+    ref = {
+        "kind": "bank",
+        "entry_id": BOOKING,
+        "bank_list_context": {"journal_id": BANK, "booking_date": "2026-01-02"},
+    }
+    assert call("snelstart_get_entry", ref) == {"data": detail}
+
+
 def test_batch_checks_journal_attachments_even_when_detail_flag_is_false(app):
     call, _, handlers, seen = app
     journal_attachments = "/MemoriaalBoekingen/GetAttachments"
