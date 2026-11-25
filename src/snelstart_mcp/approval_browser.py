@@ -17,6 +17,7 @@ from urllib.parse import parse_qs
 from uuid import UUID
 
 from .approval import approve_reviewed_writes, pending_writes
+from .client import write_warning
 from .config import SnelStartError, Store
 from .models.approval import MAX_PENDING, PendingWrite, WriteApprovalReviewResponse
 
@@ -30,6 +31,7 @@ OPERATION_LABELS = {
     "POST /KasBankBoeking/AddMarking": "Mark a bank entry for review",
     "POST /KasBankBoeking/RemoveMarking": "Remove a bank entry review mark",
     "POST /Purchases/CreateInkoopVoorBijlage": "Submit purchase invoice PDF",
+    "POST /Purchases/UpdateInkoopboekingBasisGegevens": "Update purchase header",
 }
 
 STYLE = """
@@ -80,6 +82,8 @@ def _review_form(records: dict[UUID, PendingWrite], *, error: str | None = None)
     for identifier, record in records.items():
         intent = record.intent
         label = OPERATION_LABELS.get(intent.operation, "Review bookkeeping change")
+        warning = write_warning(intent.operation)
+        warning_html = f'<p role="alert">{escape(warning)}</p>' if warning else ""
         details = json.dumps(intent.details, indent=2, ensure_ascii=True, sort_keys=True)
         local_time = (
             datetime.fromtimestamp(record.expires)
@@ -92,6 +96,7 @@ def _review_form(records: dict[UUID, PendingWrite], *, error: str | None = None)
             f"<dt>Operation</dt><dd><code>{escape(intent.operation)}</code></dd>"
             f"<dt>Request ID</dt><dd><code>{identifier}</code></dd>"
             f"<dt>Expires</dt><dd>{local_time}</dd></dl>"
+            f"{warning_html}"
             f"<details open><summary>Exact request details</summary>"
             f"<pre>{escape(details)}</pre></details></article>"
         )

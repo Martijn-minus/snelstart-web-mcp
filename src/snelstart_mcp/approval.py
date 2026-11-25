@@ -8,6 +8,7 @@ from uuid import UUID, uuid4
 
 from pydantic import TypeAdapter, ValidationError
 
+from .client import write_warning
 from .config import SnelStartError, Store
 from .enums import WriteApprovalStatus
 from .models.approval import MAX_PENDING, PendingWrite, WriteApprovalState, WriteIntent
@@ -153,6 +154,8 @@ def approve_write(store: Store, approval_id: UUID) -> None:
             open("/dev/tty", "w", buffering=1, encoding="utf-8") as terminal,
         ):
             terminal.write("Review this SnelStart write before confirming:\n")
+            if warning := write_warning(record.intent.operation):
+                terminal.write(f"{warning}\n\n")
             terminal.write(
                 json.dumps(
                     record.intent.model_dump(mode="json"),

@@ -34,6 +34,12 @@ Als bevestigingen aanstaan, kan je chat de voorstellen met `snelstart_open_write
 
 Met `snelstart-mcp writes review` open je zelf het browservenster voor de geselecteerde administratie. Zonder browser gebruik je `snelstart-mcp writes approve APPROVAL_ID` in je eigen terminal met hetzelfde profiel. Controleer de inhoud en typ `APPROVE`. Bij een PDF zijn ook het pad en de controlesom onderdeel van de bevestiging. Deze controle beveiligt de MCP-tools. Onbeperkte terminal- en bestandstoegang onder je eigen account blijft vertrouwde toegang.
 
+### De factuurdatum van een inkoop corrigeren
+
+`POST /Purchases/UpdateInkoopboekingBasisGegevens` kan de btw en nettobedragen herberekenen, ook als je alleen de factuurdatum aanpast. Lees het veld `write_warning` in `snelstart_list_operations` voordat je de wijziging voorbereidt. Bij ingeschakelde bevestigingen zie je de waarschuwing ook in het lokale bevestigingsscherm.
+
+Moet de boeking inhoudelijk gelijk blijven, lees dan eerst de bestaande inkoop en bewaar de boekingsregels en btw-regels. Gebruik `POST /Purchases/UpdateInkoopboekingVolledig` met die expliciete regels en de aangepaste datum. Lees de inkoop daarna terug en vergelijk de datum, netto- en brutobedragen, btw, betalingen en gekoppelde bijlagen.
+
 ## Auditlog
 
 Het profiel bewaart per administratie een auditdatabase met aanroepen, tijdstippen, uitkomsten en duur. Aanroepen zonder gekozen administratie komen in een afzonderlijke profieldatabase. De log laat invoer, antwoordteksten, wachtwoorden en tokens weg. Bij een onzekere uitkomst controleer je het record en de auditgeschiedenis voordat je iets opnieuw probeert.

@@ -43,6 +43,12 @@ The browser window stays on the computer running the MCP and shows only the requ
 
 A change to the payload or PDF checksum requires a new approval. An approval is consumed once, including when the result is uncertain. The approval protects the MCP tool boundary. Treat unrestricted shell and filesystem access under your OS account as trusted.
 
+### Correct a purchase invoice date
+
+`POST /Purchases/UpdateInkoopboekingBasisGegevens` can recalculate VAT and net posting amounts even when only the invoice date changes. Check `write_warning` in `snelstart_list_operations` before preparing the write. The local approval screen also shows this warning when confirmations are enabled.
+
+When the posting must be preserved, first read the purchase details and retain the original booking and VAT lines. Prepare `POST /Purchases/UpdateInkoopboekingVolledig` with those lines and the corrected date. Read the purchase back and compare the date, net and gross amounts, VAT, settlements and attachment links with the original.
+
 ## Audit log and rollback design
 
 The server records MCP call timestamps, tool names, outcomes and durations in `audit/<administration-uuid>.sqlite3` inside the active profile. Calls made before choosing an administration go to `audit/profile.sqlite3`. A call stays in the database for the administration selected at its start, including its outcome if the selection changes. Each database uses file permissions `0600`. Inputs, response bodies, credentials and tokens are omitted. A call without a recorded result appears as pending.

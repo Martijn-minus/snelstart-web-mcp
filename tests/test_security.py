@@ -8,6 +8,7 @@ import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
 from snelstart_mcp import approval, vault
+from snelstart_mcp.approval_browser import _review_form
 from snelstart_mcp.client import Client
 from snelstart_mcp.config import SnelStartError, Store
 from snelstart_mcp.models.approval import WriteIntent
@@ -77,6 +78,41 @@ def test_tool_checks_administration_and_sensitive_grant_before_dispatch(tmp_path
                     "snelstart_write", request | {"operation": "POST /BtwAangiftes/Send"}
                 )
             )
+
+
+def test_purchase_header_warning_is_discoverable_and_shown_before_approval(tmp_path):
+    store = Store(tmp_path)
+    store.write("config.json", {"administration_id": str(ADMIN), "allow_writes": True})
+    basic = "POST /Purchases/UpdateInkoopboekingBasisGegevens"
+    full = "POST /Purchases/UpdateInkoopboekingVolledig"
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda req: pytest.fail("Unexpected API request"))
+    ) as http:
+        server = create_server(Client(store, http))
+        _, result = asyncio.run(
+            server.call_tool(
+                "snelstart_list_operations", {"query": "UpdateInkoopboeking", "read_only": False}
+            )
+        )
+        operations = {row["operation"]: row for row in result["operations"]}
+        warning = operations[basic]["write_warning"]
+        assert "recalculate VAT" in warning and full in warning
+        assert "write_warning" not in operations[full]
+        with pytest.raises(ToolError, match="Local confirmation required"):
+            asyncio.run(
+                server.call_tool(
+                    "snelstart_write",
+                    {
+                        "administration_id": str(ADMIN),
+                        "operation": basic,
+                        "payload": {"factuurdatum": "2025-02-03"},
+                    },
+                )
+            )
+        pending = approval.pending_writes(store)
+        (write,) = pending.values()
+        assert write.intent.details["payload"] == {"factuurdatum": "2025-02-03"}
+        assert f'<p role="alert">{warning}</p>' in _review_form(pending)
 
 
 def test_direct_write_still_requires_the_administration_and_operation_grant(tmp_path, monkeypatch):

@@ -44,6 +44,10 @@ def catalog() -> dict:
     return json.loads(files("snelstart_mcp").joinpath("catalog.json").read_text())
 
 
+def write_warning(operation: str) -> str | None:
+    return catalog().get(operation, {}).get("write_warning")
+
+
 class Client:
     def __init__(self, store: Store, http: httpx.Client | None = None, *, read_only: bool = False):
         self.store = store

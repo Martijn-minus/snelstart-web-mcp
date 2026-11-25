@@ -37,6 +37,7 @@ class OperationSpec(BaseModel):
     required_parameters: list[str]
     json_body: bool
     read_only: bool
+    write_warning: str | None = Field(default=None, exclude_if=lambda value: value is None)
 
 
 class WebApiRequest(BaseModel):

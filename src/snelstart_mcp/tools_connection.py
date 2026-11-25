@@ -52,7 +52,7 @@ def register_connection_tools(
 
     @tool(annotations=READ)
     def snelstart_list_operations(request: OperationListRequest) -> OperationListResponse:
-        """Find allowlisted API operations and their exact parameters."""
+        """Find allowlisted API operations, exact parameters and any write warnings."""
         found = [
             dict(operation=key, **value)
             for key, value in catalog().items()
@@ -86,7 +86,13 @@ def register_connection_tools(
 
     @tool(annotations=WRITE)
     def snelstart_write(request: WriteOperationRequest) -> JsonResponse:
-        """Call a catalog mutation when writes are locally enabled and explicitly requested. Verify the accounting record after the call."""
+        """Call an explicitly requested catalog mutation when writes are enabled.
+
+        Before editing a purchase, check the operation's write_warning. SnelStart's
+        UpdateInkoopboekingBasisGegevens can recalculate VAT and net amounts even for
+        a date-only edit. To preserve the posting, use UpdateInkoopboekingVolledig
+        with the original booking lines and explicit VAT lines. Verify the saved record.
+        """
         if request.operation == "GET /Attachments/GetAttachmentUploadUriNew":
             raise SnelStartError(
                 "Use snelstart_attach_bank_pdf for a bank booking or "

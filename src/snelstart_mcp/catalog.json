@@ -2580,7 +2580,8 @@
     "query_parameters": [],
     "required_parameters": [],
     "json_body": true,
-    "read_only": false
+    "read_only": false,
+    "write_warning": "SnelStart can recalculate VAT and net booking amounts even when only the invoice date changes. To preserve the existing posting, read the purchase first and use POST /Purchases/UpdateInkoopboekingVolledig with the original booking lines and explicit VAT lines. Read back and verify the saved amounts."
   },
   "POST /Purchases/UpdateInkoopboekingVolledig": {
     "method": "POST",
