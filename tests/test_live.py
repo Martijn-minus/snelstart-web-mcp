@@ -140,10 +140,19 @@ async def run_live_contract(path: Path):
         assert (await call("snelstart_list_operations", {"query": "Invoices/Search"}))["total"] == 1
         accounts = (await call("snelstart_chart_of_accounts"))["data"]
         assert isinstance(accounts, list)
-        if accounts:
-            number = accounts[0]["grootboekNumber"]
+        ledger_ids = []
+        for row in accounts[:3]:
+            number = row["grootboekNumber"]
             account = await call("snelstart_ledger_account_details", {"account_number": number})
             assert account["data"]["grootboekNumber"] == number
+            identifier = UUID(account["data"]["publicIdentifier"])
+            assert identifier.int and identifier == UUID(row["grootboekId"])
+            ledger_ids.append(str(identifier))
+        if ledger_ids:
+            exported = await call(
+                "snelstart_export_ledger_entries", {**period, "ledger_ids": ledger_ids}
+            )
+            assert [ledger["ledger_id"] for ledger in exported["ledgers"]] == ledger_ids
         assert (
             "balans"
             in (await call("snelstart_balance_sheet", {"through_date": today.isoformat()}))["data"]

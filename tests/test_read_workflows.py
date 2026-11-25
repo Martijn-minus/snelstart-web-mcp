@@ -590,13 +590,47 @@ def test_article_search_uses_source_code_order_and_links_to_details(session):
 
 def test_ledger_account_details_verify_the_number_and_return_source_settings(session):
     client, requests, replies = session
-    account = {"grootboekNumber": 1200, "btw": [], "kostenplaatsInstelling": 1}
+    account = {
+        "grootboekNumber": 1200,
+        "grootboekId": 7,
+        "publicIdentifier": ENTRY,
+        "btw": [],
+        "kostenplaatsInstelling": 1,
+    }
     replies["/Grootboek/GetGrootboekByNumber"] = account
     result = call(client, "snelstart_ledger_account_details", {"account_number": 1200})
     assert result == {"data": account}
     assert dict(requests[-1].url.params) == {"number": "1200"}
     with pytest.raises(ToolError, match="requested ledger account number"):
         call(client, "snelstart_ledger_account_details", {"account_number": 1201})
+
+
+@pytest.mark.parametrize(
+    ("matching_rows", "expected"),
+    [
+        ([{"grootboekId": ENTRY}], ENTRY),
+        ([{"grootboekId": ENTRY}, {"grootboekId": ADMIN}], None),
+        ([{"grootboekId": 7}], None),
+        ([], None),
+    ],
+)
+def test_ledger_account_details_resolve_missing_uuid_from_exact_chart_match(
+    session, matching_rows, expected
+):
+    client, requests, replies = session
+    replies["/Grootboek/GetGrootboekByNumber"] = {
+        "grootboekNumber": 1200,
+        "grootboekId": 7,
+        "publicIdentifier": str(UUID(int=0)),
+    }
+    replies["/Grootboek/GetAllMinimal"] = [
+        {"grootboekNumber": 1300, "grootboekId": ADMIN},
+        *[{"grootboekNumber": 1200, **row} for row in matching_rows],
+    ]
+    result = call(client, "snelstart_ledger_account_details", {"account_number": 1200})
+    assert result["data"]["publicIdentifier"] == expected
+    assert result["data"]["grootboekId"] == 7
+    assert requests[-1].url.path == "/Grootboek/GetAllMinimal"
 
 
 def test_sales_draft_uuid_rejects_a_mixed_batch_before_reading_any_record(session):

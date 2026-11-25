@@ -55,6 +55,7 @@ from .tooling import READ, Register
 from .year_data import bank_entries_between, purchases_between
 
 LEDGER_ENTRIES = "GET /Grootboek/GetGrootboekMutaties"
+CHART_OF_ACCOUNTS = "GET /Grootboek/GetAllMinimal"
 ICP_RETURN_DETAILS = "GET /IcpAangiftes/GetByPublicIdentifier"
 PURCHASE_DETAILS = "GET /Purchases/Get"
 PURCHASE_DETAILS_BY_INVOICE = "GET /Purchases/GetByFactuurNummerIdentifier"
@@ -255,17 +256,27 @@ def read_booking_attachments(read, kind: AttachmentKind, entry_id: UUID) -> list
     return attachment_metadata(read(operation, {parameter: str(entry_id)}))
 
 
+def nonzero_ledger_uuid(value: JsonValue) -> str | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        identifier = UUID(value)
+    except ValueError:
+        return None
+    return str(identifier) if identifier.int else None
+
+
 def register_bookkeeping_tools(tool: Register, client: Client) -> None:
     @tool(annotations=READ)
     def snelstart_chart_of_accounts() -> JsonResponse:
         """List chart of accounts and their identifiers."""
-        return JsonResponse(data=client.request("GET /Grootboek/GetAllMinimal"))
+        return JsonResponse(data=client.request(CHART_OF_ACCOUNTS))
 
     @tool(annotations=READ)
     def snelstart_ledger_account_details(
         request: LedgerAccountDetailsRequest,
     ) -> DataResponse[JsonObject]:
-        """Read a ledger account by its account number, including published VAT and cost-centre settings."""
+        """Read an account by number. publicIdentifier is its export UUID, or null if unavailable. grootboekId is an internal number."""
         account = client.request(
             "GET /Grootboek/GetGrootboekByNumber", {"number": request.account_number}
         )
@@ -275,7 +286,24 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
             or number != request.account_number
         ):
             raise SnelStartError("SnelStart did not return the requested ledger account number.")
-        return DataResponse(data=account)
+        public_id = nonzero_ledger_uuid(account.get("publicIdentifier"))
+        if public_id is None:
+            try:
+                chart = client.request(CHART_OF_ACCOUNTS)
+            except (SnelStartHTTPError, httpx.HTTPError):
+                chart = None
+            if isinstance(chart, list):
+                identifiers = {
+                    identifier
+                    for row in chart
+                    if isinstance(row, dict)
+                    and type(row.get("grootboekNumber")) is int
+                    and row["grootboekNumber"] == number
+                    and (identifier := nonzero_ledger_uuid(row.get("grootboekId"))) is not None
+                }
+                if len(identifiers) == 1:
+                    public_id = identifiers.pop()
+        return DataResponse(data={**account, "publicIdentifier": public_id})
 
     @tool(annotations=READ)
     def snelstart_balance_sheet(request: ThroughDateRequest) -> JsonResponse:

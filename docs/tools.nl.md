@@ -52,7 +52,7 @@ Een bevestigde herhaling levert het bestaande verwerkings-ID op. Controleer het 
 | Tool | Gebruik |
 | --- | --- |
 | `snelstart_chart_of_accounts` | Lees het rekeningschema en de beschikbare rekening-ID’s. |
-| `snelstart_ledger_account_details` | Lees een rekening op `account_number`, inclusief beschikbare btw- en kostenplaatsinstellingen. |
+| `snelstart_ledger_account_details` | Lees een rekening op `account_number`, inclusief btw- en kostenplaatsinstellingen. Gebruik `data.publicIdentifier` bij grootboektools. De tool zoekt een ontbrekende UUID in het rekeningschema en geeft `null` als er geen eenduidige match is. |
 | `snelstart_balance_sheet` | Lees de balans, winst-en-verliesrekening en rubrieken tot en met `through_date`. |
 | `snelstart_financial_result` | Lees het financiële resultaat voor de periode dat als invoer dient voor de Belastingmonitor. |
 | `snelstart_ledger_entries` | Lees één pagina grootboekmutaties voor een rekening. |

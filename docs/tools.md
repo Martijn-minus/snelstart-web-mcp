@@ -112,7 +112,7 @@ Use `snelstart_check_purchase_posting` with the selected administration UUID and
 | Tool | What it does |
 | --- | --- |
 | `snelstart_chart_of_accounts` | Lists ledger accounts and their identifiers. |
-| `snelstart_ledger_account_details` | Reads a ledger account by `account_number`, including VAT and cost-centre settings when supplied. |
+| `snelstart_ledger_account_details` | Reads a ledger account by `account_number`, including VAT and cost-centre settings. Use `data.publicIdentifier` for ledger tools. The tool consults the chart if the detail response lacks a usable UUID and returns `null` if there is no unambiguous match. |
 | `snelstart_balance_sheet` | Reads the balance sheet, profit and loss, and reporting categories for a `through_date`. |
 | `snelstart_financial_result` | Reads the financial result for `start_date` through `through_date` using the report called by the Tax Monitor. |
 | `snelstart_ledger_entries` | Reads one page of postings for an account through a given date. |
