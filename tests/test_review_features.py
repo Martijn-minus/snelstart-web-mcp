@@ -82,6 +82,87 @@ def test_bulk_entry_outcomes_keep_identity_and_distinguish_incomplete_reads(app,
     assert result["entries"][3]["details"] is None
 
 
+def test_batch_checks_journal_attachments_even_when_detail_flag_is_false(app):
+    call, _, handlers, seen = app
+    journal_attachments = "/MemoriaalBoekingen/GetAttachments"
+    purchase_attachments = "/Purchases/GetAttachmentsWithIdentifier"
+    bank_attachments = "/KasBankBoeking/GetAttachments"
+    detail = {"publicIdentifier": BOOKING, "hasBijlagen": False}
+    handlers.update(
+        {
+            "/MemoriaalBoekingen/GetDetails": detail,
+            "/Purchases/Get": {"publicIdentifier": BOOKING},
+            "/KasBankBoeking/GetKasBankboekingDetails": {"identifier": BOOKING},
+            "/BalansBoekingen/GetDetails": {"publicIdentifier": BOOKING},
+            journal_attachments: [
+                {
+                    "publicIdentifier": INVOICE,
+                    "name": "evidence.pdf",
+                    "originalSizeInBytes": 0,
+                    "createdOn": "0001-01-01T00:00:00",
+                    "thumbnailUrl": "private-fixture",
+                }
+            ],
+            purchase_attachments: [],
+            bank_attachments: [],
+        }
+    )
+    request = {
+        "entries": [
+            {"kind": kind, "entry_id": BOOKING}
+            for kind in ("journal", "purchase", "bank", "opening_balance")
+        ]
+    }
+    default = call("snelstart_get_entries", request)
+    assert all("attachments" not in row for row in default["entries"])
+
+    checked = call("snelstart_get_entries", request | {"include_attachments": True})
+    assert checked["complete"] is True
+    journal, purchase, bank, opening = checked["entries"]
+    assert journal["details"] == detail
+    assert journal["attachments"] == [
+        {
+            "attachmentIdentifier": INVOICE,
+            "fileName": "evidence.pdf",
+            "size": 0,
+            "createdOn": "0001-01-01T00:00:00",
+        }
+    ]
+    assert purchase["attachments"] == bank["attachments"] == []
+    assert "attachments" not in opening
+    assert [
+        (request.url.path, dict(request.url.params))
+        for request in seen
+        if request.url.path in (journal_attachments, purchase_attachments, bank_attachments)
+    ] == [
+        (journal_attachments, {"publicIdentifier": BOOKING}),
+        (purchase_attachments, {"journaalpostIdentifier": BOOKING}),
+        (bank_attachments, {"journaalpostIdentifier": BOOKING}),
+    ]
+
+
+@pytest.mark.parametrize("response", [httpx.Response(404), [{"publicIdentifier": INVOICE}]])
+def test_batch_retains_details_when_attachment_lookup_is_incomplete(app, monkeypatch, response):
+    call, _, handlers, _ = app
+    monkeypatch.setattr(financial_review, "MAX_BATCH_BYTES", 60)
+    detail = {"publicIdentifier": BOOKING}
+    handlers["/MemoriaalBoekingen/GetDetails"] = detail
+    handlers["/MemoriaalBoekingen/GetAttachments"] = response
+    result = call(
+        "snelstart_get_entries",
+        {
+            "entries": [{"kind": "journal", "entry_id": BOOKING}],
+            "include_attachments": True,
+        },
+    )
+    assert result["complete"] is False
+    (booking,) = result["entries"]
+    assert booking["status"] == "found" and booking["details"] == detail
+    assert "attachments" not in booking
+    expected = "HTTP 404" if isinstance(response, httpx.Response) else "snelstart_list_attachments"
+    assert expected in booking["attachment_lookup_error"]
+
+
 def _bank_sources(handlers, entries):
     handlers["/KasBankBoeking/GetKasEnBankDagboeken"] = [
         {"grootboekIdentifier": BANK, "numberOfGemarkeerd": 3},

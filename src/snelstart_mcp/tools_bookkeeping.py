@@ -52,13 +52,12 @@ ENTRY_DETAILS = {
         "kasBankboekingIdentifier",
     ),
 }
-ATTACHMENT_OPERATIONS = frozenset(
-    {
-        PURCHASE_ATTACHMENTS,
-        "GET /KasBankBoeking/GetAttachments",
-        "GET /MemoriaalBoekingen/GetAttachments",
-    }
-)
+ATTACHMENT_ROUTES = {
+    AttachmentKind.PURCHASE: (PURCHASE_ATTACHMENTS, "journaalpostIdentifier"),
+    AttachmentKind.BANK: ("GET /KasBankBoeking/GetAttachments", "journaalpostIdentifier"),
+    AttachmentKind.JOURNAL: ("GET /MemoriaalBoekingen/GetAttachments", "publicIdentifier"),
+}
+ATTACHMENT_OPERATIONS = frozenset(operation for operation, _ in ATTACHMENT_ROUTES.values())
 
 
 class PurchaseDetailRejected(SnelStartError):
@@ -183,6 +182,11 @@ def attachment_metadata(data: JsonValue) -> list[JsonValue]:
     return attachments
 
 
+def read_booking_attachments(read, kind: AttachmentKind, entry_id: UUID) -> list[JsonValue]:
+    operation, parameter = ATTACHMENT_ROUTES[kind]
+    return attachment_metadata(read(operation, {parameter: str(entry_id)}))
+
+
 def register_bookkeeping_tools(tool: Register, client: Client) -> None:
     @tool(annotations=READ)
     def snelstart_chart_of_accounts() -> JsonResponse:
@@ -254,7 +258,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_get_entry(request: EntryDetailRequest) -> JsonResponse:
-        """Read a booking by UUID. For purchases, include the invoice identifier from the same search row when available."""
+        """Read a booking by UUID. For purchases, include the invoice identifier from the same search row when available. Verify journal attachments with snelstart_list_attachments even if hasBijlagen is false."""
         return JsonResponse(data=read_booking_entry(client.request, request))
 
     @tool(annotations=READ)
@@ -346,18 +350,10 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_list_attachments(request: AttachmentListRequest) -> JsonResponse:
-        """List attachments for a purchase, bank transaction or journal entry."""
-        operations = {
-            AttachmentKind.PURCHASE: (
-                PURCHASE_ATTACHMENTS,
-                "journaalpostIdentifier",
-            ),
-            AttachmentKind.BANK: ("GET /KasBankBoeking/GetAttachments", "journaalpostIdentifier"),
-            AttachmentKind.JOURNAL: ("GET /MemoriaalBoekingen/GetAttachments", "publicIdentifier"),
-        }
-        operation, key = operations[request.kind]
-        data = client.request(operation, {key: str(request.entry_id)})
-        return JsonResponse(data=attachment_metadata(data))
+        """List linked files for a purchase, bank transaction or journal entry. Size and creation date can be placeholders. Download the file for its actual byte count and checksum."""
+        return JsonResponse(
+            data=read_booking_attachments(client.request, request.kind, request.entry_id)
+        )
 
     @tool(annotations=READ)
     def snelstart_download_document(request: DocumentRequest) -> DownloadResponse:

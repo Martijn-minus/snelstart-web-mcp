@@ -19,9 +19,11 @@ from pydantic import JsonValue
 
 from .config import SnelStartError, SnelStartHTTPError, Store
 from .enums import (
+    AttachmentKind,
     BookingLookupFailure,
     BookingLookupStatus,
     DocumentStatus,
+    EntryKind,
     InvoiceKind,
     ReconciliationStatus,
 )
@@ -38,7 +40,7 @@ from .models.review import (
     ReconciliationReport,
     ReconciliationRequest,
 )
-from .tools_bookkeeping import PurchaseDetailRejected, read_booking_entry
+from .tools_bookkeeping import PurchaseDetailRejected, read_booking_attachments, read_booking_entry
 from .year_data import (
     BANK_JOURNALS,
     bank_entries_between,
@@ -63,6 +65,8 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
         details = None
         reason = None
         failure_code = None
+        attachments = None
+        attachment_lookup_error = None
         try:
             details = read_booking_entry(read, ref)
             if details is None:
@@ -89,6 +93,27 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
             status, reason = BookingLookupStatus.FAILED, str(error)
         except httpx.HTTPError:
             status, reason = BookingLookupStatus.FAILED, "SnelStart is unavailable."
+        if (
+            request.include_attachments
+            and status is BookingLookupStatus.FOUND
+            and ref.kind is not EntryKind.OPENING_BALANCE
+        ):
+            try:
+                linked = read_booking_attachments(read, AttachmentKind(ref.kind), ref.entry_id)
+                size = len(json.dumps(linked, ensure_ascii=False).encode())
+                if size > remaining:
+                    attachment_lookup_error = (
+                        "Use snelstart_list_attachments to read the files separately."
+                    )
+                else:
+                    attachments = linked
+                    remaining -= size
+            except SnelStartHTTPError as error:
+                attachment_lookup_error = f"SnelStart returned HTTP {error.status_code}."
+            except SnelStartError as error:
+                attachment_lookup_error = str(error)
+            except httpx.HTTPError:
+                attachment_lookup_error = "SnelStart is unavailable."
         entries.append(
             BookingLookup(
                 kind=ref.kind,
@@ -98,12 +123,15 @@ def booking_batch(read, administration: UUID, request: BookingBatchRequest) -> B
                 details=details,
                 reason=reason,
                 failure_code=failure_code,
+                attachments=attachments,
+                attachment_lookup_error=attachment_lookup_error,
             )
         )
     return BookingBatchResponse(
         administration_id=administration,
         complete=all(
             row.status in (BookingLookupStatus.FOUND, BookingLookupStatus.MISSING)
+            and row.attachment_lookup_error is None
             for row in entries
         ),
         entries=entries,

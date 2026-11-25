@@ -91,6 +91,10 @@ class BookingReference(EntryDetailRequest):
 
 class BookingBatchRequest(ToolRequest):
     entries: Annotated[list[BookingReference], Field(min_length=1, max_length=20)]
+    include_attachments: bool = Field(
+        default=False,
+        description="Look up the linked files for found purchase, bank and journal bookings.",
+    )
 
     @model_validator(mode="after")
     def unique_entries(self):
@@ -104,6 +108,14 @@ class BookingLookup(BookingReference):
     details: JsonValue = None
     reason: str | None = None
     failure_code: BookingLookupFailure | None = Field(
+        default=None, exclude_if=lambda value: value is None
+    )
+    attachments: list[JsonValue] | None = Field(
+        default=None,
+        exclude_if=lambda value: value is None,
+        description="Linked attachment metadata. An empty list means the lookup found no files.",
+    )
+    attachment_lookup_error: str | None = Field(
         default=None, exclude_if=lambda value: value is None
     )
 
