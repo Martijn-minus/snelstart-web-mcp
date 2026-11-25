@@ -7,7 +7,7 @@ import httpx
 import pytest
 from mcp.server.fastmcp.exceptions import ToolError
 
-from snelstart_mcp import financial_review
+from snelstart_mcp import bank_attachment, financial_review
 from snelstart_mcp.backup import ARCHIVE_FORMAT, LEGACY_ARCHIVE
 from snelstart_mcp.client import Client
 from snelstart_mcp.config import Store
@@ -52,6 +52,80 @@ def app(tmp_path, monkeypatch):
 
 def page(*rows, total=None):
     return {"resultList": list(rows), "totalMatchCount": len(rows) if total is None else total}
+
+
+def test_bank_pdf_approval_readback_and_retry_use_one_attachment(app, tmp_path, monkeypatch):
+    call, store, handlers, seen = app
+    fixture = tmp_path / "bank-proof.pdf"
+    pdf = b"%PDF-1.4\nsynthetic evidence"
+    fixture.write_bytes(pdf)
+    checksum = hashlib.sha256(pdf).hexdigest()
+    uploaded = []
+    handlers["/KasBankBoeking/GetKasBankboekingDetails"] = {"identifier": BOOKING}
+    handlers["/Attachments/GetAttachmentUploadUriNew"] = "fixture-signed-url"
+
+    def upload(destination, contents):
+        uploaded.append((destination, contents))
+        return "https://storage.example.test/fixture.pdf"
+
+    def attach(request):
+        assert json.loads(request.content) == {
+            "journaalpostIdentifier": BOOKING,
+            "uri": "https://storage.example.test/fixture.pdf",
+            "size": len(pdf),
+            "originalFileName": fixture.name,
+            "documentType": 0,
+        }
+        return {"attachmentIdentifier": INVOICE}
+
+    monkeypatch.setattr(bank_attachment, "_upload_to_storage", upload)
+    handlers["/KasBankBoeking/AddAttachment"] = attach
+    handlers["/KasBankBoeking/GetAttachments"] = [{"attachmentIdentifier": INVOICE, "size": 0}]
+    handlers["/Attachments/GetContentByIdentifier"] = lambda request: httpx.Response(
+        200,
+        content=pdf,
+        headers={"Content-Type": "application/pdf"},
+    )
+    params = {"administration_id": ADMIN, "entry_id": BOOKING, "file_path": str(fixture)}
+    with pytest.raises(ToolError, match="Local confirmation required"):
+        call("snelstart_attach_bank_pdf", params)
+    assert not uploaded
+    assert not any(request.url.path == "/Attachments/GetAttachmentUploadUriNew" for request in seen)
+    settings = store.read("config.json")
+    store.write("config.json", {**settings, "direct_write_administrations": [ADMIN]})
+    result = call("snelstart_attach_bank_pdf", params)
+    assert result["sha256"] == checksum and not result["already_attached"]
+    repeat = call("snelstart_attach_bank_pdf", params)
+    assert repeat == {**result, "already_attached": True}
+    assert uploaded == [("fixture-signed-url", pdf)]
+    receipt = call("snelstart_mutation_receipts", {"limit": 2})["data"][0]
+    assert (
+        receipt["status"] == "verified" and receipt["verification"] == bank_attachment.VERIFICATION
+    )
+
+
+def test_uncertain_bank_attachment_is_not_written_again(app, tmp_path, monkeypatch):
+    call, store, handlers, seen = app
+    fixture = tmp_path / "bank-proof.pdf"
+    fixture.write_bytes(b"%PDF-1.4\nsynthetic evidence")
+    store.write(
+        "config.json",
+        {
+            "administration_id": ADMIN,
+            "allow_writes": True,
+            "direct_write_administrations": [ADMIN],
+        },
+    )
+    handlers["/KasBankBoeking/GetKasBankboekingDetails"] = {"identifier": BOOKING}
+    handlers["/Attachments/GetAttachmentUploadUriNew"] = "fixture-signed-url"
+    handlers["/KasBankBoeking/AddAttachment"] = httpx.Response(500)
+    monkeypatch.setattr(bank_attachment, "_upload_to_storage", lambda *_: "fixture-url")
+    params = {"administration_id": ADMIN, "entry_id": BOOKING, "file_path": str(fixture)}
+    with pytest.raises(ToolError, match="Could not confirm"):
+        call("snelstart_attach_bank_pdf", params)
+    with pytest.raises(ToolError, match="unresolved bank attachment"):
+        call("snelstart_attach_bank_pdf", params)
+    assert sum(request.url.path == "/KasBankBoeking/AddAttachment" for request in seen) == 1
 
 
 def test_bulk_entry_outcomes_keep_identity_and_distinguish_incomplete_reads(app, monkeypatch):

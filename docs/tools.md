@@ -38,6 +38,7 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_purchase_payments` | Reads payments and settlements recorded against a purchase. |
 | `snelstart_purchase_evidence` | Reads purchase records, recorded settlements, and optional attachment metadata for up to 20 purchase UUIDs. |
 | `snelstart_list_attachments` | Lists files linked to a purchase, bank entry or journal entry and returns their download identifiers. |
+| `snelstart_attach_bank_pdf` | Attaches a local PDF to an existing cash or bank booking, then checks the booking link and file checksum. |
 | `snelstart_download_document` | Downloads an attachment by UUID or a sales invoice PDF by invoice-number ID. Returns a private local path and checksum. |
 | `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
 | `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
@@ -79,6 +80,14 @@ Example purchase filter for entries flagged during November 2026.
 2. Pass the purchase entry UUID as `entry_id` to `snelstart_list_attachments` with `kind: "purchase"`.
 3. Pass the PDF's `attachmentIdentifier` as `attachment_id` to `snelstart_download_document`. The tool returns the path to the private local file.
 
+#### Attach a PDF to an existing cash or bank booking
+
+1. Confirm the administration and use the booking's nonzero `identifier` from the cash or bank journal as `entry_id`.
+2. Call `snelstart_attach_bank_pdf` with the administration UUID, booking UUID and absolute local `file_path`. The maximum PDF size is 25 MiB. When local approval is enabled, review the exact booking and file checksum and retry with the returned approval ID.
+3. A successful response returns the attachment UUID and verified SHA-256. The tool downloads the linked PDF for the check. Repeating the same file on the same booking verifies the original link. If the outcome is uncertain, check the booking before attempting another write.
+
+Scoped write access requires `GET /Attachments/GetAttachmentUploadUriNew` and `POST /KasBankBoeking/AddAttachment`. [SnelStart cash and bank attachments](https://kennispleinweb.snelstart.nl/nl/een-bijlage-toevoegen-aan-een)
+
 #### Submit a new purchase PDF
 
 1. Check that the selected administration is the one intended for the upload. For scoped write access, grant both upload operations listed below.
@@ -117,7 +126,7 @@ Use `snelstart_check_purchase_posting` with the selected administration UUID and
 | `snelstart_financial_result` | Reads the financial result for `start_date` through `through_date` using the report called by the Tax Monitor. |
 | `snelstart_ledger_entries` | Reads one page of postings for an account through a given date. |
 | `snelstart_export_ledger_entries` | Reads and checks all pages for up to 20 account UUIDs, then exports the requested date range to a private JSONL file. Returns a path, SHA-256, and per-account counts. |
-| `snelstart_vat_returns` | Lists existing VAT returns in their recorded states. |
+| `snelstart_vat_returns` | Lists VAT returns in their recorded states. Status 0 is not sent, 1 sent, 2 accepted, 3 error, 4 accepted and recalculated, and 5 recorded as accepted externally. |
 | `snelstart_vat_return_details` | Reads the details of up to 20 VAT returns by public UUID. |
 | `snelstart_icp_returns` | Lists ICP returns with source validation messages. Pass the returned `next_skip` to read the next page. |
 | `snelstart_icp_return_details` | Reads up to 20 persisted ICP returns by their nonzero public UUIDs. |

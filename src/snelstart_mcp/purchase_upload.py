@@ -51,7 +51,7 @@ def _read_pdf(path: Path) -> bytes:
             raise SnelStartError("Provide a regular PDF file.")
         data = stream.read(MAX_PDF_BYTES + 1)
     if len(data) > MAX_PDF_BYTES:
-        raise SnelStartError("The purchase PDF exceeds 25 MiB.")
+        raise SnelStartError("The PDF exceeds 25 MiB.")
     if not data.startswith(b"%PDF-"):
         raise SnelStartError("The file has no PDF header.")
     return data

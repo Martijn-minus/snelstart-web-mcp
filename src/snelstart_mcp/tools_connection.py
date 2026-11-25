@@ -87,6 +87,11 @@ def register_connection_tools(
     @tool(annotations=WRITE)
     def snelstart_write(request: WriteOperationRequest) -> JsonResponse:
         """Call a catalog mutation when writes are locally enabled and explicitly requested. Verify the accounting record after the call."""
+        if request.operation == "GET /Attachments/GetAttachmentUploadUriNew":
+            raise SnelStartError(
+                "Use snelstart_attach_bank_pdf for a bank booking or "
+                "snelstart_upload_purchase_pdf for a new purchase."
+            )
         entry = catalog().get(request.operation)
         if not entry or entry["read_only"] or entry["path"].startswith("/Administrations/"):
             raise SnelStartError("Unknown write operation. Use snelstart_list_operations.")

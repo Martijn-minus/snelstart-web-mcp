@@ -6,8 +6,8 @@ This matrix covers bookkeeping workflows the MCP supports and gaps relevant to w
 
 | Coverage | Meaning | Pages |
 | --- | --- | --- |
-| Dedicated | Dedicated MCP workflow for the article’s principal action. | 5 |
-| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 28 |
+| Dedicated | Dedicated MCP workflow for the article’s principal action. | 6 |
+| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 27 |
 | Catalog | Related generic operations exist. The MCP lacks a validated workflow for this task. | 13 |
 | Gap | The main action has no supported MCP workflow. | 8 |
 
@@ -75,7 +75,7 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 | [Een verschil in het saldo op je bank en het saldo in je dagboek bank in SnelStart](https://kennispleinweb.snelstart.nl/nl/verschil-in-saldo) | Partial | Bank | Inspect journal rows and compare them with an independent bank statement. No built-in connection balance check. |
 | [Een factuur koppelen aan een betaling in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-koppelen-aan-een-betaling-in-snelstart-web) | Partial | Bank, Reconcile | Read recorded links and suggested matches. Allocation writes use generic routes. |
 | [Bankafschriften handmatig inlezen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/bankafschriften-handmatig-inlezen-in-snelstart-web) | Gap | Bank | No manual bank statement import. |
-| [Een bijlage toevoegen aan een bestaande kas- of bankboeking in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-bijlage-toevoegen-aan-een) | Partial | Bank | List and download linked files. No local file-to-bank-booking upload workflow. |
+| [Een bijlage toevoegen aan een bestaande kas- of bankboeking in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-bijlage-toevoegen-aan-een) | Dedicated | Bank | Attach and verify a local PDF on an existing cash or bank booking. List and download linked files. |
 | [Een factuur als betaald registreren in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-betaling-registreren-in-snelstart-web) | Partial | Reconcile | Read payment and settlement evidence. Register or unregister through generic routes. |
 | [Een factuur als privé registreren in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-als-priv%C3%A9-betaald-registreren) | Partial | Bank, Reconcile | Review accounting and settlement evidence. No guided private-payment posting. |
 | [Handmatig een kasstaat inboeken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/handmatig-een-kasstaat-inboeken-in-snelstart-web) | Partial | Bank | Cash journals can be read. No guided cash-statement booking. |

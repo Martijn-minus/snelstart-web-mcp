@@ -7,6 +7,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
 from .audit import AuditLog
+from .bank_attachment import register_bank_attachment_tools
 from .client import Client
 from .config import SnelStartError, Store
 from .enums import AuditOutcome
@@ -127,6 +128,7 @@ def create_server(client: Client | None = None) -> FastMCP:
     register_purchase_posting_tools(tool, client)
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)
+    register_bank_attachment_tools(tool, client, audit)
     register_archive_tools(tool, client)
     register_mutation_tools(tool, client, audit)
     if not client.read_only:

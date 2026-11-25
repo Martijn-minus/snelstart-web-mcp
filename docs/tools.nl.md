@@ -14,6 +14,7 @@ Zie [jaararchieven en offline toegang](backups.nl.md) voor archief- en snapshott
 | `snelstart_purchase_review_item` | Lees de herkende velden en optionele bijlagen van één inkoopboeking die op controle wacht. |
 | `snelstart_purchase_payments` | Lees de vastgelegde betalingen en vereffeningen van een inkoop. |
 | `snelstart_purchase_evidence` | Lees inkoopboekingen, betalingen en optionele bijlagegegevens voor maximaal 20 inkopen tegelijk. |
+| `snelstart_attach_bank_pdf` | Koppel een lokale PDF aan een bestaande kas- of bankboeking en verifieer de koppeling en de SHA-256. |
 | `snelstart_list_attachments` | Zoek bijlage-ID's van inkoop-, bank- of memoriaalboekingen. |
 | `snelstart_download_document` | Sla een bijlage of verkoopfactuur-pdf lokaal op en ontvang het pad en de SHA-256. |
 | `snelstart_upload_purchase_pdf` | Bied één lokale pdf tot 25 MiB aan als nieuwe inkoop ter herkenning en controle. |

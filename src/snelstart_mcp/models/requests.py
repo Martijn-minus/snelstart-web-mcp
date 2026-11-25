@@ -230,6 +230,18 @@ class PurchaseUploadRequest(AdministrationRequest):
     approval_id: UUID | None = None
 
 
+class BankAttachmentRequest(AdministrationRequest):
+    entry_id: UUID
+    file_path: Path
+    approval_id: UUID | None = None
+
+    @model_validator(mode="after")
+    def nonzero_entry_id(self):
+        if not self.entry_id.int:
+            raise ValueError("Provide the bank or cash booking's nonzero UUID.")
+        return self
+
+
 class UploadStatusRequest(AdministrationRequest):
     instance_id: str
 

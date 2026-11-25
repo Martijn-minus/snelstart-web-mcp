@@ -83,6 +83,15 @@ class DownloadResponse(BaseModel):
     sha256: Sha256
 
 
+class BankAttachmentResponse(BaseModel):
+    administration_id: UUID
+    entry_id: UUID
+    attachment_id: UUID
+    sha256: Sha256
+    bytes: int
+    already_attached: bool
+
+
 class ArchiveListEntry(BaseModel):
     archive: str
     path: Path
