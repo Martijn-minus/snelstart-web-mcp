@@ -10,7 +10,7 @@ Plak dit in Codex, Claude Code of een andere assistent met lokale terminaltoegan
 
 ```text
 Installeer SnelStart Web MCP vanaf https://github.com/Martijn-minus/snelstart-web-mcp.
-Volg de README voor deze client. Laat mij zelf aanmelden in Chrome.
+Volg de README voor deze client. Laat mij zelf mijn gegevens invoeren in Terminal.
 Voer snelstart-mcp doctor uit, meld welke administratie is geselecteerd
 en laat mijn boekhouding en schrijfrechten intact.
 ```
@@ -34,10 +34,11 @@ Vervang `claude-code` door de [installatienaam van jouw client](docs/installatio
 
 ## Aanmelden en beginnen
 
-1. Voer `snelstart-mcp login --method browser` uit en meld je aan in Google Chrome.
-2. Voer `snelstart-mcp doctor` uit en controleer de actieve administratie.
-3. Open een nieuw gesprek en vraag: ‘Welke SnelStart-administratie is gekoppeld?’
-4. [Maak en controleer een back-up](docs/backups.nl.md#jaararchieven-en-herstel) voordat je aan de boekhouding begint. Je kunt ook live alleen-lezen werken of een opgeslagen boekjaar offline openen.
+1. **Voorkeur.** Voer `snelstart-mcp setup` uit in je eigen Terminal en vul je SnelStart-e-mailadres en wachtwoord in. De MCP bewaart ze in macOS Sleutelhanger of Linux Secret Service.
+2. Gebruik bij een bestaand wachtwoordprofiel `snelstart-mcp login --method credentials`. Gebruik `snelstart-mcp login --method browser` voor interactieve aanmelding of MFA.
+3. Voer `snelstart-mcp doctor` uit en controleer de actieve administratie.
+4. Open een nieuw gesprek en vraag ‘Welke SnelStart-administratie is gekoppeld?’
+5. [Maak en controleer een back-up](docs/backups.nl.md#jaararchieven-en-herstel) voordat je aan de boekhouding begint. Je kunt ook live alleen-lezen werken of een opgeslagen boekjaar offline openen.
 
 ## Documentatie
 

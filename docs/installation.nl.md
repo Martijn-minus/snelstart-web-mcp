@@ -12,7 +12,7 @@ Zorg dat de [Codex CLI](https://learn.chatgpt.com/docs/cli) op je PATH staat. Pl
 curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-minus/snelstart-web-mcp/main/install.sh && bash install-snelstart-mcp.sh --codex-plugin
 ```
 
-Dit installeert de lokale MCP en de plugin **SnelStart** vanuit de marketplace van deze repository. De plugin bevat de MCP-tools, de boekhoudskills, een installatieskill en hooks. Start daarna een nieuw Codex-gesprek. Meld je zo nodig aan met `snelstart-mcp login --method browser`. In de Codex CLI kun je met `/hooks` bekijken welke hooks je wilt vertrouwen.
+Dit installeert de lokale MCP en de plugin **SnelStart** vanuit de marketplace van deze repository. De plugin bevat de MCP-tools, de boekhoudskills, een installatieskill en hooks. Start daarna een nieuw Codex-gesprek. Meld je zo nodig aan met `snelstart-mcp setup`. In de Codex CLI kun je met `/hooks` bekijken welke hooks je wilt vertrouwen.
 
 Zodra Codex de marketplace **SnelStart MCP** kent, kun je [de installatie in Codex openen](codex://plugins/install/snelstart?marketplace=snelstart-mcp) of **SnelStart** kiezen in die marketplace onder Plugins. [OpenAI-documentatie over plugins](https://developers.openai.com/plugins/build/plugins) · [Installatielinks voor Codex](https://learn.chatgpt.com/docs/app/commands#plugin-install)
 
@@ -26,8 +26,8 @@ Kopieer deze opdracht naar Codex, Claude Code of een andere assistent die lokale
 Installeer SnelStart Web MCP vanaf https://github.com/Martijn-minus/snelstart-web-mcp.
 Download op macOS of Linux het bestand install.sh uit de repository en voer het uit.
 Gebruik --codex-plugin als dit Codex is en ik de plugin wil. Sla dan handmatige registratie over.
-Controleer of Google Chrome beschikbaar is. Start snelstart-mcp login --method browser
-en laat mij in Chrome aanmelden. Registreer de MCP met snelstart-mcp install <client> --apply
+Laat mij snelstart-mcp setup uitvoeren en mijn e-mailadres en wachtwoord invoeren
+in mijn eigen terminal. Laat mij bij MFA in Chrome aanmelden. Registreer de MCP met snelstart-mcp install <client> --apply
 voor deze client. Voeg op mijn verzoek --with-skills toe voor Codex of Claude Code
 en --with-hooks voor Codex. Voer daarna snelstart-mcp doctor uit en meld welke
 administratie is geselecteerd, welke schrijfrechten gelden en of er een update
@@ -47,7 +47,7 @@ Het script zoekt Python 3.11 of nieuwer, bijvoorbeeld via Homebrew of de ontwikk
 
 ```sh
 uv tool install 'snelstart-web-mcp[browser]'
-snelstart-mcp login --method browser
+snelstart-mcp setup
 snelstart-mcp doctor
 snelstart-mcp install codex --apply
 ```
@@ -76,7 +76,11 @@ snelstart-mcp login --method browser
 snelstart-mcp doctor
 ```
 
-Meld je aan in het aparte Chrome-venster. Het MCP-profiel bewaart de OAuth-tokens. Heb je al opgeslagen aanmeldgegevens, dan werkt ook `snelstart-mcp login --method credentials`.
+Meld je aan in het aparte Chrome-venster als SnelStart een interactieve stap vereist. Browseraanmelding bewaart OAuth-tokens in de sleutelopslag van het systeem voor het gekozen profiel.
+
+### E-mailadres en wachtwoord (voorkeur)
+
+Voer `snelstart-mcp setup` uit in je eigen terminal. De wachtwoordprompt verbergt wat je typt. De MCP bewaart je gegevens in de sleutelopslag van het systeem. Als SnelStart een verversingstoken weigert, kan de MCP proberen opnieuw aan te melden met de opgeslagen gegevens. Gebruik bij een bestaand wachtwoordprofiel `snelstart-mcp login --method credentials`.
 
 ### Aanmelden met een HAR-bestand
 
@@ -89,7 +93,7 @@ snelstart-mcp import-har /pad/naar/opname.har
 snelstart-mcp doctor
 ```
 
-Ook een geschoonde HAR-export kan tokens in antwoordteksten bevatten. Bewaar het bestand privé en verwijder het als je klaar bent. De oudere opdrachten `setup` en `import-har --save-password` slaan het wachtwoord op in de sleutelopslag van het systeem. Kies bij een nieuw profiel bij voorkeur browser-OAuth.
+Ook een geschoonde HAR-export kan tokens in antwoordteksten bevatten. Bewaar het bestand privé en verwijder het als je klaar bent. Gebruik `setup` in je terminal om een wachtwoord apart op te slaan.
 
 ## Optionele boekhoudskills
 

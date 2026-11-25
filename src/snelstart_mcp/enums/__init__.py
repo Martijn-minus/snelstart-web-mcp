@@ -8,6 +8,20 @@ class LoginMethod(StrEnum):
     BROWSER = "browser"
 
 
+class PaymentProvider(StrEnum):
+    ADYEN = "adyen"
+    MOLLIE = "mollie"
+    STRIPE = "stripe"
+
+
+class PayoutMatchStatus(StrEnum):
+    REFERENCE_AND_AMOUNT = "reference_and_amount"
+    AMOUNT_ONLY = "amount_only"
+    AMBIGUOUS = "ambiguous"
+    NO_CANDIDATE = "no_candidate"
+    OTHER_CURRENCY = "other_currency"
+
+
 class ArchiveDataset(StrEnum):
     BALANCE_AND_PROFIT_LOSS = "balance_and_profit_loss"
     CHART_OF_ACCOUNTS = "chart_of_accounts"

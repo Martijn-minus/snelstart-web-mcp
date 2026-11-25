@@ -10,6 +10,8 @@ Zie [jaararchieven en offline toegang](backups.nl.md) voor archief- en snapshott
 | --- | --- |
 | `snelstart_search_purchases` | Zoek inkopen binnen de periode. Gebruik `query` voor leverancier of tekst, of `invoice_number` voor een exact factuurnummer. Met `review_only: true` beperk je beide zoekmethoden tot gemarkeerde inkopen. |
 | `snelstart_get_entry` | Lees een inkoop-, memoriaal-, beginbalans- of bankboeking op UUID. |
+| `snelstart_purchase_review_count` | Lees het aantal gemarkeerde inkopen en vraagposten voor de actieve administratie. |
+| `snelstart_purchase_review_item` | Lees de herkende velden en optionele bijlagen van één inkoopboeking die op controle wacht. |
 | `snelstart_purchase_payments` | Lees de vastgelegde betalingen en vereffeningen van een inkoop. |
 | `snelstart_purchase_evidence` | Lees inkoopboekingen, betalingen en optionele bijlagegegevens voor maximaal 20 inkopen tegelijk. |
 | `snelstart_list_attachments` | Zoek bijlage-ID's van inkoop-, bank- of memoriaalboekingen. |
@@ -17,6 +19,7 @@ Zie [jaararchieven en offline toegang](backups.nl.md) voor archief- en snapshott
 | `snelstart_upload_purchase_pdf` | Bied één lokale pdf tot 25 MiB aan als nieuwe inkoop ter herkenning en controle. |
 | `snelstart_purchase_upload_status` | Controleer de verwerking met het ontvangen `instance_id` en dezelfde administratie-UUID. |
 | `snelstart_search_sales` | Zoek verkoopfacturen op klant, factuurnummer of status. |
+| `snelstart_sales_invoice_readiness` | Controleer de bedrijfsinstellingen voor verkoopfacturen en toon de namen van lege velden. |
 | `snelstart_sales_booking_details` | Lees maximaal 20 geboekte verkopen via hun niet-nulwaarde in `verkoopboekingPublicIdentifier`. Voor concepten gebruik je de zoekrijen van `snelstart_search_sales`. |
 | `snelstart_search_relations` | Zoek klanten of leveranciers op naam of nummer. |
 | `snelstart_search_articles` | Zoek verkoopartikelen op code of naam. Gebruik `skip` en `take` voor meerdere pagina’s. |
@@ -66,6 +69,8 @@ Gebruik bij btw-aangiften de publieke UUID's uit `snelstart_vat_returns` als `re
 | `snelstart_get_entries` | Haal maximaal twintig inkoop-, bank-, memoriaal- en beginbalansboekingen in één keer op. Geef per item een `kind` en `entry_id` mee. De uitkomst toont per boeking of die gevonden, afwezig, mislukt of te groot was. |
 | `snelstart_export_bank_entries` | Exporteer met `journal_ids`, `start_date` en `through_date` alle gecontroleerde pagina’s naar privé-JSONL. De uitvoer bevat aantallen per dagboek en een SHA-256-controlesom. Markeringen en factuurkoppelingen blijven in de bronregels behouden. Bij een mislukte pagina vervalt de hele export. |
 | `snelstart_reconcile_bank` | Bekijk geregistreerde SnelStart-koppelingen en mogelijke factuurmatches. De tool kijkt naar bedrag, datum, omschrijving en tegenpartij. Hij meldt twijfelgevallen, mogelijke dubbelen en signalen over ontbrekende bijlagen. Controleer voorgestelde matches vóór je boekt. |
+| `snelstart_read_payment_report` | Lees lokaal een Adyen-, Mollie- of Stripe-CSV en bereken nettototalen per uitbetaling en valuta. |
+| `snelstart_compare_payment_report` | Vergelijk uitbetalingen met ontvangsten in één bankdagboek en één periode. |
 | `snelstart_compare_archives` | Vergelijk twee lokale jaararchieven met `before`, `after` en `purchases`, `sales`, `bank_entries` of `journal_and_opening_entries` als dataset. De administratie, het boekjaar, de peildatum en de dagboekdekking moeten overeenkomen. Lees de opgeslagen balans en winst-en-verliesrekening per archief via `snelstart_snapshot_read` in een offline sessie. |
 
 Controleer bijlagen van een memoriaalboeking met `snelstart_list_attachments` en `kind: "journal"`, ook als het boekingsdetail `hasBijlagen: false` toont. Die vlag en `hasAttachments` uit het grootboek zijn aanwijzingen. Geef `include_attachments: true` mee aan `snelstart_get_entries` om de bijlagen van meerdere inkoop-, bank- en memoriaalboekingen op te vragen. Een lege lijst in `attachments` betekent dat de controle geen gekoppelde bestanden vond. Als de controle mislukt, blijven de boekingsdetails beschikbaar en rapporteert de tool `attachment_lookup_error` en `complete: false`. De batch voert voor beginbalansboekingen geen bijlagecontrole uit. De bijlagelijst kan grootte nul of een standaarddatum tonen. Gebruik `snelstart_download_document` voor het werkelijke aantal bytes en de SHA-256.
@@ -77,5 +82,7 @@ Geef `invoice_number` als tekst op en behoud eventuele voorloopnullen. Levert ee
 Gebruik bij inkopen `publicIdentifier` uit de zoekrij als `entry_id` en, als het aanwezig is, `factuurnummeridentifier` uit diezelfde rij als `purchase_invoice_id`. Dit werkt ook met `snelstart_get_entry`. Bij HTTP 400 op de gewone detailroute kan de MCP via het factuur-ID dezelfde boeking ophalen en beide ID's controleren. Als `purchase_detail_rejected` terugkomt, blijft de detailbatch onvolledig. De zoekrij kan nog als bewijs voor de lijstvelden dienen.
 
 Geeft een bankdetail HTTP 500, geef dan `bank_list_context` mee aan `snelstart_get_entry` of aan de betreffende boeking in `snelstart_get_entries`. Neem `journal_id` en de lokale `booking_date` uit de banklijst of export. De MCP controleert de paginering voor die dag en zoekt exact op `identifier`. Een gevonden rij staat in `bank_list_evidence` met `failure_code: "bank_detail_unavailable"`. Het detailveld blijft leeg en de batch meldt `complete: false`. Als de banklijst niet te verifiëren is, meldt de tool dat.
+
+Gebruik bij betaalproviders een lokaal CSV-bestand. Voor een Nederlandstalig Mollie-rapport geef je de exacte kolomnamen op met `mollie_columns`. Geef voor de bankvergelijking `bank_journal_id`, `bank_currency`, `start_date` en `through_date` mee. Controleer kandidaten die alleen op bedrag overeenkomen met het bankafschrift. [Rapportformaten en argumenten](tools.md#payment-provider-reports)
 
 `snelstart_mutation_receipts` en `snelstart-mcp audit` tonen de uitgevoerde schrijfoperatie, een beschikbaar boekings- of verwerkings-ID, controlesommen en de uitkomst. Een time-out blijft onopgelost. Met `snelstart_verify_mutation` kun je op basis van het `receipt_id` ondersteunde acties teruglezen, waaronder nieuw aangemaakte boekingen, geregistreerde verwijderingen en verwerkte inkoop-PDF’s. Andere acties controleer je aan de hand van de brongegevens. Een controle herhaalt de schrijfopdracht nooit.

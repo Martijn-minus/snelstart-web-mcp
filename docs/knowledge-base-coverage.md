@@ -7,16 +7,16 @@ This matrix covers bookkeeping workflows the MCP supports and gaps relevant to w
 | Coverage | Meaning | Pages |
 | --- | --- | --- |
 | Dedicated | Dedicated MCP workflow for the article’s principal action. | 3 |
-| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 26 |
+| Partial | MCP covers one or more useful steps. See the outstanding steps in the row. | 28 |
 | Catalog | Related generic operations exist. The MCP lacks a validated workflow for this task. | 13 |
-| Gap | The main action has no supported MCP workflow. | 12 |
+| Gap | The main action has no supported MCP workflow. | 10 |
 
 Generic operation availability depends on the MCP allowlist and SnelStart account permissions. See the [tool reference](tools.md) and [write permissions](writes-and-audit.md).
 
 ## Areas for future MCP work
 
 1. Add a typed sales invoice workflow with totals, a draft or save step, file attachments for outbound email, and a separate explicit send step. Validate the flows in a test administration before advertising them.
-2. Add bank file imports and reconcile Adyen, Mollie and Stripe provider reports against SnelStart bank, ledger and invoice data.
+2. Add bank file imports and extend payment-provider reconciliation from bank receipts to invoice allocation and ledger checks.
 3. Add typed review and posting support for recognized purchases, cost centres and specialised VAT handling. Preserve the original source document and verify the posted result.
 4. Expand read coverage for Tax Monitor and RGS.
 
@@ -41,7 +41,7 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 | --- | --- | --- | --- |
 | [Een herinnering versturen vanuit SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-herinnering-versturen-vanuit-snelstart-web) | Catalog | Sales | Reminder write route exists. Recipient, content and delivery need separate verification. |
 | [Een verkoopfactuur met btw verlegd maken](https://kennispleinweb.snelstart.nl/nl/een-verkoopfactuur-met-btw-verlegd-maken) | Catalog | Sales, Tax | Invoice write routes exist. Reverse-charge requirements and totals need validation. |
-| [Een factuur maken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-maken-in-snelstart-web) | Partial | Sales | Read sales and use a generic save route. No guided creation, outgoing attachment upload, or sales-document recognition workflow. |
+| [Een factuur maken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-factuur-maken-in-snelstart-web) | Partial | Sales | Read sales and check the portal's company-settings prerequisite. Saving uses a generic route. Guided creation and outgoing attachments remain open. |
 | [Een e-factuur versturen of ontvangen](https://kennispleinweb.snelstart.nl/nl/een-e-factuur-versturen-of-ontvangen-in) | Catalog | Sales | Peppol send routes exist. No validated receiver setup, delivery or inbound workflow. |
 | [Een offerte maken in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-offerte-maken-in-snelstart-web) | Gap | Sales | No quotation or quotation layout workflow. |
 | [Mailen vanuit SnelStart Web](https://kennispleinweb.snelstart.nl/nl/mailen-vanuit-snelstart-web) | Partial | Sales | Mail-related write routes exist. No end-to-end email template or custom attachment workflow. |
@@ -58,7 +58,7 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 
 | Knowledge base page | MCP coverage | Skill | Finding |
 | --- | --- | --- | --- |
-| [Een inkoopfactuur controleren](https://kennispleinweb.snelstart.nl/nl/een-inkoopfactuur-controleren) | Partial | Purchases | Checked review search and evidence are dedicated. Editing and posting review items use generic routes. |
+| [Een inkoopfactuur controleren](https://kennispleinweb.snelstart.nl/nl/een-inkoopfactuur-controleren) | Partial | Purchases | Read the review count, recognized fields and linked attachments. Editing and posting review items use generic routes. |
 | [Een leverancier toevoegen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/een-leverancier-toevoegen-in-snelstart-web) | Catalog | Purchases | Supplier search is dedicated. Supplier creation and update use generic routes. |
 | [Een inkoopfactuur of bonnetje automatisch inlezen in SnelStart Web](https://kennispleinweb.snelstart.nl/nl/inkoopfacturen-of-bonnetjes-automatisch-inlezen-in-snelstart-web) | Partial | Purchases | PDF submission and recognition status are dedicated. Email setup and recognition review or final posting are separate. |
 | [Een inkoopfactuur met btw verlegd boeken](https://kennispleinweb.snelstart.nl/nl/een-inkoopfactuur-btw-verlegd-boeken) | Partial | Purchases, Tax | Upload and evidence reads exist. No dedicated reverse-charge posting. |
@@ -121,5 +121,5 @@ The source skills live in [`.agents/skills`](../.agents/skills/). The rows below
 
 | Knowledge base page | MCP coverage | Skill | Finding |
 | --- | --- | --- | --- |
-| [Koppelen met betaalproviders](https://kennispleinweb.snelstart.nl/nl/koppelen-met-betaalproviders) | Gap | Reconcile | No direct Adyen, Mollie, MultiSafepay or other payment-provider import. |
-| [Mollie en SnelStart](https://kennispleinweb.snelstart.nl/nl/koppeling-met-mollie-en-de-verwerking-van-mollie) | Gap | Reconcile | No Mollie connection or direct settlement import. Can verify entries already in SnelStart. |
+| [Koppelen met betaalproviders](https://kennispleinweb.snelstart.nl/nl/koppelen-met-betaalproviders) | Partial | Reconcile | Read local Adyen, Mollie and Stripe CSVs and compare payout amounts and references with bank receipts. Account connections, invoice allocation and other providers remain open. |
+| [Mollie en SnelStart](https://kennispleinweb.snelstart.nl/nl/koppeling-met-mollie-en-de-verwerking-van-mollie) | Partial | Reconcile | Read localized settlement CSVs and check bank receipts. Connection setup and posting remain in SnelStart. |

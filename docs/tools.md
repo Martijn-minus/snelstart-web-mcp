@@ -33,6 +33,8 @@ The catalog records known Web API operations. Availability depends on the admini
 | --- | --- |
 | `snelstart_search_purchases` | Lists purchases for an inclusive date range. Use `query` for supplier or text search, or `invoice_number` for an exact reference. Set `review_only: true` to restrict either search to entries flagged for review. |
 | `snelstart_get_entry` | Reads details for a purchase, general journal entry, opening balance entry or bank entry by UUID. |
+| `snelstart_purchase_review_count` | Reads the portal's administration-wide number of marked purchases and question items. |
+| `snelstart_purchase_review_item` | Reads recognized fields and optional attachments for an exact purchase booking awaiting review. |
 | `snelstart_purchase_payments` | Reads payments and settlements recorded against a purchase. |
 | `snelstart_purchase_evidence` | Reads purchase records, recorded settlements, and optional attachment metadata for up to 20 purchase UUIDs. |
 | `snelstart_list_attachments` | Lists files linked to a purchase, bank entry or journal entry and returns their download identifiers. |
@@ -40,6 +42,7 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
 | `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
 | `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
+| `snelstart_sales_invoice_readiness` | Checks whether SnelStart accepts the selected administration's company settings for invoicing. Reports blank field names. |
 | `snelstart_sales_booking_details` | Reads up to 20 posted sales using each row’s nonzero `verkoopboekingPublicIdentifier`. For drafts, use the rows from `snelstart_search_sales`. |
 | `snelstart_search_relations` | Searches customers or suppliers by name or number. |
 | `snelstart_search_articles` | Searches sales articles by code or name. Page with `skip` and `take`. |
@@ -117,6 +120,8 @@ For ICP, use `snelstart_icp_returns` and pass `publicIdentifier` from a persiste
 | `snelstart_get_entries` | Read up to 20 mixed purchase, bank, journal and opening-balance bookings. Pass `entries` as objects with `kind` and `entry_id`. Each result keeps its ID and reports whether it was found, missing, failed or too large for the batch. |
 | `snelstart_export_bank_entries` | Pass `journal_ids`, `start_date` and `through_date`. All checked pages are exported to a private JSONL file. The result includes the administration, row counts per journal and SHA-256. The file preserves journal metadata and original bank rows, including markings and invoice links when present. A failed page discards the export. |
 | `snelstart_reconcile_bank` | Review recorded links and suggested matches for the same journal and date inputs. Use `invoice_start_date` to adjust the default 90-day invoice lookback and `skip` and `take` to page the report. |
+| `snelstart_read_payment_report` | Read a local provider CSV and return paginated payout totals with a SHA-256. |
+| `snelstart_compare_payment_report` | Compare payouts with positive bank entries for one journal and date range. Returns reference-and-amount evidence, amount-only candidates, ambiguity, or no candidate. |
 | `snelstart_compare_archives` | Pass `before`, `after` and one of `purchases`, `sales`, `bank_entries` or `journal_and_opening_entries`. The tool compares checksummed dataset files locally. Both archives must identify the same administration, year and cutoff. Journal datasets must cover the same journals. Read an individual archived balance and profit-and-loss report with `snelstart_snapshot_read` in an offline session. |
 
 For journal attachments, use `snelstart_list_attachments` with `kind: "journal"` even if the booking detail says `hasBijlagen: false`. Both that flag and the ledger's `hasAttachments` are hints. To check linked files for several purchases, bank transactions or journal entries, pass `include_attachments: true` to `snelstart_get_entries`. An empty `attachments` list means the lookup found no linked files. A failed lookup returns `attachment_lookup_error` and sets `complete: false` while preserving the booking details. Opening balances have no attachment lookup in the batch. A listed file can have placeholder metadata such as size zero or a default creation date. Use `snelstart_download_document` for the actual byte count and SHA-256.
@@ -126,3 +131,15 @@ Reconciliation reports recorded SnelStart links separately from suggestions. Sug
 If a bank detail returns HTTP 500, pass `bank_list_context` to `snelstart_get_entry` or to that entry in `snelstart_get_entries`. Set `journal_id` to the journal UUID and `booking_date` to the local date from the bank list or export. The MCP checks the selected day's pagination and requires the exact `identifier`. It returns a match in `bank_list_evidence` with `failure_code: "bank_detail_unavailable"`. The detail stays empty, and a batch containing that result has `complete: false`. If the list cannot be verified, the tool reports that failure.
 
 Archive comparisons report additions, removals, and changed field names between the selected snapshots. These describe differences in the saved datasets.
+
+### Payment-provider reports
+
+Pass an absolute CSV path as `file_path` and choose `provider`. Use `skip` and `take` to page the payout groups. Each read is limited to 12 MiB and 100,000 report rows. The tool processes the file locally.
+
+| Provider | Supported report |
+| --- | --- |
+| `stripe` | Itemized automatic payout reconciliation with `automatic_payout_id`, `balance_transaction_id`, `currency`, and `net`. The balance report for manual payouts uses a different format. [Stripe reports](https://docs.stripe.com/reports/payout-reconciliation) |
+| `mollie` | Settlement CSV with `Settlement reference`, `Settlement currency`, and `Settlement amount`. For localized files set `mollie_columns` with the corresponding exact headers in `settlement_reference`, `settlement_currency`, and `settlement_amount`. [Mollie reports](https://docs.mollie.com/docs/settlement-report) |
+| `adyen` | Settlement details CSV with merchant account, batch number, type, net currency, net debit, and net credit. Include `Modification Reference` to match the payout's bank reference when supplied. [Adyen reports](https://docs.adyen.com/reporting/settlement-reconciliation/transaction-level/settlement-details-report) |
+
+To check a report against SnelStart, also pass `bank_journal_id`, `bank_currency`, `start_date`, and `through_date` to `snelstart_compare_payment_report`. Use the selected journal's currency and a range that includes the expected bank receipt. Review amount-only candidates and ambiguous results against the bank statement. When an Adyen report includes a declared payout, the result shows the difference between it and the calculated sum separately. The comparison covers bank evidence only. Invoice allocation and posting are separate steps.

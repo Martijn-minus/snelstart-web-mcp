@@ -10,7 +10,7 @@ Paste this into Codex, Claude Code, or another assistant with local terminal acc
 
 ```text
 Install SnelStart Web MCP from https://github.com/Martijn-minus/snelstart-web-mcp.
-Follow the README for this client. Let me complete sign-in in Chrome.
+Follow the README for this client. Let me enter my credentials in my own terminal.
 Run snelstart-mcp doctor, tell me which administration is selected,
 and keep my bookkeeping and write permissions intact.
 ```
@@ -34,10 +34,11 @@ Replace `claude-code` with your [client's installer target](https://github.com/M
 
 ## Sign in and start
 
-1. Run `snelstart-mcp login --method browser` and complete sign-in in Google Chrome.
-2. Run `snelstart-mcp doctor` and check the selected administration.
-3. Start a new chat and ask, “Which SnelStart administration is connected?”
-4. Before bookkeeping, [create and verify a backup](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/docs/backups.md#year-archives). You can also use live read-only access or open a saved year offline.
+1. **Preferred.** Run `snelstart-mcp setup` in your own terminal and enter your SnelStart email and password. The MCP stores them in macOS Keychain or Linux Secret Service.
+2. For an existing password profile, run `snelstart-mcp login --method credentials`. For interactive sign-in or MFA, run `snelstart-mcp login --method browser`.
+3. Run `snelstart-mcp doctor` and check the selected administration.
+4. Start a new chat and ask, “Which SnelStart administration is connected?”
+5. Before bookkeeping, [create and verify a backup](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/docs/backups.md#year-archives). You can also use live read-only access or open a saved year offline.
 
 ## Documentation
 

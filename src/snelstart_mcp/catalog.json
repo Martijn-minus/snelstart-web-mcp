@@ -1546,7 +1546,7 @@
       "identifier"
     ],
     "json_body": false,
-    "read_only": false
+    "read_only": true
   },
   "GET /Purchases/GetUnfinishedPurchasesTaskInfo": {
     "method": "GET",
@@ -1728,6 +1728,14 @@
     "required_parameters": [],
     "json_body": true,
     "read_only": false
+  },
+  "GET /Validation/HasValidCompanySettings": {
+    "method": "GET",
+    "path": "/Validation/HasValidCompanySettings",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
   },
   "POST /Administrations/AddAdministration": {
     "method": "POST",

@@ -12,7 +12,7 @@ With the [Codex CLI](https://learn.chatgpt.com/docs/cli) on your PATH, paste thi
 curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-minus/snelstart-web-mcp/main/install.sh && bash install-snelstart-mcp.sh --codex-plugin
 ```
 
-This installs the local MCP runtime and the **SnelStart** plugin from this repository's marketplace. The plugin bundles MCP tools, setup and bookkeeping skills, and hooks. Start a new Codex chat after installation. Run `snelstart-mcp login --method browser` if the selected local profile still needs sign-in. Review and trust any hooks you want from `/hooks` in the Codex CLI.
+This installs the local MCP runtime and the **SnelStart** plugin from this repository's marketplace. The plugin bundles MCP tools, setup and bookkeeping skills, and hooks. Start a new Codex chat after installation. Run `snelstart-mcp setup` if the selected local profile still needs sign-in. Review and trust any hooks you want from `/hooks` in the Codex CLI.
 
 After Codex knows the **SnelStart MCP** marketplace, [open the plugin install flow in Codex](codex://plugins/install/snelstart?marketplace=snelstart-mcp), or choose **SnelStart** in that marketplace in the Plugins directory. The repo marketplace distributes a local plugin. [Codex plugin packaging](https://developers.openai.com/plugins/build/plugins) · [Codex install links](https://learn.chatgpt.com/docs/app/commands#plugin-install)
 
@@ -28,7 +28,8 @@ On macOS or Linux, download and run the install.sh script from the repository ro
 If this client is Codex and I want the plugin, pass --codex-plugin and skip manual registration.
 Check that Google Chrome is available for browser sign-in.
 Find the installed snelstart-mcp executable with uv tool dir --bin if it is outside PATH.
-Run snelstart-mcp login --method browser and let me complete sign-in in Chrome.
+Let me run snelstart-mcp setup and enter my SnelStart email and password in my
+own terminal. If SnelStart requires MFA, let me complete browser sign-in.
 Register the MCP with this client using snelstart-mcp install <client> --apply. Ask me
 which client to use if you cannot identify it. If I requested the bundled skills,
 add --with-skills for Codex or Claude Code. If I requested hooks for Codex, add
@@ -48,7 +49,7 @@ curl -fsSLo install-snelstart-mcp.sh https://raw.githubusercontent.com/Martijn-m
 
 The script checks for Python 3.11 or newer, including Homebrew and the Python supplied by macOS developer tools. It installs `uv` if needed and uses a user-local Python 3.13 if it can't find a compatible interpreter. It installs everything in your user account. Open a new terminal if the script updates your `PATH`. If you already have `uv`, you can install directly with `uv tool install 'snelstart-web-mcp[browser]'`.
 
-Run `snelstart-mcp login --method browser`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
+Run `snelstart-mcp setup`, then `snelstart-mcp doctor` to check access. Use `snelstart-mcp install codex --apply` to register with Codex, or see [client registration](#client-registration) for other clients. Run `uv tool update-shell` if the executable directory is missing from `PATH`.
 
 `snelstart-mcp doctor` checks the browser extra and detects Chrome. Run `snelstart-mcp doctor --check-browser` to briefly open and close a blank Chrome window with the same settings as browser sign-in. The Chrome check and local backup overview also appear if the SnelStart connection fails.
 
@@ -93,6 +94,12 @@ Client configuration holds the executable and arguments. Sign-in remains in the 
 
 The MCP stores local settings under `~/.config/snelstart-mcp` and keeps the credentials and OAuth tokens in macOS Keychain or Linux Secret Service. On first access, the MCP migrates legacy JSON secrets and removes each old file after secure storage succeeds. Unlock the system keyring before signing in. Linux and WSL require a working Secret Service. A valid profile refreshes access tokens automatically. Use `SNELSTART_CONFIG_DIR` or `--config-dir PATH` before the subcommand to select a profile outside Git worktrees.
 
+### Username and password (preferred)
+
+Run `snelstart-mcp setup` in your own terminal and enter your SnelStart email and password. The password prompt hides what you type. The MCP stores the credentials in the system keyring and uses them to sign in. If SnelStart later rejects the refresh token, the MCP can try the saved credentials again.
+
+For a profile that already has saved credentials, use `snelstart-mcp login --method credentials`. Use browser sign-in when SnelStart requires MFA or another interactive step. For a source checkout, prefix the commands with `uv run --frozen`.
+
 ### Browser OAuth
 
 With Google Chrome installed, run the following command from the MCP directory.
@@ -101,7 +108,7 @@ With Google Chrome installed, run the following command from the MCP directory.
 uv run --frozen --extra browser snelstart-mcp login --method browser
 ```
 
-Complete sign-in in the separate Chrome window that opens. The MCP validates the OAuth state and exchanges the authorization code using PKCE. It stores the resulting tokens in the selected local profile. Run `uv run --frozen snelstart-mcp doctor` to verify access. Existing credential profiles can use `uv run --frozen snelstart-mcp login --method credentials`.
+Complete sign-in in the separate Chrome window that opens. The MCP validates the OAuth state and exchanges the authorization code using PKCE. Browser sign-in saves OAuth tokens in the system keyring for the selected profile. Run `uv run --frozen snelstart-mcp doctor` to verify access.
 
 ### Token-only HAR recovery
 
@@ -116,7 +123,7 @@ Follow these steps if the interactive OAuth window is unavailable.
    uv run --frozen snelstart-mcp doctor
    ```
 
-The legacy `setup` and `import-har --save-password` commands save passwords in the system keyring. Prefer browser OAuth or token-only import for new profiles.
+Use token-only HAR import for recovery. Use `setup` in your terminal to save a password separately.
 
 ## Optional bookkeeping skills
 

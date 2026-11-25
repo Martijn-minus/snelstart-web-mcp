@@ -130,6 +130,10 @@ async def run_live_contract(path: Path):
         assert len(match) == 1 and status["administration_id"] == match[0]["identifier"]
         assert status["configured"] and status["allow_writes"] is False
         assert status["approved_write_operations"] == []
+        readiness = await call("snelstart_sales_invoice_readiness")
+        assert isinstance(readiness["company_settings_valid"], bool)
+        queue = await call("snelstart_purchase_review_count")
+        assert queue["marked_or_question_items"] >= 0
 
         today = datetime.now(AMSTERDAM).date()
         period = {"start_date": f"{today.year}-01-01", "through_date": today.isoformat()}

@@ -13,4 +13,6 @@ description: Reconcile SnelStart purchase or sales bookings with invoices, bank 
 
 For journal entries, verify linked files with `snelstart_list_attachments` or use `snelstart_get_entries` with `include_attachments: true`. A detail row can show `hasBijlagen: false` for a booking with a linked file. Use the download result for the actual byte count and checksum if the list shows placeholder metadata.
 
+For local Adyen, Mollie or Stripe settlement CSVs, use `snelstart_read_payment_report` for grouped payout amounts and `snelstart_compare_payment_report` for evidence from the chosen bank journal. Distinguish reference-and-amount evidence, amount-only candidates and any difference between calculated and declared payouts. Check invoice allocation separately.
+
 A review is read-only. If the user explicitly requests a specific correction, check the write grant, re-read the affected records, write once, and read the result back before reporting success. If a write times out, inspect the record and audit history before deciding whether retrying is safe.

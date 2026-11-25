@@ -415,6 +415,138 @@ def test_icp_listing_pages_and_preserves_source_validation_messages(session):
     assert all(request.method == "GET" for request in requests if request.url.path == path)
 
 
+def test_invoice_readiness_uses_the_portal_gate_without_returning_company_values(session):
+    client, _, replies = session
+    replies["/Validation/HasValidCompanySettings"] = False
+    replies["/CompanySettings/GetCompanySettings"] = {
+        "name": "Example BV",
+        "address": "Example 1",
+        "zipCode": "1234 AB",
+        "city": "Example",
+        "email": "",
+        "iban": None,
+        "vatNumber": "TEST",
+        "kvkNumber": "TEST",
+    }
+    result = call(client, "snelstart_sales_invoice_readiness", {})
+    assert result == {"company_settings_valid": False, "blank_company_fields": ["email", "iban"]}
+
+
+def test_purchase_review_preserves_recognized_values_and_checks_booking_identity(session):
+    client, requests, replies = session
+    replies["/Purchases/GetGemarkeerdeInkopenOfVraagpostenCount"] = {"aantal": 3}
+    assert call(client, "snelstart_purchase_review_count", {}) == {"marked_or_question_items": 3}
+    review = "/Purchases/GetTeControlerenInkoop"
+    record = {"publicIdentifier": ENTRY, "factuurnummer": "00016", "factuurbedrag": 12.35}
+    replies[review] = record
+    replies["/Purchases/GetAttachmentsWithIdentifier"] = [{"publicIdentifier": ENTRY}]
+    result = call(client, "snelstart_purchase_review_item", {"entry_id": ENTRY})
+    assert result == {
+        "entry_id": ENTRY,
+        "recognition": record,
+        "attachments": [{"attachmentIdentifier": ENTRY}],
+    }
+    assert [dict(request.url.params) for request in requests if request.url.path == review] == [
+        {"identifier": ENTRY}
+    ]
+    assert (
+        call(
+            client,
+            "snelstart_purchase_review_item",
+            {"entry_id": ENTRY, "include_attachments": False},
+        )["attachments"]
+        is None
+    )
+    replies[review] = {"publicIdentifier": ADMIN}
+    with pytest.raises(ToolError, match="requested purchase review item"):
+        call(client, "snelstart_purchase_review_item", {"entry_id": ENTRY})
+
+
+def test_stripe_report_pages_payouts_and_rejects_duplicate_transactions(session, tmp_path):
+    client, requests, _ = session
+    path = tmp_path / "stripe.csv"
+    header = "automatic_payout_id,balance_transaction_id,currency,net\n"
+    path.write_text(header + "po_a,txn_1,eur,21.31\npo_a,txn_2,EUR,-2.31\npo_b,txn_3,USD,6\n")
+    args = {"provider": "stripe", "file_path": str(path), "take": 1}
+    page = call(client, "snelstart_read_payment_report", args)
+    assert page["payout_count"] == 2 and page["next_skip"] == 1
+    assert page["sha256"] == sha256(path.read_bytes()).hexdigest()
+    assert page["payouts"][0]["calculated_net"] == "19.00"
+    assert call(client, "snelstart_read_payment_report", args | {"skip": 1})["next_skip"] is None
+    path.write_text(header + "po_a,txn_1,EUR,21.31\npo_b,txn_1,EUR,6\n")
+    with pytest.raises(ToolError, match="duplicate Stripe balance transaction ID"):
+        call(client, "snelstart_read_payment_report", args)
+    assert not requests
+
+
+def test_mollie_report_accepts_localized_headings_and_decimal_commas(session, tmp_path):
+    client, _, _ = session
+    report = tmp_path / "mollie.csv"
+    report.write_text(
+        '"Referentie";"Valuta";"Bedrag"\n"REF-001";"EUR";"12,35"\nREF-001;EUR;-1,10\n'
+    )
+    result = call(
+        client,
+        "snelstart_read_payment_report",
+        {
+            "provider": "mollie",
+            "file_path": str(report),
+            "mollie_columns": {
+                "settlement_reference": "Referentie",
+                "settlement_currency": "Valuta",
+                "settlement_amount": "Bedrag",
+            },
+        },
+    )
+    assert result["payouts"][0]["calculated_net"] == "11.25"
+
+
+def test_adyen_report_keeps_arithmetic_difference_separate_from_bank_evidence(session, tmp_path):
+    client, _, replies = session
+    report = tmp_path / "adyen.csv"
+    report.write_text(
+        "Merchant Account,Batch Number,Type,Net Currency,Net Debit (NC),Net Credit (NC),Modification Reference\n"
+        "example,1,Settled,EUR,,21.31,\nexample,1,Fee,EUR,2.31,,\n"
+        "example,1,MerchantPayout,EUR,19.01,,TXABC123XT batch 1\n"
+        "example,2,Settled,EUR,,19.01,\nexample,3,Settled,USD,,19.01,\n"
+    )
+    replies["/KasBankBoeking/GetKasEnBankDagboeken"] = [{"grootboekIdentifier": ENTRY}]
+    replies["/KasBankBoeking/GetKasBankBoekingenWithTimespan"] = {
+        "totalMatchCount": 2,
+        "resultList": [
+            {
+                "identifier": ENTRY,
+                "date": "2026-01-02",
+                "amount": 19.01,
+                "description": "TXABC123XT",
+            },
+            {
+                "identifier": ADMIN,
+                "date": "2026-01-03",
+                "amount": 19.01,
+                "description": "unrelated",
+            },
+        ],
+    }
+    args = {
+        "provider": "adyen",
+        "file_path": str(report),
+        "bank_journal_id": ENTRY,
+        "bank_currency": "EUR",
+        "start_date": "2026-01-01",
+        "through_date": "2026-01-31",
+    }
+    result = call(client, "snelstart_compare_payment_report", args)
+    exact, ambiguous, other = result["payouts"]
+    assert exact["status"] == "reference_and_amount"
+    assert exact["payout"]["calculated_net"] == "19.00"
+    assert exact["payout"]["declared_payout"] == "19.01"
+    assert exact["payout"]["difference"] == "-0.01"
+    assert exact["candidates"] == [{"entry_id": ENTRY, "booking_date": "2026-01-02"}]
+    assert ambiguous["status"] == "ambiguous" and ambiguous["candidate_count"] == 2
+    assert other["status"] == "other_currency" and other["candidates"] == []
+
+
 def test_icp_details_validate_persisted_ids_and_match_the_response(session):
     client, requests, replies = session
     path = "/IcpAangiftes/GetByPublicIdentifier"

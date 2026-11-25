@@ -5,6 +5,7 @@ description: Find and review SnelStart purchases, inspect invoice documents, or 
 
 # Work with purchases
 
+- For pending recognition review, use `snelstart_purchase_review_count` for the portal-wide count and `snelstart_search_purchases` with `review_only: true` to locate marked bookings in the requested dates. Pass the booking ID to `snelstart_purchase_review_item` for the recognized fields and attachments.
 - Confirm the selected administration. Use an exact `invoice_number` string and preserve leading zeroes. For supplier or text search, use `query`. Use `review_only: true` for entries flagged by SnelStart. Check the reported total and all requested pages. Narrow the date range if the tool cannot verify coverage.
 - Pass the search row's `publicIdentifier` as `entry_id` and its `factuurnummeridentifier`, when available, as `purchase_invoice_id` to `snelstart_get_entry` or `snelstart_get_entries`. Confirm the supplier, invoice reference and date against the original PDF. Use `snelstart_list_attachments` and `snelstart_download_document` for the document, and `snelstart_purchase_payments` for recorded settlements.
 - Submit a local PDF through `snelstart_upload_purchase_pdf` only on an explicit request for that administration and file. Check for an existing record before submitting. Poll `snelstart_purchase_upload_status` with the returned instance ID. Recognition sends the document to the inbox for review. Verify the supplier, currency, amounts, VAT, ledger account and any cost centre before treating it as posted or final.
