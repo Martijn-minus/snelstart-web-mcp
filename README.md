@@ -60,8 +60,20 @@ For GitHub main builds, use `uv tool install 'snelstart-web-mcp[browser] @ git+h
 
 ## Optional bookkeeping skills
 
-- `snelstart-reconcile` guides invoice, attachment, and payment checks against bank and processor evidence.
-- `snelstart-year-end` guides ledger exports, opening and closing balance checks, and VAT comparisons.
+The repository's [`.agents/skills`](.agents/skills/) contains the source skills for Codex, the Codex plugin, and the package installer.
+
+| Skill | Use |
+| --- | --- |
+| `snelstart-setup` | Client registration, browser sign-in and connection problems. |
+| `snelstart-administration` | Administration access, archive coverage and native recovery. |
+| `snelstart-sales` | Sales invoices, customer and article lookup, credits and outbound workflows. |
+| `snelstart-purchases` | Purchase search, invoice evidence and PDF recognition. |
+| `snelstart-bank` | Cash and bank journals, imported coverage and booking details. |
+| `snelstart-reconcile` | Compare invoices and settlements with bank and payment-provider evidence. |
+| `snelstart-tax` | VAT and ICP records, tax monitor inputs and filing boundaries. |
+| `snelstart-year-end` | Ledger exports, opening and closing balances and year-end evidence. |
+
+The [knowledge base coverage audit](docs/knowledge-base-coverage.md) maps each indexed SnelStart Web article to the MCP and the relevant skills.
 
 To install the package and skills together, pass `--with-skills codex` or `--with-skills claude-code` to the downloaded Bash installer. To register the MCP and install the skills in one command, use the CLI.
 

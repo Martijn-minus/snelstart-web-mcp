@@ -9,17 +9,33 @@ from .config import SnelStartError
 from .models.responses import SkillInstallResponse
 
 SKILL_CLIENTS = ("codex", "claude-code")
-SKILL_NAMES = ("snelstart-reconcile", "snelstart-year-end")
+
+
+def _bundled_skills() -> dict[str, bytes]:
+    source = files("snelstart_mcp").joinpath("skills")
+    # Editable installs load the Python package from the repository's src directory.
+    package_parent = Path(__file__).resolve().parents[1]
+    checkout_skills = package_parent.parent / ".agents" / "skills"
+    if package_parent.name == "src" and checkout_skills.is_dir():
+        source = checkout_skills
+    if not source.is_dir():
+        raise SnelStartError("The SnelStart skill bundle is missing.")
+    skills = {
+        folder.name: folder.joinpath("SKILL.md").read_bytes()
+        for folder in source.iterdir()
+        if folder.is_dir() and folder.joinpath("SKILL.md").is_file()
+    }
+    if not skills:
+        raise SnelStartError("The SnelStart skill bundle is empty.")
+    return skills
 
 
 def install_skills(client: str, *, apply: bool) -> list[SkillInstallResponse]:
     if client not in SKILL_CLIENTS:
         raise SnelStartError("Bundled skills can be installed for Codex and Claude Code.")
     root = Path.home() / (".agents" if client == "codex" else ".claude") / "skills"
-    source = files("snelstart_mcp").joinpath("skills")
     plans = []
-    for name in SKILL_NAMES:
-        data = source.joinpath(name, "SKILL.md").read_bytes()
+    for name, data in sorted(_bundled_skills().items()):
         path = root / name / "SKILL.md"
         if path.parent.is_symlink() or path.is_symlink():
             raise SnelStartError(f"The existing {name} skill uses a symbolic link.")

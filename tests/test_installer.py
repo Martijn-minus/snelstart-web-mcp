@@ -73,13 +73,20 @@ def test_skills_can_be_previewed_and_installed_without_mcp_registration(environm
     (result,) = installer.install([client], apply=True, **options)
     assert result["status"] == "installed" and "command" not in result
     assert {skill["name"] for skill in result["skills"]} == {
+        "snelstart-administration",
+        "snelstart-bank",
+        "snelstart-purchases",
         "snelstart-reconcile",
+        "snelstart-sales",
+        "snelstart-setup",
+        "snelstart-tax",
         "snelstart-year-end",
     }
     for skill in result["skills"]:
         path = Path(skill["path"])
         assert path == environment / root / "skills" / skill["name"] / "SKILL.md"
-        assert path.is_file()
+        source = Path(__file__).resolve().parents[1] / ".agents" / "skills" / skill["name"]
+        assert path.read_bytes() == (source / "SKILL.md").read_bytes()
     (again,) = installer.install([client], apply=True, **options)
     assert again["status"] == "already_configured"
 

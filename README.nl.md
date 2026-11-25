@@ -60,8 +60,20 @@ Voor aanmelden via de browser heb je Google Chrome nodig. Open na het registrere
 
 ## Optionele boekhoudskills
 
-- `snelstart-reconcile` helpt bij het aansluiten van facturen, bijlagen, betalingen en terugbetalingen op originele betaalbronnen.
-- `snelstart-year-end` helpt bij grootboekexports, begin- en eindbalansen en btw-vergelijkingen.
+De bronbestanden staan in [`.agents/skills`](.agents/skills/). Codex kan ze vanuit de repo laden. De Codex-plugin en de installer gebruiken dezelfde bron.
+
+| Skill | Gebruik |
+| --- | --- |
+| `snelstart-setup` | Clientregistratie, browseraanmelding en verbindingsproblemen. |
+| `snelstart-administration` | Toegang tot administraties, archiefdekking en herstelopties. |
+| `snelstart-sales` | Verkoopfacturen, klanten, artikelen, credits en verzending. |
+| `snelstart-purchases` | Inkopen zoeken, bewijs controleren en pdf’s aanleveren voor herkenning. |
+| `snelstart-bank` | Kas- en bankdagboeken, importdekking en boekingsdetails. |
+| `snelstart-reconcile` | Facturen en betalingen afstemmen met bank- en betaalprovidergegevens. |
+| `snelstart-tax` | Btw, ICP, belastingmonitor en aangiftecontroles. |
+| `snelstart-year-end` | Grootboekexports, begin- en eindbalansen en jaarafsluiting. |
+
+Het [dekkingsoverzicht van het Kennisplein](docs/knowledge-base-coverage.md) koppelt elk geïndexeerd artikel aan de MCP en de relevante skills.
 
 Kies `codex` of `claude-code`. De optie `--with-skills` registreert de MCP en installeert de skills. Gebruik `--skills-only` als de MCP al geregistreerd is. Laat `--apply` weg om de voorgestelde bestanden te bekijken. Een bestaande skill met afwijkende inhoud blijft behouden.
 

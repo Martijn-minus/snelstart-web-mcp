@@ -15,9 +15,15 @@ def test_marketplace_resolves_the_local_plugin_bundle():
     bundle = (ROOT / entry["source"]["path"]).resolve()
     plugin = json.loads((bundle / ".codex-plugin/plugin.json").read_bytes())
     assert plugin["name"] == entry["name"]
+    assert (bundle / plugin["skills"]).resolve() == ROOT / ".agents" / "skills"
     assert {path.parent.name for path in (bundle / plugin["skills"]).glob("*/SKILL.md")} == {
+        "snelstart-administration",
+        "snelstart-bank",
+        "snelstart-purchases",
         "snelstart-setup",
         "snelstart-reconcile",
+        "snelstart-sales",
+        "snelstart-tax",
         "snelstart-year-end",
     }
     mcp = json.loads((bundle / plugin["mcpServers"]).read_bytes())

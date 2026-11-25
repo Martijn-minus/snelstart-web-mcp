@@ -1,17 +1,17 @@
 {
   "name": "snelstart",
-  "version": "2026.11.25.6",
+  "version": "2026.11.25.7",
   "description": "Review SnelStart Web records, reconcile bookkeeping and manage local year backups.",
   "homepage": "https://github.com/Martijn-minus/snelstart-web-mcp",
   "repository": "https://github.com/Martijn-minus/snelstart-web-mcp",
-  "skills": "./src/snelstart_mcp/skills/",
+  "skills": "./.agents/skills/",
   "mcpServers": "./.mcp.json",
   "hooks": "./hooks/hooks.json",
   "requires_local_executor": true,
   "interface": {
     "displayName": "SnelStart",
     "shortDescription": "Connect Codex to SnelStart Web bookkeeping.",
-    "longDescription": "Access your SnelStart administration through the local MCP, use reconciliation and year-end skills, and find or verify local year backups.",
+    "longDescription": "Access your SnelStart administration through the local MCP and use skills for setup, sales, purchases, banking, reconciliation and year-end reviews.",
     "category": "Productivity",
     "defaultPrompt": [
       "Check my SnelStart connection and tell me which administration is selected.",

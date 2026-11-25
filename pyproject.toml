@@ -1,6 +1,6 @@
 [project]
 name = "snelstart-web-mcp"
-version = "2026.11.25.6"
+version = "2026.11.25.7"
 description = "Local MCP for SnelStart Web with automatic sign-in and token renewal"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -34,10 +34,13 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/snelstart_mcp"]
 
+[tool.hatch.build.targets.wheel.force-include]
+".agents/skills" = "snelstart_mcp/skills"
+
 [tool.hatch.build.targets.sdist]
 only-include = [
     "src/snelstart_mcp", "tests", "README.md", "README.nl.md", "NOTICE.md", "pyproject.toml", "install.sh",
-    ".agents/plugins/marketplace.json", ".codex-plugin/plugin.json", ".mcp.json", "hooks", "scripts/codex",
+    "AGENTS.md", "docs/knowledge-base-coverage.md", ".agents", ".codex-plugin/plugin.json", ".mcp.json", "hooks", "scripts/codex",
 ]
 
 [tool.pytest.ini_options]

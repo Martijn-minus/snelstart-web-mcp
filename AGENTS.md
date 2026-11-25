@@ -2,6 +2,8 @@
 
 Read the [README](README.md) for setup, tool arguments and examples. Run package commands from this directory. Keep code, identifiers and tool documentation in English. Use the user's language when discussing accounting results.
 
+Use the workflows in [`.agents/skills`](.agents/skills/) for bookkeeping tasks. The [knowledge base coverage audit](docs/knowledge-base-coverage.md) shows which SnelStart Web workflows have dedicated tools, generic operations, or need the official interface.
+
 ## Confirm the administration
 
 Recommend making and verifying a backup before bookkeeping work. Let the user choose live read-only access, offline access to a year archive, or live access with local write permissions. Create a backup or change access only on request. In offline mode call `snelstart_snapshot_info` first and include the archive cutoff date and coverage in the result.
