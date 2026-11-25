@@ -21,6 +21,12 @@ Zie [jaararchieven en offline toegang](backups.nl.md) voor archief- en snapshott
 | `snelstart_search_sales` | Zoek verkoopfacturen op klant, factuurnummer of status. |
 | `snelstart_sales_invoice_readiness` | Controleer de bedrijfsinstellingen voor verkoopfacturen en toon de namen van lege velden. |
 | `snelstart_sales_booking_details` | Lees maximaal 20 geboekte verkopen via hun niet-nulwaarde in `verkoopboekingPublicIdentifier`. Voor concepten gebruik je de zoekrijen van `snelstart_search_sales`. |
+| `snelstart_search_quotations` en `snelstart_quotation_details` | Zoek offertes en lees regels, bedragen en bijlagemetadata. |
+| `snelstart_preview_sales_document` | Bereken bedragen en btw voor een factuur of offerte met een bestaande klant en artikelen. |
+| `snelstart_save_sales_document` | Sla een nieuwe factuur of offerte op als concept of definitief document zonder verzending. |
+| `snelstart_email_new_sales_document` | Maak een nieuw verkoopdocument en vraag verzending aan met een eenmalige e-mailtekst en optionele bijlagen. |
+| `snelstart_sales_email_template` en `snelstart_sent_email_history` | Lees het standaardsjabloon en de verzendstatus in SnelStart Web. |
+| `snelstart_check_purchase_posting` | Controleer de grootboekfunctie en kostenplaatsinstelling bij btw-verlegging, buitenlandse inkopen en betalingskorting. |
 | `snelstart_search_relations` | Zoek klanten of leveranciers op naam of nummer. |
 | `snelstart_search_articles` | Zoek verkoopartikelen op code of naam. Gebruik `skip` en `take` voor meerdere pagina’s. |
 | `snelstart_article_details` | Lees prijzen, btw en omzetinstellingen met het numerieke `article_id` uit de zoekresultaten. |

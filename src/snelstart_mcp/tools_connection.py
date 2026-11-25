@@ -72,6 +72,16 @@ def register_connection_tools(
         result = client.request(request.operation, request.parameters, request.filters)
         if request.operation in ATTACHMENT_OPERATIONS:
             result = attachment_metadata(result)
+        elif request.operation in {
+            "GET /InvoiceSettings/GetDefaultAttachments",
+            "GET /QuotationSettings/GetDefaultAttachments",
+        }:
+            result = attachment_metadata(result if result is not None else [])
+        elif request.operation == "GET /Quotations/Get" and isinstance(result, dict):
+            attachments = result.get("attachments")
+            result["attachments"] = attachment_metadata(
+                attachments if attachments is not None else []
+            )
         return JsonResponse(data=result)
 
     @tool(annotations=WRITE)

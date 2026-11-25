@@ -963,7 +963,7 @@ def test_backup_stops_before_using_another_administration(session):
     assert not requests
 
 
-def test_only_invoice_search_is_a_catalog_post_read():
+def test_only_search_and_vat_calculation_are_catalog_post_reads():
     assert (
         {
             key
@@ -971,7 +971,11 @@ def test_only_invoice_search_is_a_catalog_post_read():
             if entry["method"] != "GET" and entry["read_only"]
         }
         == api.READ_POST_OPERATIONS
-        == {"POST /Invoices/Search"}
+        == {
+            "POST /Invoices/RedetermineVat",
+            "POST /Invoices/Search",
+            "POST /Quotations/RedetermineVat",
+        }
     )
 
 

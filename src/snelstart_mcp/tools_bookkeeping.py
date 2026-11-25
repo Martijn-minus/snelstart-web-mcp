@@ -399,7 +399,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_search_sales(request: SalesSearchRequest) -> DataResponse[ApiPage]:
-        """Search sales invoices by customer, invoice number or status."""
+        """Search sales invoices by customer, invoice number or status. Use booking details and ledger entries to verify posting dates."""
         statuses = {
             SalesStatus.ALL: 0,
             SalesStatus.OVERDUE: 1,

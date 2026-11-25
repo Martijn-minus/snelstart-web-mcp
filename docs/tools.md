@@ -41,7 +41,7 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_download_document` | Downloads an attachment by UUID or a sales invoice PDF by invoice-number ID. Returns a private local path and checksum. |
 | `snelstart_upload_purchase_pdf` | Submits a local PDF as a new purchase for SnelStart's recognition and review workflow. Returns a processing ID. |
 | `snelstart_purchase_upload_status` | Reads the processing status for that ID. |
-| `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. |
+| `snelstart_search_sales` | Searches sales invoices by customer, invoice number or status. Treat `invoiceDate` and `date` as list dates. Use posted sales details and ledger evidence for booking dates. |
 | `snelstart_sales_invoice_readiness` | Checks whether SnelStart accepts the selected administration's company settings for invoicing. Reports blank field names. |
 | `snelstart_sales_booking_details` | Reads up to 20 posted sales using each row’s nonzero `verkoopboekingPublicIdentifier`. For drafts, use the rows from `snelstart_search_sales`. |
 | `snelstart_search_relations` | Searches customers or suppliers by name or number. |
@@ -50,6 +50,14 @@ The catalog records known Web API operations. Availability depends on the admini
 | `snelstart_bank_journals` | Lists bank and cash journals, including their ledger UUIDs. |
 | `snelstart_bank_entries` | Lists a journal's entries in an inclusive date range. Accepts a search term and a marked-only filter. |
 | `snelstart_find_payment_matches` | Searches for candidate invoices for an incoming or outgoing payment. |
+| `snelstart_search_quotations` | Searches quotations by text and status. Use the quotation UUID from `identifier`. |
+| `snelstart_quotation_details` | Reads quotation lines, totals and attachment metadata by UUID. |
+| `snelstart_preview_sales_document` | Calculates an invoice or quotation with SnelStart's VAT rules using an existing customer code and numeric article IDs. |
+| `snelstart_save_sales_document` | Saves a new invoice or quotation as a draft or as a finished document without sending it. |
+| `snelstart_email_new_sales_document` | Creates and requests delivery of a new invoice or quotation, with a one-off message and optional local attachments. |
+| `snelstart_sales_email_template` | Reads the default subject, body and attachment metadata for invoice or quotation email. |
+| `snelstart_sent_email_history` | Reads Web email history and delivery status by search term. |
+| `snelstart_check_purchase_posting` | Checks a ledger account's function and cost-centre rule for standard, domestic reverse-charge, foreign or payment-discount purchases. |
 
 Purchase searches check the upstream total and row IDs, then sort by invoice date (newest first) and row ID before applying `skip` and `take`. If SnelStart repeats a row, the MCP tries retrieving shorter date ranges and checks their combined count and IDs. It returns an error if it cannot verify complete results. Each scan is limited to 5,000 rows and 64 upstream requests. Narrow the date range or search term if coverage fails.
 
@@ -85,6 +93,19 @@ uv run snelstart-mcp writes grant ADMINISTRATION_UUID 'POST /Purchases/CreateInk
 ```
 
 The profile keeps a local receipt keyed by administration and PDF checksum. Repeating a confirmed submission returns its existing processing ID. After an unconfirmed submission, check the purchase overview before attempting to send the document again.
+
+#### Prepare, save or email a new sales document
+
+1. Confirm the administration, then use `snelstart_sales_invoice_readiness` to check company settings. Find the customer with `snelstart_search_relations` and use the numeric `relationCode`. Find each `articleId` with `snelstart_search_articles`.
+2. Call `snelstart_preview_sales_document` with `kind` set to `invoice` or `quotation`. Supply the document date, optional order date and payment terms, and one or more lines. An omitted unit price uses the article's configured price. Supply an explicit price for a negotiated rate.
+3. For save only, use `snelstart_save_sales_document` with the same inputs and `expected_gross` from the reviewed preview. Use `draft: true` to keep the document as a concept. Verify it in sales or quotations search.
+4. To create and send in one step, use `snelstart_email_new_sales_document` with the same inputs and expected gross, plus the exact recipient, subject and message. Supply absolute local `attachment_paths` when requested. Files total at most 10 MB. Review the request before releasing it. Sending may create a record even when delivery is blocked. Check the sales or quotation overview and sent-mail history before retrying. Use the Web interface to send or resend a document already saved. [Invoice guide](https://kennispleinweb.snelstart.nl/nl/een-factuur-maken-in-snelstart-web) · [Quotation guide](https://kennispleinweb.snelstart.nl/nl/een-offerte-maken-in-snelstart-web) · [Email guide](https://kennispleinweb.snelstart.nl/nl/mailen-vanuit-snelstart-web)
+
+Emailing needs a scoped grant for `POST /Invoices/Send` or `POST /Quotations/SaveAndSend` in the selected administration. Attachments also need permission for `GET /Attachments/GetAttachmentUploadUriNew`. Sending a one-off message leaves the default template alone. A result of `submitted` means SnelStart accepted the send request. Use `snelstart_sent_email_history` for SnelStart's delivery status.
+
+#### Check a specialised purchase before posting
+
+Use `snelstart_check_purchase_posting` with the selected administration UUID and the actual ledger account number. Select `domestic_reverse_charge`, `intra_eu`, `outside_eu` or `payment_discount` when applicable. For foreign purchases, provide the applicable Dutch VAT band as `low`, `high` or `other`. For a realised early payment discount, provide the invoice total and observed payment. The tool checks the account function and its cost-centre requirement. Include `purchase_id` and, when available, `purchase_invoice_id` from the same search row to inspect recorded ledger and VAT lines. An empty VAT detail does not establish the return treatment. The result supplies evidence for posting in the Web interface. [Domestic reverse charge](https://kennispleinweb.snelstart.nl/nl/een-inkoopfactuur-btw-verlegd-boeken) · [Foreign purchases](https://kennispleinweb.snelstart.nl/nl/hoe-boek-ik-een-inkoopfactuur-uit-het-buitenland-in-snelstart-web) · [Cost centres](https://kennispleinweb.snelstart.nl/nl/kostenplaats-toevoegen-in-snelstart-web) · [Payment discount](https://kennispleinweb.snelstart.nl/nl/een-inkoopfactuur-met-betalingskorting-boeken)
 
 ### Financial reports and tax
 

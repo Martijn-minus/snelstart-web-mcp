@@ -6,6 +6,7 @@ EXPLICIT_GRANT_PREFIXES = (
     "POST /Invoices/Send",
     "POST /Invoices/Resend",
     "POST /Invoices/UpdateAndSend",
+    "POST /Quotations/SaveAndSend",
     "POST /Customers/UpdateInvoiceMailAddress",
     "POST /Customers/UpdateQuotationMailAddress",
     "POST /Jaarafsluiting/",

@@ -33,7 +33,11 @@ from .mutation import send_with_receipt
 from .write_policy import needs_scoped_grant
 
 MAX_DOWNLOAD_BYTES = 25 * 1024 * 1024
-READ_POST_OPERATIONS = {"POST /Invoices/Search"}
+READ_POST_OPERATIONS = {
+    "POST /Invoices/RedetermineVat",
+    "POST /Invoices/Search",
+    "POST /Quotations/RedetermineVat",
+}
 
 
 def catalog() -> dict:

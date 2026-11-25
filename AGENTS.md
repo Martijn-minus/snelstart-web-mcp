@@ -17,7 +17,9 @@ Recommend making and verifying a backup before bookkeeping work. Let the user ch
 | Task | Tools |
 | --- | --- |
 | Find and review a purchase | `snelstart_search_purchases`, then `snelstart_get_entry` with `kind: "purchase"`. Read recorded settlements with `snelstart_purchase_payments`. |
+| Check a specialised purchase | Use `snelstart_check_purchase_posting` to verify the ledger function, cost-centre requirement and recorded purchase lines when supplied. Check the relevant return separately. |
 | Download the purchase PDF | Call `snelstart_list_attachments` with the purchase UUID, then `snelstart_download_document` with the PDF's attachment identifier. |
+| Prepare a new invoice or quotation | Calculate with `snelstart_preview_sales_document`. Save or email only on explicit request, using the reviewed total. Verify save in sales or quotation search and consult `snelstart_sent_email_history` for delivery status. |
 | Check bank transactions | Get journal UUIDs with `snelstart_bank_journals`, then use `snelstart_export_bank_entries` for checked coverage across journals or `snelstart_get_entries` for a mixed batch of booking details. `snelstart_reconcile_bank` provides evidence and candidates for human review. |
 | Check figures or tax returns | Use `snelstart_balance_sheet`, `snelstart_financial_result`, `snelstart_vat_returns`, or `snelstart_icp_returns` as appropriate. |
 | Submit a new purchase PDF | On an explicit request, call `snelstart_upload_purchase_pdf` for the named administration and file. Use the returned ID with `snelstart_purchase_upload_status`. |

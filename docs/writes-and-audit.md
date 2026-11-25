@@ -33,7 +33,7 @@ uv run snelstart-mcp writes revoke ADMINISTRATION_UUID 'POST /MemoriaalBoekingen
 uv run snelstart-mcp writes off
 ```
 
-A grant stays active until revoked. `writes off` disables global writing and clears all grants. Global mode covers standard operations. Filing, emailing invoices, changing invoice destinations and year-end operations require a specific grant for the administration.
+A grant stays active until revoked. `writes off` disables global writing and clears all grants. Global mode covers standard operations. Filing, emailing invoices or quotations, changing sales email destinations and year-end operations require a specific grant for the administration.
 
 **Per-write confirmation** is required by default. To send explicitly authorized writes directly, run `snelstart-mcp writes confirmations off` for the selected administration. Use `snelstart-mcp writes confirmations on` to restore per-write confirmation and `snelstart-mcp writes confirmations` to check the setting. The setting applies to the selected administration only. Global and scoped write permissions still apply.
 

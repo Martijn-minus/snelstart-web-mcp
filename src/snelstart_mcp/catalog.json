@@ -960,6 +960,30 @@
     "json_body": false,
     "read_only": false
   },
+  "GET /InvoiceSettings/GetDefaultAttachments": {
+    "method": "GET",
+    "path": "/InvoiceSettings/GetDefaultAttachments",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /InvoiceSettings/GetInvoiceMailText": {
+    "method": "GET",
+    "path": "/InvoiceSettings/GetInvoiceMailText",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /InvoiceSettings/GetMailSubject": {
+    "method": "GET",
+    "path": "/InvoiceSettings/GetMailSubject",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
   "GET /Invoices/Get": {
     "method": "GET",
     "path": "/Invoices/Get",
@@ -1316,6 +1340,27 @@
     "json_body": false,
     "read_only": true
   },
+  "GET /Mail/Search": {
+    "method": "GET",
+    "path": "/Mail/Search",
+    "query_parameters": [
+      "searchTerm",
+      "mailStatusSearchType",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "mailStatusSearchType",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
   "GET /MemoriaalBoekingen/GetAttachments": {
     "method": "GET",
     "path": "/MemoriaalBoekingen/GetAttachments",
@@ -1606,6 +1651,63 @@
     "json_body": false,
     "read_only": true
   },
+  "GET /QuotationSettings/GetDefaultAttachments": {
+    "method": "GET",
+    "path": "/QuotationSettings/GetDefaultAttachments",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /QuotationSettings/GetMailSubject": {
+    "method": "GET",
+    "path": "/QuotationSettings/GetMailSubject",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Quotations/Get": {
+    "method": "GET",
+    "path": "/Quotations/Get",
+    "query_parameters": [
+      "quotationIdentifier"
+    ],
+    "required_parameters": [
+      "quotationIdentifier"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Quotations/GetMailText": {
+    "method": "GET",
+    "path": "/Quotations/GetMailText",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": false,
+    "read_only": true
+  },
+  "GET /Quotations/Search": {
+    "method": "GET",
+    "path": "/Quotations/Search",
+    "query_parameters": [
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "sortDataFieldName",
+      "sortDescending"
+    ],
+    "required_parameters": [
+      "searchTerm",
+      "statusFilter",
+      "skip",
+      "take",
+      "sortDataFieldName"
+    ],
+    "json_body": false,
+    "read_only": true
+  },
   "GET /Settings/Get": {
     "method": "GET",
     "path": "/Settings/Get",
@@ -1748,8 +1850,14 @@
   "GET /Reporting/FinancieelResultaat": {
     "method": "GET",
     "path": "/Reporting/FinancieelResultaat",
-    "query_parameters": ["startDate", "endDate"],
-    "required_parameters": ["startDate", "endDate"],
+    "query_parameters": [
+      "startDate",
+      "endDate"
+    ],
+    "required_parameters": [
+      "startDate",
+      "endDate"
+    ],
     "json_body": false,
     "read_only": true
   },
@@ -2081,7 +2189,7 @@
     "query_parameters": [],
     "required_parameters": [],
     "json_body": true,
-    "read_only": false
+    "read_only": true
   },
   "POST /Invoices/RegisterPaymentWithIdentifier": {
     "method": "POST",
@@ -2382,6 +2490,14 @@
     "json_body": true,
     "read_only": false
   },
+  "POST /Orders/Save": {
+    "method": "POST",
+    "path": "/Orders/Save",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
   "POST /Purchases/CreateInkoopVoorBijlage": {
     "method": "POST",
     "path": "/Purchases/CreateInkoopVoorBijlage",
@@ -2485,6 +2601,30 @@
   "POST /Purchases/UpdateTeControlerenGegevens": {
     "method": "POST",
     "path": "/Purchases/UpdateTeControlerenGegevens",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Quotations/RedetermineVat": {
+    "method": "POST",
+    "path": "/Quotations/RedetermineVat",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": true
+  },
+  "POST /Quotations/SaveAndSend": {
+    "method": "POST",
+    "path": "/Quotations/SaveAndSend",
+    "query_parameters": [],
+    "required_parameters": [],
+    "json_body": true,
+    "read_only": false
+  },
+  "POST /Quotations/SaveOnly": {
+    "method": "POST",
+    "path": "/Quotations/SaveOnly",
     "query_parameters": [],
     "required_parameters": [],
     "json_body": true,

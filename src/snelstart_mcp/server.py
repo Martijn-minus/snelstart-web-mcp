@@ -22,7 +22,9 @@ from .tools_archives import register_archive_tools
 from .tools_bookkeeping import register_bookkeeping_tools
 from .tools_connection import register_connection_tools
 from .tools_mutation import register_mutation_tools
+from .tools_purchase_posting import register_purchase_posting_tools
 from .tools_review import register_review_tools
+from .tools_sales import register_sales_tools
 from .tools_workflows import register_workflow_tools
 from .updater import UpdateChecker
 from .version import installed_version
@@ -121,6 +123,8 @@ def create_server(client: Client | None = None) -> FastMCP:
     )
     register_bookkeeping_tools(tool, client)
     register_workflow_tools(tool, client)
+    register_sales_tools(tool, client)
+    register_purchase_posting_tools(tool, client)
     register_review_tools(tool, client)
     register_purchase_upload_tools(tool, client)
     register_archive_tools(tool, client)

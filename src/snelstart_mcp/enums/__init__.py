@@ -155,6 +155,57 @@ class SalesStatus(StrEnum):
     DRAFT = "draft"
 
 
+class QuotationStatus(StrEnum):
+    ALL = "all"
+    DRAFT = "draft"
+    UNINVOICED = "uninvoiced"
+    INVOICED = "invoiced"
+
+
+class MailHistoryStatus(StrEnum):
+    ALL = "all"
+    FAILED = "failed"
+    IN_TRANSIT = "in_transit"
+    DELIVERED = "delivered"
+    SENT = "sent"
+
+
+class SalesDocumentKind(StrEnum):
+    INVOICE = "invoice"
+    QUOTATION = "quotation"
+
+
+class SalesPricing(StrEnum):
+    EXCLUSIVE = "exclusive"
+    INCLUSIVE = "inclusive"
+
+
+class SalesEmailOutcome(StrEnum):
+    SUBMITTED = "submitted"
+    SENDER_VERIFICATION_REQUIRED = "sender_verification_required"
+    NOT_CONFIRMED = "not_confirmed"
+
+
+class PurchasePostingKind(StrEnum):
+    STANDARD = "standard"
+    DOMESTIC_REVERSE_CHARGE = "domestic_reverse_charge"
+    INTRA_EU = "intra_eu"
+    OUTSIDE_EU = "outside_eu"
+    PAYMENT_DISCOUNT = "payment_discount"
+
+
+class PurchaseVatBand(StrEnum):
+    LOW = "low"
+    HIGH = "high"
+    OTHER = "other"
+
+
+class CostCentreRequirement(StrEnum):
+    FORBIDDEN = "forbidden"
+    OPTIONAL = "optional"
+    REQUIRED = "required"
+
+
 class PaymentDirection(StrEnum):
     INCOMING = "incoming"
     OUTGOING = "outgoing"
