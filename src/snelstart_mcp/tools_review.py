@@ -217,7 +217,7 @@ def export_ledger_entries(client: Client, request: LedgerExportRequest) -> Ledge
 def register_review_tools(tool: Register, client: Client) -> None:
     @tool(annotations=READ)
     def snelstart_get_entries(request: BookingBatchRequest) -> BookingBatchResponse:
-        """Read up to 20 mixed booking IDs in the selected administration. Bank list context can recover list evidence after HTTP 500. Set include_attachments to check linked files for purchases, bank transactions and journal entries even when a detail flag is false. Inspect per-record errors and completeness."""
+        """Read up to 20 mixed booking IDs in the selected administration. Bank list context can recover list evidence after HTTP 500. Set include_attachments to check linked files for purchases, bank transactions and journal entries even when a detail flag is false. Listed attachment sizes can differ from the downloaded byte counts. Use snelstart_download_document for bytes and SHA-256. Inspect per-record errors and completeness."""
         administration = _selected_administration(client)
         read = partial(client.request, expected_administration=str(administration))
         return booking_batch(read, administration, request)

@@ -515,7 +515,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_list_attachments(request: AttachmentListRequest) -> AttachmentListResponse:
-        """List linked files for a purchase, bank transaction or journal entry. Opening balances report attachment lookup as unavailable. Download listed files for their actual byte count and checksum."""
+        """List linked files for a purchase, bank transaction or journal entry. Opening balances report attachment lookup as unavailable. The listed size is SnelStart metadata and can differ from the downloaded byte count. Use snelstart_download_document for bytes and SHA-256."""
         if request.kind is AttachmentKind.OPENING_BALANCE:
             return AttachmentListResponse(
                 data=None, attachment_lookup_error=OPENING_BALANCE_ATTACHMENTS_UNAVAILABLE
@@ -533,7 +533,7 @@ def register_bookkeeping_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_download_document(request: DocumentRequest) -> DownloadResponse:
-        """Download a document to a private local file. Returns its path and SHA-256."""
+        """Download a document to a private local file. Returns its path, actual byte count and SHA-256 of the downloaded bytes."""
         if request.attachment_id is not None:
             return DownloadResponse.model_validate(
                 client.request(

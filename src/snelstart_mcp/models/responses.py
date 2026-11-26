@@ -85,8 +85,8 @@ class DownloadResponse(BaseModel):
     path: Path
     original_filename: str | None
     content_type: str
-    bytes: int
-    sha256: Sha256
+    bytes: int = Field(description="Number of bytes saved in the local file.")
+    sha256: Sha256 = Field(description="SHA-256 of the bytes saved in the local file.")
 
 
 class BankAttachmentResponse(BaseModel):
