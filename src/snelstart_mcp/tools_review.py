@@ -49,7 +49,7 @@ from .tools_bookkeeping import (
     attachment_metadata,
     ledger_query,
 )
-from .year_data import booking_date, entries_in_period, pages
+from .year_data import DuplicatePageRow, MissingPageRow, booking_date, entries_in_period, pages
 
 ONE_DAY = timedelta(days=1)
 
@@ -145,6 +145,28 @@ def _ledger_export_periods(read, start: date, end: date) -> list[tuple[date, dat
     return periods
 
 
+def _ledger_rows(read, ledger_id: UUID, start: date, end: date) -> list[JsonObject]:
+    fetch = partial(
+        pages,
+        read,
+        LEDGER_ENTRIES,
+        ledger_query(ledger_id, end),
+        ("publicIdentifier",),
+        size_param="top",
+    )
+    try:
+        return fetch()
+    except (DuplicatePageRow, MissingPageRow):
+        # Restart this account and fiscal period at page one with a fresh set of row IDs.
+        pass
+    try:
+        return fetch()
+    except SnelStartError as error:
+        raise SnelStartError(
+            f"Ledger account {ledger_id}, {start} through {end}, failed after one retry. {error}"
+        ) from None
+
+
 def export_ledger_entries(client: Client, request: LedgerExportRequest) -> LedgerExportResponse:
     administration = _selected_administration(client)
     read = partial(client.request, expected_administration=str(administration))
@@ -160,13 +182,7 @@ def export_ledger_entries(client: Client, request: LedgerExportRequest) -> Ledge
             for ledger_id in request.ledger_ids:
                 fetched_rows = exported_rows = 0
                 for start, end in reversed(periods):
-                    rows = pages(
-                        read,
-                        LEDGER_ENTRIES,
-                        ledger_query(ledger_id, end),
-                        ("publicIdentifier",),
-                        size_param="top",
-                    )
+                    rows = _ledger_rows(read, ledger_id, start, end)
                     selected = entries_in_period(rows, start, end, "datum")
                     fetched_rows += len(rows)
                     exported_rows += len(selected)
@@ -231,7 +247,7 @@ def register_review_tools(tool: Register, client: Client) -> None:
 
     @tool(annotations=READ)
     def snelstart_export_ledger_entries(request: LedgerExportRequest) -> LedgerExportResponse:
-        """Export checked ledger pages across fiscal years for up to 20 accounts within an inclusive date range. Returns a private JSONL path, row counts and checksum."""
+        """Export checked ledger pages across fiscal years for up to 20 accounts within an inclusive date range. Retries the affected account and period once after a missing or duplicate row ID. Returns a private JSONL path, row counts and checksum."""
         return export_ledger_entries(client, request)
 
     @tool(annotations=READ)

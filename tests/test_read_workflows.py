@@ -301,8 +301,71 @@ def test_ledger_export_rejects_unverified_coverage_with_an_active_year(session, 
     assert all(request.url.path != "/Grootboek/GetGrootboekMutaties" for request in requests)
 
 
-def test_incomplete_ledger_export_does_not_leave_partial_file(session):
+@pytest.mark.parametrize("invalid_row", [{"publicIdentifier": "first-posting"}, {}])
+def test_ledger_export_restarts_only_the_affected_account_and_period(session, invalid_row):
     client, _, replies = session
+    other = "22222222-2222-4222-8222-222222222222"
+    replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
+        ("2024-01-01", "2024-12-31"), ("2025-01-01", "2025-12-31")
+    )
+    calls = []
+
+    def ledger(request):
+        account = request.url.params["grootboekIdentifier"]
+        year = request.url.params["dateTo"][:4]
+        offset = int(request.url.params["skip"])
+        calls.append((account, year, offset))
+        if (account, year) != (ENTRY, "2024"):
+            return {
+                "resultList": [{"publicIdentifier": f"{account}-{year}", "datum": f"{year}-01-01"}],
+                "totalMatchCount": 1,
+            }
+        if offset == 1 and calls.count((account, year, 0)) == 1:
+            return {"resultList": [invalid_row], "totalMatchCount": 2}
+        return {
+            "resultList": [
+                {
+                    "publicIdentifier": ("first-posting", "second-posting")[offset],
+                    "datum": "2024-01-01",
+                }
+            ],
+            "totalMatchCount": 2,
+        }
+
+    replies["/Grootboek/GetGrootboekMutaties"] = ledger
+    result = call(
+        client,
+        "snelstart_export_ledger_entries",
+        {"ledger_ids": [ENTRY, other], "start_date": "2024-01-01", "through_date": "2025-12-31"},
+    )
+    assert calls == [
+        (ENTRY, "2025", 0),
+        (ENTRY, "2024", 0),
+        (ENTRY, "2024", 1),
+        (ENTRY, "2024", 0),
+        (ENTRY, "2024", 1),
+        (other, "2025", 0),
+        (other, "2024", 0),
+    ]
+    assert result["total_exported_rows"] == 5
+    assert [row["fetched_rows"] for row in result["ledgers"]] == [3, 2]
+    content = Path(result["path"]).read_bytes()
+    assert sha256(content).hexdigest() == result["sha256"]
+    assert [json.loads(line)["entry"]["publicIdentifier"] for line in content.splitlines()] == [
+        f"{ENTRY}-2025",
+        "first-posting",
+        "second-posting",
+        f"{other}-2025",
+        f"{other}-2024",
+    ]
+
+
+@pytest.mark.parametrize(
+    ("later_row", "message"),
+    [({"publicIdentifier": "first-posting"}, "duplicate row ID"), ({}, "row without an ID")],
+)
+def test_incomplete_ledger_export_does_not_leave_partial_file(session, later_row, message):
+    client, requests, replies = session
     replies["/Jaarafsluiting/GetAllJaarafsluiting"] = fiscal_years(
         ("2024-01-01", "2024-12-31"), ("2025-01-01", "2025-12-31")
     )
@@ -314,18 +377,31 @@ def test_incomplete_ledger_export_does_not_leave_partial_file(session):
                 "totalMatchCount": 1,
             }
         return {
-            "resultList": [{"publicIdentifier": "repeated", "datum": "2024-01-01"}],
+            "resultList": [
+                later_row
+                if request.url.params["skip"] == "1"
+                else {"publicIdentifier": "first-posting", "datum": "2024-01-01"}
+            ],
             "totalMatchCount": 2,
         }
 
     replies["/Grootboek/GetGrootboekMutaties"] = ledger
-    with pytest.raises(ToolError, match="duplicate row ID"):
+    with pytest.raises(
+        ToolError,
+        match=rf"{ENTRY}, 2024-01-01 through 2024-12-31, failed after one retry.*{message} on page 2",
+    ):
         call(
             client,
             "snelstart_export_ledger_entries",
             {"ledger_ids": [ENTRY], "start_date": "2024-01-01", "through_date": "2025-12-31"},
         )
     assert list((client.store.directory / "exports").iterdir()) == []
+    assert [
+        request.url.params["skip"]
+        for request in requests
+        if request.url.path == "/Grootboek/GetGrootboekMutaties"
+        and request.url.params["dateTo"].startswith("2024")
+    ] == ["0", "1", "0", "1"]
 
 
 def test_purchase_evidence_uses_same_attachment_redaction_and_can_skip_attachments(session):

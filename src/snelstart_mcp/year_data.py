@@ -20,9 +20,18 @@ PURCHASE_ROW_KEYS = ("publicIdentifier", "factuurnummeridentifier")
 MAX_EXPORT_ROWS = 100_000
 
 
+class MissingPageRow(SnelStartError):
+    def __init__(self, operation: str, page_number: int):
+        super().__init__(
+            f"SnelStart returned a row without an ID on page {page_number} for {operation}."
+        )
+
+
 class DuplicatePageRow(SnelStartError):
-    def __init__(self, operation: str, total: int):
-        super().__init__(f"Missing or duplicate row ID while exporting {operation}.")
+    def __init__(self, operation: str, total: int, page_number: int):
+        super().__init__(
+            f"SnelStart returned a duplicate row ID on page {page_number} for {operation}."
+        )
         self.total = total
 
 
@@ -68,9 +77,9 @@ def pages(
         for row in chunk:
             key = _row_key(row, key_fields)
             if key is None:
-                raise SnelStartError(f"Missing or duplicate row ID while exporting {operation}.")
+                raise MissingPageRow(operation, page_count)
             if key in keys:
-                raise DuplicatePageRow(operation, total)
+                raise DuplicatePageRow(operation, total, page_count)
             keys.add(key)
             rows.append(row)
         if len(rows) == total:

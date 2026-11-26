@@ -67,6 +67,8 @@ Een bevestigde herhaling levert het bestaande verwerkings-ID op. Controleer het 
 
 Voor een grootboekexport geef je `ledger_ids`, `start_date` en `through_date` mee. Bij een periode van meerdere dagen controleert de tool de boekjaargrenzen en leest hij elk geraakt boekjaar apart. Valt de einddatum na de laatste jaarafsluiting, dan controleert de tool het lopende boekjaar via de administratie-instellingen. Als de boekjaargrenzen de gevraagde periode niet aantoonbaar dekken, geeft de tool een foutmelding. De uitvoer geeft het bestandspad, de SHA-256 en aantallen per rekening. Elke regel bevat `ledger_id` en de oorspronkelijke `entry` binnen de periode. Behandel de export als privéboekhoudgegevens.
 
+Bij een ontbrekende of dubbele regel-ID begint de tool één keer opnieuw vanaf de eerste pagina van die rekening en boekjaarperiode. Als de tweede poging faalt, noemt de melding de rekening, datums en oorzaak. Bij een mislukte export verwijdert de tool het onvolledige bestand.
+
 Gebruik bij btw-aangiften de publieke UUID's uit `snelstart_vat_returns` als `return_ids`. Geef voor ICP de `publicIdentifier` uit een opgeslagen rij van `snelstart_icp_returns` mee aan `snelstart_icp_return_details`. Gebruik de zoekrij voor een berekening die nog niet is opgeslagen. De uiteindelijke belastingreservering bekijk je in de Belastingmonitor van SnelStart Web. [Belastingmonitor](https://kennisplein.snelstart.nl/migration/nl/snelstartweb/wat-is-de-belastingmonitor-in-snelstart)
 
 ## Boekingscontrole en afstemming
