@@ -1,5 +1,7 @@
 # SnelStart Web MCP
 
+<!-- mcp-name: io.github.martijn-minus/snelstart-web-mcp -->
+
 **English** · [Nederlands](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/README.nl.md)
 
 This unofficial MCP connects to SnelStart Web through `webapi.snelstart.nl`. SnelStart's official B2B API and Polaris are separate products.

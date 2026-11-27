@@ -46,6 +46,7 @@ jobs:
           uv run --locked twine check --strict dist/*
           uv run --isolated --no-project --with dist/*.whl snelstart-mcp --version
           uv run --isolated --no-project --with dist/*.whl snelstart-mcp login --help
+          uv run --isolated --no-project --with dist/*.whl snelstart-web-mcp serve --help
       - name: Upload distribution artifacts
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:

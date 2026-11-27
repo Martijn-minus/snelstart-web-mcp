@@ -16,13 +16,15 @@ jobs:
       - name: Verify release tag matches the calendar version
         run: |
           python3 - <<'PY'
+          import json
           import os
           import re
           import tomllib
           from datetime import date
           from pathlib import Path
 
-          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          version = project["version"]
           match = re.fullmatch(r"([0-9]{4})\.([1-9][0-9]?)\.([1-9][0-9]?)\.[1-9][0-9]*", version)
           if not match:
               raise SystemExit("Use YYYY.M.D.N with a positive daily release number.")
@@ -32,6 +34,15 @@ jobs:
               raise SystemExit("The release version must contain a valid calendar date.") from None
           if os.environ["GITHUB_REF"] != f"refs/tags/v{version}":
               raise SystemExit(f"Run this workflow on tag v{version}.")
+          manifest = json.loads(Path("server.json").read_text())
+          package = next(item for item in manifest["packages"] if item["registryType"] == "pypi")
+          if manifest["version"] != version or package["version"] != version:
+              raise SystemExit("Match both server.json versions to the release version.")
+          if package["identifier"] != project["name"] or package["identifier"] not in project["scripts"]:
+              raise SystemExit("Match the registry package name to the project and its launch command.")
+          marker = f"<!-- mcp-name: {manifest['name']} -->"
+          if marker not in Path(project["readme"]).read_text().splitlines():
+              raise SystemExit("Add the matching MCP Registry ownership marker to the package README.")
           PY
 
   build:
@@ -52,3 +63,26 @@ jobs:
           name: snelstart-mcp-distributions
           path: dist/
       - uses: pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086 # v1.14.3
+
+  publish-mcp-registry:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Download and verify the MCP publisher
+        run: |
+          archive=mcp-publisher_linux_amd64.tar.gz
+          curl --fail --silent --show-error --location --output "$archive" \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v1.8.17/$archive"
+          echo "4fbfe8236becd291a7a37b3e2cd7d5a6171ecf25c62a47f4fe92ef9b92007f9b  $archive" | sha256sum --check -
+          tar xzf "$archive" mcp-publisher
+      - name: Publish the PyPI package listing
+        run: |
+          ./mcp-publisher validate server.json
+          ./mcp-publisher login github-oidc
+          ./mcp-publisher publish server.json

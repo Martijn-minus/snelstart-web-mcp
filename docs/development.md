@@ -33,10 +33,12 @@ The SnelStart MCP GitHub Actions workflow runs the hooks and offline tests on Py
 
 ### Publishing a calendar release
 
-Set the version in `pyproject.toml` to `YYYY.M.D.N` and update `uv.lock` with `uv lock`. Use the release date and count releases from `1` each day. For example, `2026.11.24.1` is followed by `2026.11.24.2` on the same day. The first release on the next day starts at `2026.11.25.1`. Write month, day, and release number without leading zeroes. Tag the reviewed commit as `v<VERSION>`. The PyPI workflow validates the version and tag, builds the package, and publishes via the repository's `pypi` environment.
+Set the version in `pyproject.toml`, `.codex-plugin/plugin.json`, and both version fields in `server.json` to `YYYY.M.D.N`. Update `uv.lock` with `uv lock`. Use the release date and count releases from `1` each day. For example, `2026.11.24.1` is followed by `2026.11.24.2` on the same day. The first release on the next day starts at `2026.11.25.1`. Write month, day, and release number without leading zeroes. Tag the reviewed commit as `v<VERSION>`. The release workflow validates the versions and tag, builds the package, publishes it to PyPI and registers the published version in the official MCP Registry.
 
 ```sh
 gh workflow run workflow.yml --ref "v$(uv run --frozen python -c 'from importlib.metadata import version; print(version("snelstart-web-mcp"))')"
 ```
 
 The PyPI Trusted Publisher must match this repository and `workflow.yml`. [PyPI Trusted Publishing](https://docs.pypi.org/trusted-publishers/)
+
+Registry users launch the local server with `uvx snelstart-web-mcp serve`. The package-name executable uses the same entry point as `snelstart-mcp`. The registry verifies the published README marker and the workflow's GitHub identity. [MCP Registry publishing guide](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx)
