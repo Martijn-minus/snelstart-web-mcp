@@ -1,6 +1,6 @@
 # SnelStart Web MCP
 
-<!-- mcp-name: io.github.martijn-minus/snelstart-web-mcp -->
+<!-- mcp-name: io.github.Martijn-minus/snelstart-web-mcp -->
 
 **English** · [Nederlands](https://github.com/Martijn-minus/snelstart-web-mcp/blob/main/README.nl.md)
 

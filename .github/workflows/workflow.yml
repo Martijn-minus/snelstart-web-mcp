@@ -36,6 +36,9 @@ jobs:
               raise SystemExit(f"Run this workflow on tag v{version}.")
           manifest = json.loads(Path("server.json").read_text())
           package = next(item for item in manifest["packages"] if item["registryType"] == "pypi")
+          namespace = f"io.github.{os.environ['GITHUB_REPOSITORY_OWNER']}/"
+          if not manifest["name"].startswith(namespace):
+              raise SystemExit("Use the GitHub repository owner's exact casing in the MCP Registry name.")
           if manifest["version"] != version or package["version"] != version:
               raise SystemExit("Match both server.json versions to the release version.")
           if package["identifier"] != project["name"] or package["identifier"] not in project["scripts"]:

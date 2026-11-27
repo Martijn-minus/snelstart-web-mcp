@@ -1,18 +1,18 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.martijn-minus/snelstart-web-mcp",
+  "name": "io.github.Martijn-minus/snelstart-web-mcp",
   "title": "SnelStart Web MCP",
   "description": "Unofficial local MCP for SnelStart Web bookkeeping, reconciliation, and year archives.",
   "repository": {
     "url": "https://github.com/Martijn-minus/snelstart-web-mcp",
     "source": "github"
   },
-  "version": "2026.11.27.1",
+  "version": "2026.11.27.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "snelstart-web-mcp",
-      "version": "2026.11.27.1",
+      "version": "2026.11.27.2",
       "runtimeHint": "uvx",
       "packageArguments": [
         {
